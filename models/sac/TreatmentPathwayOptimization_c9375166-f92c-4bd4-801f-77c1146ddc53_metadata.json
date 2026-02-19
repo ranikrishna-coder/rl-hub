@@ -1,0 +1,8 @@
+{
+  "job_id": "c9375166-f92c-4bd4-801f-77c1146ddc53",
+  "environment_name": "TreatmentPathwayOptimization",
+  "algorithm": "SAC",
+  "num_episodes": 100,
+  "mean_reward": 1.9757732268617383,
+  "training_completed": true
+}

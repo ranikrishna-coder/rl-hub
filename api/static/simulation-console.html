@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation Console - RL Environment</title>
+    <link rel="stylesheet" href="/static/test-console.css">
+</head>
+<body>
+    <div class="console-container">
+        <header class="console-header">
+            <div class="header-content">
+                <h1 id="console-title">🩻 RL Environment - Simulation Console</h1>
+                <p class="subtitle">Interactive RL Environment Testing for Healthcare Decision Makers</p>
+            </div>
+            <button class="btn-back" onclick="window.location.href='/'">← Back to Catalog</button>
+        </header>
+
+        <div class="console-layout">
+            <!-- Left Panel: Configuration -->
+            <div class="panel config-panel">
+                <h2>⚙️ Configuration - Input</h2>
+                
+                <div class="config-section">
+                    <h3>Environment Selection</h3>
+                    <div class="form-group">
+                        <label>Environment: <span class="tooltip-icon" title="Select the RL environment you want to simulate. Each environment represents a different healthcare optimization scenario.">ℹ️</span></label>
+                        <select id="environment-select">
+                            <option value="">Loading environments...</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="config-section" id="dynamic-config">
+                    <h3>Environment Configuration</h3>
+                    <div class="empty-state">Select an environment to configure</div>
+                </div>
+
+                <div class="config-section">
+                    <h3>RL Agent Settings</h3>
+                    <div class="form-group">
+                        <label>Agent Strategy: <span class="tooltip-icon" title="Select the decision-making strategy: Random (baseline), Urgency First (prioritize urgent cases), Value First (prioritize high-value items), or Balanced (RL-optimized approach)">ℹ️</span></label>
+                        <select id="agent-strategy">
+                            <option value="random">Random (Baseline)</option>
+                            <option value="urgency_first">Urgency First</option>
+                            <option value="value_first">High Value First</option>
+                            <option value="balanced">Balanced (RL Optimized)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Simulation Speed: <span class="tooltip-icon" title="Control how fast the simulation runs. Slow: 1 step per second (good for detailed observation), Medium: 2 steps/sec (balanced), Fast: 5 steps/sec (quick overview)">ℹ️</span></label>
+                        <select id="sim-speed">
+                            <option value="slow">Slow (1 step/sec)</option>
+                            <option value="medium" selected>Medium (2 steps/sec)</option>
+                            <option value="fast">Fast (5 steps/sec)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="btn-initialize" title="Initialize a new simulation episode with the configured parameters. This resets the environment and starts fresh.">Initialize Environment</button>
+                    <button class="btn btn-secondary" id="btn-reset" title="Reset the simulation to its initial state, clearing all progress and metrics.">Reset</button>
+                </div>
+            </div>
+
+            <!-- Center Panel: Simulation View -->
+            <div class="panel simulation-panel">
+                <div class="panel-header">
+                    <h2>📊 Training Simulation <span class="tooltip-icon" title="Interactive simulation view showing the current state of the environment, actions being taken, and historical actions. Use Step Forward to advance one step, Auto Run for continuous simulation, or Stop to pause.">ℹ️</span></h2>
+                    <div class="sim-controls">
+                        <button class="btn btn-small" id="btn-step" title="Advance the simulation by one step">Step Forward</button>
+                        <button class="btn btn-small" id="btn-auto" title="Run the simulation automatically at the selected speed">Auto Run</button>
+                        <button class="btn btn-small btn-danger" id="btn-stop" title="Stop the automatic simulation">Stop</button>
+                    </div>
+                </div>
+
+                <div class="simulation-view">
+                    <div class="queue-display">
+                        <h3>📋 Current State <span class="tooltip-icon" title="Shows the current queue of items (orders, patients, appointments, etc.) waiting to be processed. Items are color-coded by urgency: red (STAT/urgent), orange (high priority), yellow (medium), green (low).">ℹ️</span></h3>
+                        <div id="state-display" class="order-list">
+                            <div class="empty-state">Click "Initialize Environment" to start</div>
+                        </div>
+                    </div>
+
+                    <div class="current-action">
+                        <h3>🎯 Current Action <span class="tooltip-icon" title="Displays the current action being taken by the RL agent, including the strategy being used and the current simulation step.">ℹ️</span></h3>
+                        <div id="action-display" class="action-box">
+                            <div class="empty-state">Waiting for initialization...</div>
+                        </div>
+                    </div>
+
+                    <div class="processed-orders">
+                        <h3>✅ Action History <span class="tooltip-icon" title="Shows the last 5 items that have been processed or actions that have been taken, helping you track the agent's decision-making over time.">ℹ️</span></h3>
+                        <div id="action-history" class="order-list">
+                            <div class="empty-state">No actions taken yet</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Metrics & KPIs -->
+            <div class="panel metrics-panel">
+                <h2>📈 Real-Time Metrics - Output <span class="tooltip-icon" title="Live metrics and KPIs showing the performance of the RL agent. Metrics update in real-time as the simulation progresses.">ℹ️</span></h2>
+                
+                <div class="metrics-grid" id="metrics-grid">
+                    <div class="metric-card" title="Number of simulation steps completed in the current episode">
+                        <div class="metric-label">Step Count</div>
+                        <div class="metric-value" id="metric-steps">0</div>
+                        <div class="metric-trend" id="trend-steps">-</div>
+                    </div>
+                    <div class="metric-card" title="Cumulative reward earned by the RL agent. Higher rewards indicate better performance according to the environment's reward function.">
+                        <div class="metric-label">Total Reward</div>
+                        <div class="metric-value" id="metric-reward">0.00</div>
+                        <div class="metric-trend" id="trend-reward">-</div>
+                    </div>
+                </div>
+
+                <div class="kpi-section">
+                    <h3>Key Performance Indicators <span class="tooltip-icon" title="Structured metrics organized by category: Clinical Outcomes (patient health metrics), Operational Efficiency (resource utilization, wait times), and Financial Metrics (revenue, costs). These KPIs help assess the overall impact of the RL agent's decisions.">ℹ️</span></h3>
+                    <div id="kpi-display" class="kpi-display">
+                        <div class="empty-state">Initialize environment to see KPIs</div>
+                    </div>
+                </div>
+
+                <div class="recommendations">
+                    <h3>💡 AI Recommendations <span class="tooltip-icon" title="Intelligent recommendations based on current simulation state. The system analyzes metrics and suggests optimizations to improve performance.">ℹ️</span></h3>
+                    <div id="recommendations-list" class="recommendations-list">
+                        <div class="empty-state">Run simulation to see recommendations</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Panel: Results Summary -->
+        <div class="results-panel">
+            <h2>📊 Simulation Results <span class="tooltip-icon" title="Summary of simulation results across four key dimensions: Clinical Outcomes (patient health impact), Operational Efficiency (resource utilization), Financial Impact (revenue and costs), and ROI Assessment (overall value and efficiency level).">ℹ️</span></h2>
+            <div class="results-grid">
+                <div class="result-card" title="Measures the impact on patient health outcomes, including steps completed, completion status, and urgent cases waiting. Higher values indicate better clinical performance.">
+                    <h4>Clinical Outcomes</h4>
+                    <div id="results-clinical" class="result-content">-</div>
+                </div>
+                <div class="result-card" title="Tracks operational performance including total steps, items processed, and resource utilization percentage. Higher utilization with more items processed indicates better efficiency.">
+                    <h4>Operational Efficiency</h4>
+                    <div id="results-efficiency" class="result-content">-</div>
+                </div>
+                <div class="result-card" title="Shows financial performance including total reward earned, revenue generated, and revenue per hour. Useful for assessing the economic value of the RL agent's decisions.">
+                    <h4>Financial Impact</h4>
+                    <div id="results-financial" class="result-content">-</div>
+                </div>
+                <div class="result-card" title="Overall assessment of return on investment, including the strategy used, efficiency level (High/Medium/Low), and completion status. Helps determine if the RL approach is providing value.">
+                    <h4>ROI Assessment</h4>
+                    <div id="results-roi" class="result-content">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/simulation-console.js"></script>
+    <script>
+        // Make formatEnvironmentName available globally
+        window.formatEnvironmentName = function(name) {
+            return name.replace(/([A-Z])/g, ' $1').trim();
+        };
+    </script>
+</body>
+</html>

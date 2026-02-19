@@ -1,0 +1,8 @@
+{
+  "job_id": "83423b45-d1da-48a3-bfe7-de9e765f54aa",
+  "environment_name": "TreatmentPathwayOptimization",
+  "algorithm": "PPO",
+  "num_episodes": 100,
+  "mean_reward": 1.9914319291947613,
+  "training_completed": true
+}

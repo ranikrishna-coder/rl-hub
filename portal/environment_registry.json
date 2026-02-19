@@ -1,0 +1,203 @@
+{
+  "version": "1.0.0",
+  "total_environments": 50,
+  "categories": {
+    "clinical": {
+      "count": 10,
+      "systems": ["Epic", "Cerner", "Allscripts", "Meditech"],
+      "environments": [
+        {
+          "name": "TreatmentPathwayOptimization",
+          "display_name": "Treatment Pathway Optimization",
+          "description": "Optimizes treatment sequences for patients with multiple conditions",
+          "state_features": 20,
+          "action_type": "discrete",
+          "action_space_size": 6,
+          "reward_description": "Clinical improvement, efficiency, cost-effectiveness",
+          "kpis": ["risk_score", "pathway_length", "cost_effectiveness"],
+          "multi_agent": false
+        },
+        {
+          "name": "SepsisEarlyIntervention",
+          "display_name": "Sepsis Early Intervention",
+          "description": "Early detection and intervention for sepsis cases",
+          "state_features": 18,
+          "action_type": "discrete",
+          "action_space_size": 5,
+          "reward_description": "Early intervention bonus, mortality reduction",
+          "kpis": ["sofa_score", "mortality_risk", "time_to_antibiotics"],
+          "multi_agent": false
+        },
+        {
+          "name": "ICUResourceAllocation",
+          "display_name": "ICU Resource Allocation",
+          "description": "Allocates ICU beds and staff optimally",
+          "state_features": 22,
+          "action_type": "discrete",
+          "action_space_size": 6,
+          "reward_description": "Bed utilization, patient outcomes",
+          "kpis": ["icu_occupancy", "queue_length", "bed_utilization"],
+          "multi_agent": false
+        },
+        {
+          "name": "SurgicalScheduling",
+          "display_name": "Surgical Scheduling",
+          "description": "Optimizes OR scheduling and resource allocation",
+          "state_features": 18,
+          "action_type": "discrete",
+          "action_space_size": 5,
+          "reward_description": "OR utilization, wait times",
+          "kpis": ["or_utilization", "queue_length", "urgent_surgeries_waiting"],
+          "multi_agent": false
+        },
+        {
+          "name": "DiagnosticTestSequencing",
+          "display_name": "Diagnostic Test Sequencing",
+          "description": "Optimizes test ordering for diagnosis",
+          "state_features": 16,
+          "action_type": "discrete",
+          "action_space_size": 6,
+          "reward_description": "Diagnosis confidence, test efficiency",
+          "kpis": ["diagnosis_confidence", "tests_ordered", "test_cost"],
+          "multi_agent": false
+        },
+        {
+          "name": "MedicationDosingOptimization",
+          "display_name": "Medication Dosing Optimization",
+          "description": "Optimizes medication dosing for patients",
+          "state_features": 15,
+          "action_type": "discrete",
+          "action_space_size": 5,
+          "reward_description": "Clinical outcomes, safety",
+          "kpis": ["risk_score", "pain_score", "dosing_adjustments"],
+          "multi_agent": false
+        },
+        {
+          "name": "ReadmissionReduction",
+          "display_name": "Readmission Reduction",
+          "description": "Reduces 30-day readmissions",
+          "state_features": 17,
+          "action_type": "discrete",
+          "action_space_size": 6,
+          "reward_description": "Readmission risk reduction",
+          "kpis": ["readmission_risk", "interventions_count"],
+          "multi_agent": false
+        },
+        {
+          "name": "CareCoordination",
+          "display_name": "Care Coordination",
+          "description": "Coordinates care across providers",
+          "state_features": 19,
+          "action_type": "discrete",
+          "action_space_size": 6,
+          "reward_description": "Coordination score, patient outcomes",
+          "kpis": ["coordination_score", "care_team_size"],
+          "multi_agent": false
+        },
+        {
+          "name": "ChronicDiseaseManagement",
+          "display_name": "Chronic Disease Management",
+          "description": "Manages long-term chronic conditions",
+          "state_features": 18,
+          "action_type": "discrete",
+          "action_space_size": 6,
+          "reward_description": "Disease control, patient outcomes",
+          "kpis": ["disease_control", "management_plan_items"],
+          "multi_agent": false
+        },
+        {
+          "name": "EmergencyTriage",
+          "display_name": "Emergency Triage",
+          "description": "Optimizes ED triage and resource allocation",
+          "state_features": 21,
+          "action_type": "discrete",
+          "action_space_size": 6,
+          "reward_description": "Triage accuracy, wait times",
+          "kpis": ["triage_accuracy", "queue_length", "ed_occupancy"],
+          "multi_agent": false
+        }
+      ]
+    },
+    "imaging": {
+      "count": 5,
+      "systems": ["Philips", "GE Healthcare"],
+      "environments": [
+        {
+          "name": "ImagingOrderPrioritization",
+          "display_name": "Imaging Order Prioritization",
+          "description": "Prioritizes imaging orders",
+          "state_features": 20,
+          "action_type": "discrete",
+          "action_space_size": 5,
+          "multi_agent": false
+        },
+        {
+          "name": "RadiologyScheduling",
+          "display_name": "Radiology Scheduling",
+          "description": "Schedules radiology appointments",
+          "state_features": 16,
+          "action_type": "discrete",
+          "action_space_size": 5,
+          "multi_agent": false
+        },
+        {
+          "name": "ScanParameterOptimization",
+          "display_name": "Scan Parameter Optimization",
+          "description": "Optimizes scan parameters",
+          "state_features": 15,
+          "action_type": "discrete",
+          "action_space_size": 5,
+          "multi_agent": false
+        },
+        {
+          "name": "ImagingWorkflowRouting",
+          "display_name": "Imaging Workflow Routing",
+          "description": "Routes imaging workflows",
+          "state_features": 17,
+          "action_type": "discrete",
+          "action_space_size": 5,
+          "multi_agent": false
+        },
+        {
+          "name": "EquipmentUtilization",
+          "display_name": "Equipment Utilization",
+          "description": "Optimizes equipment utilization",
+          "state_features": 16,
+          "action_type": "discrete",
+          "action_space_size": 5,
+          "multi_agent": false
+        }
+      ]
+    },
+    "population_health": {
+      "count": 5,
+      "systems": ["Health Catalyst", "Innovaccer"]
+    },
+    "revenue_cycle": {
+      "count": 5,
+      "systems": ["Change Healthcare"]
+    },
+    "clinical_trials": {
+      "count": 5,
+      "systems": ["Veeva", "IQVIA"]
+    },
+    "hospital_operations": {
+      "count": 5,
+      "systems": ["Meditech"]
+    },
+    "telehealth": {
+      "count": 5,
+      "systems": ["Teladoc", "Amwell"]
+    },
+    "interoperability": {
+      "count": 5,
+      "systems": ["InterSystems", "Orion Health"]
+    },
+    "cross_workflow": {
+      "count": 5,
+      "systems": ["Multiple"],
+      "multi_agent": true
+    }
+  }
+}
+

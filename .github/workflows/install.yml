@@ -1,0 +1,96 @@
+name: Installation Guide
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    name: Complete Installation Test
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y postgresql-client
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Verify all imports
+      run: |
+        echo "Testing all module imports..."
+        python -c "
+        # Test core modules
+        from environments import HealthcareRLEnvironment
+        from environments.base_environment import RewardComponent, RewardWeights, KPIMetrics
+        print('✓ Core environment modules')
+        
+        # Test simulators
+        from simulator.patient_generator import PatientGenerator
+        from simulator.hospital_simulator import HospitalSimulator
+        from simulator.financial_simulator import FinancialSimulator
+        print('✓ Simulator modules')
+        
+        # Test registry
+        from portal.environment_registry import list_all_environments, get_environment_class
+        envs = list_all_environments()
+        print(f'✓ Registry: {len(envs)} environments found')
+        
+        # Test API
+        from api.main import app
+        print('✓ API module')
+        
+        print('✅ All imports successful!')
+        "
+
+    - name: Test environment instantiation
+      run: |
+        python -c "
+        from portal.environment_registry import get_environment_class
+        test_envs = ['TreatmentPathwayOptimization', 'ImagingOrderPrioritization', 'RiskStratification']
+        for env_name in test_envs:
+            cls = get_environment_class(env_name)
+            if cls:
+                env = cls()
+                state, info = env.reset()
+                print(f'✓ {env_name}: Instantiated and reset successfully')
+            else:
+                print(f'❌ {env_name}: Failed to load')
+                exit(1)
+        print('✅ Environment instantiation test passed!')
+        "
+
+    - name: Generate installation report
+      run: |
+        python -c "
+        import sys
+        print('Python version:', sys.version)
+        print('\\nInstalled packages:')
+        import pkg_resources
+        packages = ['fastapi', 'uvicorn', 'gymnasium', 'numpy', 'pydantic', 'stable-baselines3']
+        for pkg in packages:
+            try:
+                version = pkg_resources.get_distribution(pkg).version
+                print(f'  ✓ {pkg}: {version}')
+            except:
+                print(f'  ❌ {pkg}: Not installed')
+        " > installation_report.txt
+
+    - name: Upload installation report
+      uses: actions/upload-artifact@v3
+      with:
+        name: installation-report
+        path: installation_report.txt
+

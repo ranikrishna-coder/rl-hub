@@ -1,0 +1,122 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Check imports
+      run: |
+        python -c "from environments import HealthcareRLEnvironment; print('✓ Environments import successful')"
+        python -c "from portal.environment_registry import list_all_environments; envs = list_all_environments(); print(f'✓ Found {len(envs)} environments')"
+
+    - name: Validate environment registry
+      run: |
+        python -c "
+        from portal.environment_registry import get_environment_class, list_all_environments
+        all_envs = list_all_environments()
+        print(f'Testing {len(all_envs)} environments...')
+        failed = []
+        for env_data in all_envs[:5]:  # Test first 5 to save time
+            env_name = env_data['name']
+            cls = get_environment_class(env_name)
+            if cls is None:
+                failed.append(env_name)
+                print(f'❌ {env_name}: Failed to load')
+            else:
+                print(f'✓ {env_name}: Loaded successfully')
+        if failed:
+            exit(1)
+        print('✓ Environment registry validation passed')
+        "
+
+    - name: Test API imports
+      run: |
+        python -c "from api.main import app; print('✓ API imports successful')"
+
+  install:
+    runs-on: ubuntu-latest
+    name: Installation Test
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Verify installation
+      run: |
+        python -c "import fastapi; print(f'✓ FastAPI {fastapi.__version__}')"
+        python -c "import uvicorn; print(f'✓ Uvicorn {uvicorn.__version__}')"
+        python -c "import gymnasium; print(f'✓ Gymnasium {gymnasium.__version__}')"
+        python -c "import numpy; print(f'✓ NumPy {numpy.__version__}')"
+        python -c "import pydantic; print(f'✓ Pydantic {pydantic.__version__}')"
+
+    - name: Test server startup
+      run: |
+        timeout 10 python -m api.main &
+        sleep 5
+        curl -f http://localhost:8000/ || exit 1
+        echo "✓ Server started successfully"
+
+  lint:
+    runs-on: ubuntu-latest
+    name: Code Quality
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install linting tools
+      run: |
+        pip install flake8 black
+
+    - name: Check code formatting
+      run: |
+        black --check --diff . || echo "⚠ Code formatting issues found (run 'black .' to fix)"
+
+    - name: Run flake8
+      run: |
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || echo "⚠ Linting issues found"
+

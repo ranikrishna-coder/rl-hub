@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RL Hub - Environment Catalog</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <button class="help-button" onclick="openHelpSection()">
+                📚 Help & Documentation
+            </button>
+        </div>
+        <header class="header">
+            <h1>🏥 RL Hub</h1>
+            <p class="subtitle">50 Reinforcement Learning Environments for Healthcare Optimization</p>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-number" id="total-envs">50</span>
+                    <span class="stat-label">Environments</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="total-categories">8</span>
+                    <span class="stat-label">Categories</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="total-systems">10+</span>
+                    <span class="stat-label">Systems</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search environments..." />
+                <span class="search-icon">🔍</span>
+            </div>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-category="all">All</button>
+                <button class="filter-btn" data-category="clinical">Clinical</button>
+                <button class="filter-btn" data-category="imaging">Imaging</button>
+                <button class="filter-btn" data-category="population_health">Population Health</button>
+                <button class="filter-btn" data-category="revenue_cycle">Revenue Cycle</button>
+                <button class="filter-btn" data-category="clinical_trials">Clinical Trials</button>
+                <button class="filter-btn" data-category="hospital_operations">Hospital Ops</button>
+                <button class="filter-btn" data-category="telehealth">Telehealth</button>
+                <button class="filter-btn" data-category="interoperability">Interoperability</button>
+                <button class="filter-btn" data-category="cross_workflow">Cross-Workflow</button>
+            </div>
+        </div>
+
+        <div id="environments-grid" class="environments-grid">
+            <!-- Environment cards will be loaded here -->
+        </div>
+
+        <div id="loading" class="loading">Loading environments...</div>
+        <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <!-- Environment Detail Modal -->
+    <div id="env-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('env-modal')">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Help Section Modal -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content" style="max-width: 1000px; max-height: 90vh; overflow-y: auto;">
+            <span class="close" onclick="closeModal('help-modal')">&times;</span>
+            <div id="help-body"></div>
+        </div>
+    </div>
+
+    <!-- Training Monitor Modal -->
+    <div id="training-monitor-modal" class="modal">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            <span class="close" onclick="closeTrainingMonitor()">&times;</span>
+            <div id="training-monitor-body"></div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
+
