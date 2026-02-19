@@ -1,0 +1,85 @@
+name: Deploy RL Hub
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy Application
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Test application startup
+      run: |
+        timeout 15 python -m api.main &
+        sleep 8
+        curl -f http://localhost:8000/ || exit 1
+        echo "✓ Application started successfully"
+        pkill -f "api.main"
+
+    - name: Create deployment package
+      run: |
+        mkdir -p deployment
+        cp -r api environments simulator portal training orchestration database deployment/
+        cp requirements.txt README.md deployment/
+        cp start_server.sh deployment/
+        tar -czf rl-hub-deployment.tar.gz deployment/
+        echo "✓ Deployment package created"
+
+    - name: Upload deployment artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: rl-hub-deployment
+        path: rl-hub-deployment.tar.gz
+        retention-days: 30
+
+    - name: Build Docker image (optional)
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        docker build -t rl-hub:${{ github.sha }} .
+        echo "✓ Docker image built: rl-hub:${{ github.sha }}"
+
+    - name: Deployment summary
+      run: |
+        echo "## 🚀 Deployment Ready" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Application tested and packaged" >> $GITHUB_STEP_SUMMARY
+        echo "📦 Deployment package: \`rl-hub-deployment.tar.gz\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Deployment Options:" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "1. **Docker**: Use \`docker-compose up\` or build from Dockerfile" >> $GITHUB_STEP_SUMMARY
+        echo "2. **Railway**: Connect repo to Railway (auto-deploys)" >> $GITHUB_STEP_SUMMARY
+        echo "3. **Render**: Connect repo to Render (auto-deploys)" >> $GITHUB_STEP_SUMMARY
+        echo "4. **Fly.io**: Use \`fly launch\` command" >> $GITHUB_STEP_SUMMARY
+        echo "5. **Manual**: Download artifact and deploy to your server" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "See \`DEPLOYMENT.md\` for detailed instructions." >> $GITHUB_STEP_SUMMARY
+
