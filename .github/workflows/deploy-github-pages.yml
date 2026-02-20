@@ -32,7 +32,7 @@ jobs:
 
     - name: Prepare static files
       env:
-        API_URL: ${{ secrets.API_URL || 'https://rl-hub.onrender.com' }}
+        API_URL: ${{ secrets.API_URL || 'https://rl-hub-api.onrender.com' }}
       run: |
         echo "📦 Preparing static files for GitHub Pages..."
         mkdir -p _site

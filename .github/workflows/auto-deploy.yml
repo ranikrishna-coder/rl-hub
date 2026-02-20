@@ -26,7 +26,7 @@ jobs:
         echo "3. Connect GitHub repo: \`ranikrishna-coder/rl-hub\`" >> $GITHUB_STEP_SUMMARY
         echo "4. Render will auto-detect settings from \`render.yaml\`" >> $GITHUB_STEP_SUMMARY
         echo "5. Click 'Create Web Service'" >> $GITHUB_STEP_SUMMARY
-        echo "6. Your app will be live at: \`https://rl-hub.onrender.com\`" >> $GITHUB_STEP_SUMMARY
+        echo "6. Your app will be live at: \`https://rl-hub-api.onrender.com\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Option 2: Railway" >> $GITHUB_STEP_SUMMARY
         echo "1. Go to [railway.app](https://railway.app) and sign up" >> $GITHUB_STEP_SUMMARY

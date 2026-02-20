@@ -79,7 +79,7 @@ Render provides a public URL automatically:
 
 **Access URLs:**
 - **https://YOUR_APP_NAME.onrender.com**
-- Example: `https://rl-hub.onrender.com`
+- Example: `https://rl-hub-api.onrender.com`
 
 **How to get your URL:**
 1. Go to Render dashboard

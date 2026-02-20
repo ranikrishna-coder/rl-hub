@@ -36,7 +36,7 @@ allowed_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:8000",
     "https://ranikrishna-coder.github.io",
-    "https://rl-hub.onrender.com",
+    "https://rl-hub-api.onrender.com",
 ]
 # Add environment variable for additional origins
 if os.getenv("CORS_ORIGINS"):

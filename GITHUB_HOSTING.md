@@ -34,12 +34,12 @@ Render provides **free hosting** with automatic deployments from GitHub.
 5. **Deploy:**
    - Render will automatically deploy on first setup
    - Future pushes to `main` will auto-deploy
-   - Your app will be at: **https://rl-hub.onrender.com**
+   - Your app will be at: **https://rl-hub-api.onrender.com**
 
 ### Access Your App:
-- **URL**: `https://rl-hub.onrender.com` (or your custom domain)
-- **API Docs**: `https://rl-hub.onrender.com/docs`
-- **Catalog**: `https://rl-hub.onrender.com`
+- **URL**: `https://rl-hub-api.onrender.com` (or your custom domain)
+- **API Docs**: `https://rl-hub-api.onrender.com/docs`
+- **Catalog**: `https://rl-hub-api.onrender.com`
 
 ---
 
@@ -119,7 +119,7 @@ gcloud run deploy rl-hub \
 ### Step 2: Get Your Public URL
 
 After deployment, Render shows your URL:
-- Example: `https://rl-hub.onrender.com`
+- Example: `https://rl-hub-api.onrender.com`
 - This is your **public URL** - share it with anyone!
 
 ### Step 3: Enable Auto-Deploy (Optional)
@@ -191,7 +191,7 @@ git push origin main
 # 2. Go to render.com and create service
 # 3. Connect your GitHub repo
 # 4. Render auto-deploys
-# 5. Get your URL: https://rl-hub.onrender.com
+# 5. Get your URL: https://rl-hub-api.onrender.com
 ```
 
 **That's it!** Your app is now live and accessible worldwide.
@@ -204,13 +204,13 @@ After deployment, test your app:
 
 ```bash
 # Check if it's live
-curl https://rl-hub.onrender.com/
+curl https://rl-hub-api.onrender.com/
 
 # Test API
-curl https://rl-hub.onrender.com/environments
+curl https://rl-hub-api.onrender.com/environments
 
 # Open in browser
-open https://rl-hub.onrender.com
+open https://rl-hub-api.onrender.com
 ```
 
 ---
