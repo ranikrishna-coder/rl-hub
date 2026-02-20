@@ -37,43 +37,38 @@ jobs:
         echo "📦 Preparing static files for GitHub Pages..."
         mkdir -p _site
         
-        # Copy all static files
+        # Copy all static files to root of _site
         cp -r api/static/* _site/
-        
-        # Fix paths in HTML files (remove /static/ prefix for GitHub Pages)
-        find _site -name "*.html" -exec sed -i.bak 's|href="/static/|href="|g' {} \;
-        find _site -name "*.html" -exec sed -i.bak 's|src="/static/|src="|g' {} \;
-        find _site -name "*.html.bak" -delete
         
         # Create config.js with API endpoint
         cat > _site/config.js <<EOF
         // API Configuration for GitHub Pages
-        // This can be overridden by setting window.API_BASE before loading app.js
         window.API_BASE = window.API_BASE || '${API_URL}';
         console.log('🚀 RL Hub - API Base URL:', window.API_BASE);
         EOF
         
-        # Update index.html to load config.js first (if not already there)
-        if [ -f "_site/index.html" ]; then
-          # Check if config.js is already referenced
-          if ! grep -q "config.js" _site/index.html; then
-            # Insert config.js before app.js
-            sed -i.bak '/<script src="app.js"><\/script>/i\
-        <script src="config.js"><\/script>' _site/index.html
-            rm _site/index.html.bak 2>/dev/null || true
-          fi
+        # Verify files are in place
+        echo "📁 Files in _site:"
+        ls -la _site/ | head -20
+        
+        # Verify index.html exists
+        if [ ! -f "_site/index.html" ]; then
+          echo "❌ ERROR: index.html not found!"
+          exit 1
         fi
         
-        # Update simulation-console.html similarly
-        if [ -f "_site/simulation-console.html" ]; then
-          if ! grep -q "config.js" _site/simulation-console.html; then
-            sed -i.bak '/<script src="simulation-console.js"><\/script>/i\
-        <script src="config.js"><\/script>' _site/simulation-console.html
-            rm _site/simulation-console.html.bak 2>/dev/null || true
-          fi
+        # Verify config.js was created
+        if [ ! -f "_site/config.js" ]; then
+          echo "❌ ERROR: config.js not created!"
+          exit 1
         fi
         
-        echo "✅ Static files prepared with API URL: ${API_URL}"
+        echo "✅ Static files prepared"
+        echo "📄 index.html exists: $(test -f _site/index.html && echo 'YES' || echo 'NO')"
+        echo "📄 config.js exists: $(test -f _site/config.js && echo 'YES' || echo 'NO')"
+        echo "📄 app.js exists: $(test -f _site/app.js && echo 'YES' || echo 'NO')"
+        echo "📄 styles.css exists: $(test -f _site/styles.css && echo 'YES' || echo 'NO')"
+        echo "🌐 API URL configured: ${API_URL}"
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
@@ -94,8 +89,12 @@ jobs:
         echo "- **GitHub Pages**: \`https://ranikrishna-coder.github.io/rl-hub/\`" >> $GITHUB_STEP_SUMMARY
         echo "- **API Endpoint**: \`${API_URL}\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Files Deployed:" >> $GITHUB_STEP_SUMMARY
+        echo "- index.html" >> $GITHUB_STEP_SUMMARY
+        echo "- config.js (API: ${API_URL})" >> $GITHUB_STEP_SUMMARY
+        echo "- app.js, styles.css, and all assets" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
-        echo "1. Enable GitHub Pages in repository Settings → Pages" >> $GITHUB_STEP_SUMMARY
-        echo "2. Deploy the API to Render/Railway (see \`GITHUB_HOSTING.md\`)" >> $GITHUB_STEP_SUMMARY
-        echo "3. Update \`API_URL\` secret in GitHub if using different API URL" >> $GITHUB_STEP_SUMMARY
-        echo "4. Your app will be fully functional!" >> $GITHUB_STEP_SUMMARY
+        echo "1. ✅ Enable GitHub Pages in repository Settings → Pages (Source: GitHub Actions)" >> $GITHUB_STEP_SUMMARY
+        echo "2. ✅ Visit: https://ranikrishna-coder.github.io/rl-hub/" >> $GITHUB_STEP_SUMMARY
+        echo "3. ⚠️ Deploy the API to Render if not already done (see \`RENDER_DEPLOYMENT.md\`)" >> $GITHUB_STEP_SUMMARY

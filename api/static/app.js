@@ -402,7 +402,7 @@ function createEnvCard(env) {
                 <button class="btn btn-primary btn-view-details" data-env="${env.name}">
                     View Details
                 </button>
-                <button class="btn btn-secondary" onclick="window.location.href='/test-console?env=${env.name}'">
+                <button class="btn btn-secondary" onclick="window.location.href='simulation-console.html?env=${env.name}'">
                     🧪 Simulation
                 </button>
             </div>
@@ -564,7 +564,7 @@ function showEnvironmentDetails(envName) {
         
         <div class="env-actions" style="margin-top: 2rem; border-top: 2px solid var(--border-color); padding-top: 1.5rem;">
             <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f0f9ff; border-left: 4px solid var(--primary-color); border-radius: 6px;">
-                <button class="btn btn-primary" onclick="window.location.href='/test-console?env=${envName}'" title="Open the interactive simulation console to test and explore the environment with different parameters. This allows you to manually control the simulation, adjust settings, and see real-time results without training an agent.">
+                <button class="btn btn-primary" onclick="window.location.href='simulation-console.html?env=${envName}'" title="Open the interactive simulation console to test and explore the environment with different parameters. This allows you to manually control the simulation, adjust settings, and see real-time results without training an agent.">
                     🧪 Open Simulation
                 </button>
                 <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.75rem; line-height: 1.6;">
