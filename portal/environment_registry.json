@@ -1,203 +1,704 @@
 {
-  "version": "1.0.0",
-  "total_environments": 50,
-  "categories": {
-    "clinical": {
-      "count": 10,
-      "systems": ["Epic", "Cerner", "Allscripts", "Meditech"],
-      "environments": [
-        {
-          "name": "TreatmentPathwayOptimization",
-          "display_name": "Treatment Pathway Optimization",
-          "description": "Optimizes treatment sequences for patients with multiple conditions",
-          "state_features": 20,
-          "action_type": "discrete",
-          "action_space_size": 6,
-          "reward_description": "Clinical improvement, efficiency, cost-effectiveness",
-          "kpis": ["risk_score", "pathway_length", "cost_effectiveness"],
-          "multi_agent": false
-        },
-        {
-          "name": "SepsisEarlyIntervention",
-          "display_name": "Sepsis Early Intervention",
-          "description": "Early detection and intervention for sepsis cases",
-          "state_features": 18,
-          "action_type": "discrete",
-          "action_space_size": 5,
-          "reward_description": "Early intervention bonus, mortality reduction",
-          "kpis": ["sofa_score", "mortality_risk", "time_to_antibiotics"],
-          "multi_agent": false
-        },
-        {
-          "name": "ICUResourceAllocation",
-          "display_name": "ICU Resource Allocation",
-          "description": "Allocates ICU beds and staff optimally",
-          "state_features": 22,
-          "action_type": "discrete",
-          "action_space_size": 6,
-          "reward_description": "Bed utilization, patient outcomes",
-          "kpis": ["icu_occupancy", "queue_length", "bed_utilization"],
-          "multi_agent": false
-        },
-        {
-          "name": "SurgicalScheduling",
-          "display_name": "Surgical Scheduling",
-          "description": "Optimizes OR scheduling and resource allocation",
-          "state_features": 18,
-          "action_type": "discrete",
-          "action_space_size": 5,
-          "reward_description": "OR utilization, wait times",
-          "kpis": ["or_utilization", "queue_length", "urgent_surgeries_waiting"],
-          "multi_agent": false
-        },
-        {
-          "name": "DiagnosticTestSequencing",
-          "display_name": "Diagnostic Test Sequencing",
-          "description": "Optimizes test ordering for diagnosis",
-          "state_features": 16,
-          "action_type": "discrete",
-          "action_space_size": 6,
-          "reward_description": "Diagnosis confidence, test efficiency",
-          "kpis": ["diagnosis_confidence", "tests_ordered", "test_cost"],
-          "multi_agent": false
-        },
-        {
-          "name": "MedicationDosingOptimization",
-          "display_name": "Medication Dosing Optimization",
-          "description": "Optimizes medication dosing for patients",
-          "state_features": 15,
-          "action_type": "discrete",
-          "action_space_size": 5,
-          "reward_description": "Clinical outcomes, safety",
-          "kpis": ["risk_score", "pain_score", "dosing_adjustments"],
-          "multi_agent": false
-        },
-        {
-          "name": "ReadmissionReduction",
-          "display_name": "Readmission Reduction",
-          "description": "Reduces 30-day readmissions",
-          "state_features": 17,
-          "action_type": "discrete",
-          "action_space_size": 6,
-          "reward_description": "Readmission risk reduction",
-          "kpis": ["readmission_risk", "interventions_count"],
-          "multi_agent": false
-        },
-        {
-          "name": "CareCoordination",
-          "display_name": "Care Coordination",
-          "description": "Coordinates care across providers",
-          "state_features": 19,
-          "action_type": "discrete",
-          "action_space_size": 6,
-          "reward_description": "Coordination score, patient outcomes",
-          "kpis": ["coordination_score", "care_team_size"],
-          "multi_agent": false
-        },
-        {
-          "name": "ChronicDiseaseManagement",
-          "display_name": "Chronic Disease Management",
-          "description": "Manages long-term chronic conditions",
-          "state_features": 18,
-          "action_type": "discrete",
-          "action_space_size": 6,
-          "reward_description": "Disease control, patient outcomes",
-          "kpis": ["disease_control", "management_plan_items"],
-          "multi_agent": false
-        },
-        {
-          "name": "EmergencyTriage",
-          "display_name": "Emergency Triage",
-          "description": "Optimizes ED triage and resource allocation",
-          "state_features": 21,
-          "action_type": "discrete",
-          "action_space_size": 6,
-          "reward_description": "Triage accuracy, wait times",
-          "kpis": ["triage_accuracy", "queue_length", "ed_occupancy"],
-          "multi_agent": false
-        }
-      ]
+  "environments": [
+    {
+      "name": "TreatmentPathwayOptimization",
+      "system": "Epic, Cerner, Allscripts",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
     },
-    "imaging": {
-      "count": 5,
-      "systems": ["Philips", "GE Healthcare"],
-      "environments": [
-        {
-          "name": "ImagingOrderPrioritization",
-          "display_name": "Imaging Order Prioritization",
-          "description": "Prioritizes imaging orders",
-          "state_features": 20,
-          "action_type": "discrete",
-          "action_space_size": 5,
-          "multi_agent": false
-        },
-        {
-          "name": "RadiologyScheduling",
-          "display_name": "Radiology Scheduling",
-          "description": "Schedules radiology appointments",
-          "state_features": 16,
-          "action_type": "discrete",
-          "action_space_size": 5,
-          "multi_agent": false
-        },
-        {
-          "name": "ScanParameterOptimization",
-          "display_name": "Scan Parameter Optimization",
-          "description": "Optimizes scan parameters",
-          "state_features": 15,
-          "action_type": "discrete",
-          "action_space_size": 5,
-          "multi_agent": false
-        },
-        {
-          "name": "ImagingWorkflowRouting",
-          "display_name": "Imaging Workflow Routing",
-          "description": "Routes imaging workflows",
-          "state_features": 17,
-          "action_type": "discrete",
-          "action_space_size": 5,
-          "multi_agent": false
-        },
-        {
-          "name": "EquipmentUtilization",
-          "display_name": "Equipment Utilization",
-          "description": "Optimizes equipment utilization",
-          "state_features": 16,
-          "action_type": "discrete",
-          "action_space_size": 5,
-          "multi_agent": false
-        }
-      ]
+    {
+      "name": "SepsisEarlyIntervention",
+      "system": "Epic, Cerner",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
     },
-    "population_health": {
-      "count": 5,
-      "systems": ["Health Catalyst", "Innovaccer"]
+    {
+      "name": "ICUResourceAllocation",
+      "system": "Epic, Cerner, Meditech",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
     },
-    "revenue_cycle": {
-      "count": 5,
-      "systems": ["Change Healthcare"]
+    {
+      "name": "SurgicalScheduling",
+      "system": "Epic, Cerner, Meditech",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
     },
-    "clinical_trials": {
-      "count": 5,
-      "systems": ["Veeva", "IQVIA"]
+    {
+      "name": "DiagnosticTestSequencing",
+      "system": "Epic, Cerner, Allscripts",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
     },
-    "hospital_operations": {
-      "count": 5,
-      "systems": ["Meditech"]
+    {
+      "name": "MedicationDosingOptimization",
+      "system": "Epic, Cerner, Allscripts",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
     },
-    "telehealth": {
-      "count": 5,
-      "systems": ["Teladoc", "Amwell"]
+    {
+      "name": "ReadmissionReduction",
+      "system": "Epic, Cerner, Allscripts",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
     },
-    "interoperability": {
-      "count": 5,
-      "systems": ["InterSystems", "Orion Health"]
+    {
+      "name": "CareCoordination",
+      "system": "Epic, Cerner, Allscripts",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
     },
-    "cross_workflow": {
-      "count": 5,
-      "systems": ["Multiple"],
+    {
+      "name": "ChronicDiseaseManagement",
+      "system": "Epic, Cerner, Allscripts",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
+    },
+    {
+      "name": "EmergencyTriage",
+      "system": "Epic, Cerner, Meditech",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
+    },
+    {
+      "name": "ImagingOrderPrioritization",
+      "system": "Philips, GE Healthcare",
+      "workflow": "Imaging",
+      "category": "imaging",
+      "multi_agent": false
+    },
+    {
+      "name": "RadiologyScheduling",
+      "system": "Philips, GE Healthcare",
+      "workflow": "Imaging",
+      "category": "imaging",
+      "multi_agent": false
+    },
+    {
+      "name": "ScanParameterOptimization",
+      "system": "Philips, GE Healthcare",
+      "workflow": "Imaging",
+      "category": "imaging",
+      "multi_agent": false
+    },
+    {
+      "name": "ImagingWorkflowRouting",
+      "system": "Philips, GE Healthcare",
+      "workflow": "Imaging",
+      "category": "imaging",
+      "multi_agent": false
+    },
+    {
+      "name": "EquipmentUtilization",
+      "system": "Philips, GE Healthcare",
+      "workflow": "Imaging",
+      "category": "imaging",
+      "multi_agent": false
+    },
+    {
+      "name": "PainManagementOptimization",
+      "system": "Epic, Cerner, Allscripts, Meditech",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
+    },
+    {
+      "name": "AntibioticStewardship",
+      "system": "Epic, Cerner, Allscripts, Meditech",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
+    },
+    {
+      "name": "OncologyTreatmentSequencing",
+      "system": "Epic, Cerner, Allscripts",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
+    },
+    {
+      "name": "LabTestPrioritization",
+      "system": "Epic, Cerner, Allscripts, Meditech",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
+    },
+    {
+      "name": "ICUVentilatorAllocation",
+      "system": "Epic, Cerner, Meditech",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
+    },
+    {
+      "name": "StrokeInterventionScheduling",
+      "system": "Epic, Cerner, Allscripts",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
+    },
+    {
+      "name": "CardiacCareOptimization",
+      "system": "Epic, Cerner, Meditech",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
+    },
+    {
+      "name": "DiabetesMonitoringOptimization",
+      "system": "Epic, Cerner, Allscripts",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
+    },
+    {
+      "name": "MentalHealthInterventionSequencing",
+      "system": "Epic, Cerner, Allscripts, Meditech",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
+    },
+    {
+      "name": "PostOperativeFollowupOptimization",
+      "system": "Epic, Cerner, Meditech",
+      "workflow": "Clinical",
+      "category": "clinical",
+      "multi_agent": false
+    },
+    {
+      "name": "MRIScanScheduling",
+      "system": "Philips, GE",
+      "workflow": "Imaging",
+      "category": "imaging",
+      "multi_agent": false
+    },
+    {
+      "name": "CTScanPrioritization",
+      "system": "Philips, GE",
+      "workflow": "Imaging",
+      "category": "imaging",
+      "multi_agent": false
+    },
+    {
+      "name": "RadiologistTaskAssignment",
+      "system": "Philips, GE",
+      "workflow": "Imaging",
+      "category": "imaging",
+      "multi_agent": false
+    },
+    {
+      "name": "UltrasoundResourceAllocation",
+      "system": "Philips, GE",
+      "workflow": "Imaging",
+      "category": "imaging",
+      "multi_agent": false
+    },
+    {
+      "name": "PACSWorkflowOptimization",
+      "system": "Philips, GE",
+      "workflow": "Imaging",
+      "category": "imaging",
+      "multi_agent": false
+    },
+    {
+      "name": "ImagingResultTriage",
+      "system": "Philips, GE",
+      "workflow": "Imaging",
+      "category": "imaging",
+      "multi_agent": false
+    },
+    {
+      "name": "AIAssistedDiagnostics",
+      "system": "Philips, GE",
+      "workflow": "Imaging",
+      "category": "imaging",
+      "multi_agent": false
+    },
+    {
+      "name": "ImagingStudyBatchScheduling",
+      "system": "Philips, GE",
+      "workflow": "Imaging",
+      "category": "imaging",
+      "multi_agent": false
+    },
+    {
+      "name": "OncologyImagingPathway",
+      "system": "Philips, GE",
+      "workflow": "Imaging",
+      "category": "imaging",
+      "multi_agent": false
+    },
+    {
+      "name": "ImagingQualityControl",
+      "system": "Philips, GE",
+      "workflow": "Imaging",
+      "category": "imaging",
+      "multi_agent": false
+    },
+    {
+      "name": "ChronicDiseaseOutreach",
+      "system": "Health Catalyst, Innovaccer",
+      "workflow": "Population Health",
+      "category": "population_health",
+      "multi_agent": false
+    },
+    {
+      "name": "TelemonitoringOptimization",
+      "system": "Health Catalyst, Innovaccer",
+      "workflow": "Population Health",
+      "category": "population_health",
+      "multi_agent": false
+    },
+    {
+      "name": "PreventiveScreeningPolicy",
+      "system": "Health Catalyst, Innovaccer",
+      "workflow": "Population Health",
+      "category": "population_health",
+      "multi_agent": false
+    },
+    {
+      "name": "HighRiskPatientEngagement",
+      "system": "Health Catalyst, Innovaccer",
+      "workflow": "Population Health",
+      "category": "population_health",
+      "multi_agent": false
+    },
+    {
+      "name": "PopulationHealthCostAllocation",
+      "system": "Health Catalyst, Innovaccer",
+      "workflow": "Population Health",
+      "category": "population_health",
+      "multi_agent": false
+    },
+    {
+      "name": "CommunityHealthProgramAllocation",
+      "system": "Health Catalyst, Innovaccer",
+      "workflow": "Population Health",
+      "category": "population_health",
+      "multi_agent": false
+    },
+    {
+      "name": "ReadmissionRiskMitigation",
+      "system": "Health Catalyst, Innovaccer",
+      "workflow": "Population Health",
+      "category": "population_health",
+      "multi_agent": false
+    },
+    {
+      "name": "HealthLiteracyIntervention",
+      "system": "Health Catalyst, Innovaccer",
+      "workflow": "Population Health",
+      "category": "population_health",
+      "multi_agent": false
+    },
+    {
+      "name": "LifestyleInterventionSequencing",
+      "system": "Health Catalyst, Innovaccer",
+      "workflow": "Population Health",
+      "category": "population_health",
+      "multi_agent": false
+    },
+    {
+      "name": "VaccinationDrivePrioritization",
+      "system": "Health Catalyst, Innovaccer",
+      "workflow": "Population Health",
+      "category": "population_health",
+      "multi_agent": false
+    },
+    {
+      "name": "PatientBillingPrioritization",
+      "system": "Change Healthcare",
+      "workflow": "Revenue Cycle",
+      "category": "revenue_cycle",
+      "multi_agent": false
+    },
+    {
+      "name": "ClaimsRejectionRecovery",
+      "system": "Change Healthcare",
+      "workflow": "Revenue Cycle",
+      "category": "revenue_cycle",
+      "multi_agent": false
+    },
+    {
+      "name": "PreAuthorizationWorkflow",
+      "system": "Change Healthcare",
+      "workflow": "Revenue Cycle",
+      "category": "revenue_cycle",
+      "multi_agent": false
+    },
+    {
+      "name": "DenialAppealsSequencing",
+      "system": "Change Healthcare",
+      "workflow": "Revenue Cycle",
+      "category": "revenue_cycle",
+      "multi_agent": false
+    },
+    {
+      "name": "PaymentReconciliation",
+      "system": "Change Healthcare",
+      "workflow": "Revenue Cycle",
+      "category": "revenue_cycle",
+      "multi_agent": false
+    },
+    {
+      "name": "CostToCollectOptimization",
+      "system": "Change Healthcare",
+      "workflow": "Revenue Cycle",
+      "category": "revenue_cycle",
+      "multi_agent": false
+    },
+    {
+      "name": "ContractComplianceScoring",
+      "system": "Change Healthcare",
+      "workflow": "Revenue Cycle",
+      "category": "revenue_cycle",
+      "multi_agent": false
+    },
+    {
+      "name": "InsurancePlanMatching",
+      "system": "Change Healthcare",
+      "workflow": "Revenue Cycle",
+      "category": "revenue_cycle",
+      "multi_agent": false
+    },
+    {
+      "name": "RevenueForecastSimulation",
+      "system": "Change Healthcare",
+      "workflow": "Revenue Cycle",
+      "category": "revenue_cycle",
+      "multi_agent": false
+    },
+    {
+      "name": "PatientFinancialCounseling",
+      "system": "Change Healthcare",
+      "workflow": "Revenue Cycle",
+      "category": "revenue_cycle",
+      "multi_agent": false
+    },
+    {
+      "name": "AdaptiveCohortAllocation",
+      "system": "Veeva, IQVIA",
+      "workflow": "Clinical Trials",
+      "category": "clinical_trials",
+      "multi_agent": false
+    },
+    {
+      "name": "TrialProtocolOptimization",
+      "system": "Veeva, IQVIA",
+      "workflow": "Clinical Trials",
+      "category": "clinical_trials",
+      "multi_agent": false
+    },
+    {
+      "name": "DrugSupplySequencing",
+      "system": "Veeva, IQVIA",
+      "workflow": "Clinical Trials",
+      "category": "clinical_trials",
+      "multi_agent": false
+    },
+    {
+      "name": "TrialSiteResourceAllocation",
+      "system": "Veeva, IQVIA",
+      "workflow": "Clinical Trials",
+      "category": "clinical_trials",
+      "multi_agent": false
+    },
+    {
+      "name": "PatientFollowUpScheduling",
+      "system": "Veeva, IQVIA",
+      "workflow": "Clinical Trials",
+      "category": "clinical_trials",
+      "multi_agent": false
+    },
+    {
+      "name": "EnrollmentFunnelOptimization",
+      "system": "Veeva, IQVIA",
+      "workflow": "Clinical Trials",
+      "category": "clinical_trials",
+      "multi_agent": false
+    },
+    {
+      "name": "AdverseEventPrediction",
+      "system": "Veeva, IQVIA",
+      "workflow": "Clinical Trials",
+      "category": "clinical_trials",
+      "multi_agent": false
+    },
+    {
+      "name": "TrialOutcomeForecasting",
+      "system": "Veeva, IQVIA",
+      "workflow": "Clinical Trials",
+      "category": "clinical_trials",
+      "multi_agent": false
+    },
+    {
+      "name": "PatientRetentionSequencing",
+      "system": "Veeva, IQVIA",
+      "workflow": "Clinical Trials",
+      "category": "clinical_trials",
+      "multi_agent": false
+    },
+    {
+      "name": "MultiTrialResourceCoordination",
+      "system": "Veeva, IQVIA",
+      "workflow": "Clinical Trials",
+      "category": "clinical_trials",
+      "multi_agent": false
+    },
+    {
+      "name": "RiskStratification",
+      "system": "Multiple",
+      "workflow": "Population Health",
+      "category": "population_health",
+      "multi_agent": false
+    },
+    {
+      "name": "PreventiveOutreach",
+      "system": "Multiple",
+      "workflow": "Population Health",
+      "category": "population_health",
+      "multi_agent": false
+    },
+    {
+      "name": "VaccinationAllocation",
+      "system": "Multiple",
+      "workflow": "Population Health",
+      "category": "population_health",
+      "multi_agent": false
+    },
+    {
+      "name": "HighRiskMonitoring",
+      "system": "Multiple",
+      "workflow": "Population Health",
+      "category": "population_health",
+      "multi_agent": false
+    },
+    {
+      "name": "PopulationCostOptimization",
+      "system": "Multiple",
+      "workflow": "Population Health",
+      "category": "population_health",
+      "multi_agent": false
+    },
+    {
+      "name": "ClaimsRouting",
+      "system": "Multiple",
+      "workflow": "Revenue Cycle",
+      "category": "revenue_cycle",
+      "multi_agent": false
+    },
+    {
+      "name": "DenialIntervention",
+      "system": "Multiple",
+      "workflow": "Revenue Cycle",
+      "category": "revenue_cycle",
+      "multi_agent": false
+    },
+    {
+      "name": "PaymentPlanSequencing",
+      "system": "Multiple",
+      "workflow": "Revenue Cycle",
+      "category": "revenue_cycle",
+      "multi_agent": false
+    },
+    {
+      "name": "BillingCodeOptimization",
+      "system": "Multiple",
+      "workflow": "Revenue Cycle",
+      "category": "revenue_cycle",
+      "multi_agent": false
+    },
+    {
+      "name": "RevenueLeakageDetection",
+      "system": "Multiple",
+      "workflow": "Revenue Cycle",
+      "category": "revenue_cycle",
+      "multi_agent": false
+    },
+    {
+      "name": "TrialPatientMatching",
+      "system": "Multiple",
+      "workflow": "Clinical Trials",
+      "category": "clinical_trials",
+      "multi_agent": false
+    },
+    {
+      "name": "AdaptiveTrialDesign",
+      "system": "Multiple",
+      "workflow": "Clinical Trials",
+      "category": "clinical_trials",
+      "multi_agent": false
+    },
+    {
+      "name": "EnrollmentAcceleration",
+      "system": "Multiple",
+      "workflow": "Clinical Trials",
+      "category": "clinical_trials",
+      "multi_agent": false
+    },
+    {
+      "name": "ProtocolDeviationMitigation",
+      "system": "Multiple",
+      "workflow": "Clinical Trials",
+      "category": "clinical_trials",
+      "multi_agent": false
+    },
+    {
+      "name": "DrugDosageTrialSequencing",
+      "system": "Multiple",
+      "workflow": "Clinical Trials",
+      "category": "clinical_trials",
+      "multi_agent": false
+    },
+    {
+      "name": "StaffingAllocation",
+      "system": "Multiple",
+      "workflow": "Hospital Operations",
+      "category": "hospital_operations",
+      "multi_agent": false
+    },
+    {
+      "name": "ORUtilization",
+      "system": "Multiple",
+      "workflow": "Hospital Operations",
+      "category": "hospital_operations",
+      "multi_agent": false
+    },
+    {
+      "name": "SupplyChainInventory",
+      "system": "Multiple",
+      "workflow": "Hospital Operations",
+      "category": "hospital_operations",
+      "multi_agent": false
+    },
+    {
+      "name": "BedTurnoverOptimization",
+      "system": "Multiple",
+      "workflow": "Hospital Operations",
+      "category": "hospital_operations",
+      "multi_agent": false
+    },
+    {
+      "name": "EquipmentMaintenance",
+      "system": "Multiple",
+      "workflow": "Hospital Operations",
+      "category": "hospital_operations",
+      "multi_agent": false
+    },
+    {
+      "name": "VirtualVisitRouting",
+      "system": "Multiple",
+      "workflow": "Telehealth",
+      "category": "telehealth",
+      "multi_agent": false
+    },
+    {
+      "name": "EscalationPolicy",
+      "system": "Multiple",
+      "workflow": "Telehealth",
+      "category": "telehealth",
+      "multi_agent": false
+    },
+    {
+      "name": "ProviderLoadBalancing",
+      "system": "Multiple",
+      "workflow": "Telehealth",
+      "category": "telehealth",
+      "multi_agent": false
+    },
+    {
+      "name": "FollowUpOptimization",
+      "system": "Multiple",
+      "workflow": "Telehealth",
+      "category": "telehealth",
+      "multi_agent": false
+    },
+    {
+      "name": "DigitalAdherenceCoaching",
+      "system": "Multiple",
+      "workflow": "Telehealth",
+      "category": "telehealth",
+      "multi_agent": false
+    },
+    {
+      "name": "DataReconciliation",
+      "system": "Multiple",
+      "workflow": "Interoperability",
+      "category": "interoperability",
+      "multi_agent": false
+    },
+    {
+      "name": "CrossSystemAlertPrioritization",
+      "system": "Multiple",
+      "workflow": "Interoperability",
+      "category": "interoperability",
+      "multi_agent": false
+    },
+    {
+      "name": "DuplicateRecordResolution",
+      "system": "Multiple",
+      "workflow": "Interoperability",
+      "category": "interoperability",
+      "multi_agent": false
+    },
+    {
+      "name": "InterFacilityTransfer",
+      "system": "Multiple",
+      "workflow": "Interoperability",
+      "category": "interoperability",
+      "multi_agent": false
+    },
+    {
+      "name": "HIERouting",
+      "system": "Multiple",
+      "workflow": "Interoperability",
+      "category": "interoperability",
+      "multi_agent": false
+    },
+    {
+      "name": "PatientJourneyOptimization",
+      "system": "Multiple",
+      "workflow": "Cross Workflow",
+      "category": "cross_workflow",
+      "multi_agent": true
+    },
+    {
+      "name": "HospitalThroughput",
+      "system": "Multiple",
+      "workflow": "Cross Workflow",
+      "category": "cross_workflow",
+      "multi_agent": true
+    },
+    {
+      "name": "ClinicalFinancialTradeoff",
+      "system": "Multiple",
+      "workflow": "Cross Workflow",
+      "category": "cross_workflow",
+      "multi_agent": true
+    },
+    {
+      "name": "ValueBasedCareOptimization",
+      "system": "Multiple",
+      "workflow": "Cross Workflow",
+      "category": "cross_workflow",
+      "multi_agent": true
+    },
+    {
+      "name": "MultiHospitalNetworkCoordination",
+      "system": "Multiple",
+      "workflow": "Cross Workflow",
+      "category": "cross_workflow",
       "multi_agent": true
     }
-  }
+  ]
 }
-

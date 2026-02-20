@@ -132,11 +132,92 @@ async def test_console(env: Optional[str] = None):
 
 @app.get("/environments")
 async def list_environments():
-    """List all available environments"""
+    """List all available environments with enhanced metadata"""
     environments = list_all_environments()
+    
+    # Enhance each environment with actions, state features, and action type
+    enhanced_environments = []
+    for env_data in environments:
+        env_name = env_data["name"]
+        enhanced_env = env_data.copy()
+        
+        try:
+            # Get the environment class
+            env_class = get_environment_class(env_name)
+            if env_class:
+                # Extract actions from ACTIONS attribute (some environments use different names)
+                actions = []
+                if hasattr(env_class, 'ACTIONS'):
+                    actions = env_class.ACTIONS
+                elif hasattr(env_class, 'PRIORITIES'):  # Some environments use PRIORITIES
+                    actions = env_class.PRIORITIES
+                elif hasattr(env_class, 'INTERVENTIONS'):  # Some use INTERVENTIONS
+                    actions = env_class.INTERVENTIONS
+                elif hasattr(env_class, 'STRATA'):  # Some use STRATA
+                    actions = env_class.STRATA
+                
+                if actions:
+                    enhanced_env["actions"] = actions
+                    enhanced_env["actionSpace"] = len(actions)
+                else:
+                    # Try to get from action_space if available
+                    if hasattr(env_class, 'action_space'):
+                        action_space = env_class.action_space
+                        if hasattr(action_space, 'n'):
+                            enhanced_env["actionSpace"] = action_space.n
+                            enhanced_env["actions"] = [f"action_{i}" for i in range(action_space.n)]
+                        else:
+                            enhanced_env["actions"] = []
+                            enhanced_env["actionSpace"] = "N/A"
+                    else:
+                        enhanced_env["actions"] = []
+                        enhanced_env["actionSpace"] = "N/A"
+                
+                # Extract state features count from observation_space
+                if hasattr(env_class, 'observation_space'):
+                    obs_space = env_class.observation_space
+                    if hasattr(obs_space, 'shape'):
+                        enhanced_env["stateFeatures"] = obs_space.shape[0] if len(obs_space.shape) > 0 else "N/A"
+                    else:
+                        enhanced_env["stateFeatures"] = "N/A"
+                else:
+                    enhanced_env["stateFeatures"] = "N/A"
+                
+                # Determine action type from action_space
+                if hasattr(env_class, 'action_space'):
+                    action_space = env_class.action_space
+                    if hasattr(action_space, '__class__'):
+                        action_type_name = action_space.__class__.__name__
+                        if 'Discrete' in action_type_name:
+                            enhanced_env["actionType"] = "Discrete"
+                        elif 'Box' in action_type_name:
+                            enhanced_env["actionType"] = "Continuous"
+                        elif 'MultiDiscrete' in action_type_name:
+                            enhanced_env["actionType"] = "Multi-Discrete"
+                        else:
+                            enhanced_env["actionType"] = "Discrete"  # Default
+                    else:
+                        enhanced_env["actionType"] = "Discrete"
+                else:
+                    enhanced_env["actionType"] = "Discrete"
+            else:
+                # Fallback if class can't be loaded
+                enhanced_env["actions"] = []
+                enhanced_env["actionSpace"] = "N/A"
+                enhanced_env["stateFeatures"] = "N/A"
+                enhanced_env["actionType"] = "Discrete"
+        except Exception as e:
+            # If there's an error loading the class, use defaults
+            enhanced_env["actions"] = []
+            enhanced_env["actionSpace"] = "N/A"
+            enhanced_env["stateFeatures"] = "N/A"
+            enhanced_env["actionType"] = "Discrete"
+        
+        enhanced_environments.append(enhanced_env)
+    
     return {
-        "count": len(environments),
-        "environments": environments
+        "count": len(enhanced_environments),
+        "environments": enhanced_environments
     }
 
 

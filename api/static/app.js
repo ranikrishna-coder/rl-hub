@@ -164,6 +164,29 @@ async function loadEnvironments() {
             })
         }));
         
+        // Calculate and update stats dynamically
+        const totalEnvs = allEnvironments.length;
+        const categories = new Set(allEnvironments.map(e => e.category || 'unknown'));
+        const systems = new Set();
+        allEnvironments.forEach(env => {
+            const system = env.system || 'Unknown';
+            // Split by comma to get individual systems
+            system.split(',').forEach(s => {
+                const trimmed = s.trim();
+                if (trimmed) systems.add(trimmed);
+            });
+        });
+        
+        // Update stats in UI
+        document.getElementById('total-envs').textContent = totalEnvs;
+        document.getElementById('total-categories').textContent = categories.size;
+        document.getElementById('total-systems').textContent = systems.size;
+        
+        // Initialize save data for all environments
+        allEnvironments.forEach(env => {
+            initializeSaveData(env.name);
+        });
+        
         filteredEnvironments = allEnvironments;
         renderEnvironments();
         document.getElementById('loading').style.display = 'none';
@@ -381,10 +404,62 @@ function formatEnvironmentName(name) {
     return name.replace(/([A-Z])/g, ' $1').trim();
 }
 
+// Save/favorite management functions
+function initializeSaveData(envName) {
+    const savedData = JSON.parse(localStorage.getItem('rl_hub_saves') || '{}');
+    if (!savedData[envName]) {
+        // Initialize with a random count between 5-54 for first time
+        savedData[envName] = { 
+            saved: false, 
+            count: Math.floor(Math.random() * 50) + 5 
+        };
+        localStorage.setItem('rl_hub_saves', JSON.stringify(savedData));
+    }
+    return savedData;
+}
+
+function getSavedCount(envName) {
+    const savedData = initializeSaveData(envName);
+    return savedData[envName].count;
+}
+
+function isSaved(envName) {
+    const savedData = JSON.parse(localStorage.getItem('rl_hub_saves') || '{}');
+    return savedData[envName]?.saved || false;
+}
+
+function toggleSave(envName) {
+    const savedData = initializeSaveData(envName);
+    
+    savedData[envName].saved = !savedData[envName].saved;
+    if (savedData[envName].saved) {
+        savedData[envName].count += 1;
+    } else {
+        savedData[envName].count = Math.max(0, savedData[envName].count - 1);
+    }
+    
+    localStorage.setItem('rl_hub_saves', JSON.stringify(savedData));
+    updateSaveButton(envName);
+}
+
+function updateSaveButton(envName) {
+    const saveBtn = document.querySelector(`[data-save-env="${envName}"]`);
+    if (saveBtn) {
+        const saved = isSaved(envName);
+        const count = getSavedCount(envName);
+        saveBtn.innerHTML = saved 
+            ? `❤️ <span class="save-count">${count}</span>`
+            : `🤍 <span class="save-count">${count}</span>`;
+        saveBtn.classList.toggle('saved', saved);
+    }
+}
+
 function createEnvCard(env) {
     const categoryClass = `category-${env.category}`;
     const multiAgentBadge = env.multi_agent ? '<span style="background: #fecdd3; color: #991b1b; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.7rem; margin-left: 0.5rem;">Multi-Agent</span>' : '';
     const displayName = formatEnvironmentName(env.name);
+    const saved = isSaved(env.name);
+    const saveCount = getSavedCount(env.name);
     
     return `
         <div class="env-card">
@@ -393,6 +468,9 @@ function createEnvCard(env) {
                     <div class="env-name">${displayName}${multiAgentBadge}</div>
                     <span class="env-category ${categoryClass}">${env.category || 'other'}</span>
                 </div>
+                <button class="save-btn ${saved ? 'saved' : ''}" data-save-env="${env.name}" onclick="toggleSave('${env.name}')" title="${saved ? 'Unsave this environment' : 'Save this environment'}">
+                    ${saved ? '❤️' : '🤍'} <span class="save-count">${saveCount}</span>
+                </button>
             </div>
             <div class="env-description">
                 ${env.description || 'RL environment for optimization'}
@@ -401,18 +479,6 @@ function createEnvCard(env) {
                 <div class="detail-item">
                     <span class="detail-label">System:</span>
                     <span class="detail-value">${env.system || 'Multiple'}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">State Features:</span>
-                    <span class="detail-value">${env.stateFeatures || 'N/A'}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Action Type:</span>
-                    <span class="detail-value">${env.actionType || 'Discrete'}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Actions:</span>
-                    <span class="detail-value">${env.actionSpace || 'N/A'}</span>
                 </div>
             </div>
             <div class="env-actions">
@@ -500,6 +566,84 @@ function getDefaultWhatItDoes(category, envName) {
     `;
 }
 
+function getActionDescription(envName, action) {
+    // Provide descriptions for common action patterns
+    const actionLower = action.toLowerCase();
+    
+    // Generic descriptions based on action keywords
+    if (actionLower.includes('schedule') || actionLower.includes('prioritize')) {
+        if (actionLower.includes('urgent') || actionLower.includes('emergency')) {
+            return 'Immediately schedule or prioritize this item due to high urgency or emergency status.';
+        } else if (actionLower.includes('elective') || actionLower.includes('routine')) {
+            return 'Schedule this item as a routine or elective procedure.';
+        } else {
+            return 'Schedule this item for processing or execution.';
+        }
+    } else if (actionLower.includes('defer') || actionLower.includes('delay')) {
+        return 'Postpone this action to a later time, allowing more urgent items to be processed first.';
+    } else if (actionLower.includes('cancel')) {
+        return 'Cancel this item or operation, removing it from the queue.';
+    } else if (actionLower.includes('reschedule')) {
+        return 'Move this item to a different time slot or priority level.';
+    } else if (actionLower.includes('admit')) {
+        return 'Admit the patient to the facility or department.';
+    } else if (actionLower.includes('discharge')) {
+        return 'Discharge the patient from the facility or department.';
+    } else if (actionLower.includes('transfer')) {
+        return 'Transfer the patient or item to another location or department.';
+    } else if (actionLower.includes('optimize') || actionLower.includes('improve')) {
+        return 'Apply optimization strategies to improve outcomes or efficiency.';
+    } else if (actionLower.includes('coordinate') || actionLower.includes('coordinate')) {
+        return 'Coordinate care or resources across multiple departments or systems.';
+    } else if (actionLower.includes('no_action') || actionLower.includes('wait') || actionLower.includes('skip')) {
+        return 'Take no action at this step, maintaining the current state.';
+    } else if (actionLower.includes('allocate') || actionLower.includes('assign')) {
+        return 'Allocate or assign resources to this item or patient.';
+    } else if (actionLower.includes('route') || actionLower.includes('send')) {
+        return 'Route or send this item to a specific destination or processor.';
+    } else if (actionLower.includes('intervene') || actionLower.includes('treat')) {
+        return 'Apply intervention or treatment to address the current situation.';
+    } else if (actionLower.includes('monitor') || actionLower.includes('observe')) {
+        return 'Continue monitoring without taking immediate action.';
+    } else if (actionLower.includes('escalate')) {
+        return 'Escalate this item to a higher priority level or authority.';
+    } else if (actionLower.includes('approve') || actionLower.includes('authorize')) {
+        return 'Approve or authorize this action or request.';
+    } else if (actionLower.includes('deny') || actionLower.includes('reject')) {
+        return 'Deny or reject this request or action.';
+    }
+    
+    // Environment-specific descriptions
+    const envSpecific = {
+        'ImagingOrderPrioritization': {
+            'prioritize_urgent': 'Prioritize urgent imaging orders that require immediate attention.',
+            'prioritize_routine': 'Process routine imaging orders in standard priority.',
+            'defer': 'Defer non-urgent orders to allow urgent cases to be processed first.',
+            'cancel': 'Cancel the imaging order.',
+            'no_action': 'Take no action, maintaining current queue order.'
+        },
+        'TreatmentPathwayOptimization': {
+            'optimize_pathway': 'Optimize the treatment pathway for better outcomes.',
+            'add_intervention': 'Add a new intervention to the treatment plan.',
+            'modify_sequence': 'Modify the sequence of treatments.',
+            'no_action': 'Continue with current treatment pathway.'
+        },
+        'SepsisEarlyIntervention': {
+            'intervene_immediate': 'Apply immediate intervention for suspected sepsis.',
+            'monitor': 'Continue monitoring patient vitals and status.',
+            'escalate_care': 'Escalate to higher level of care.',
+            'no_action': 'Maintain current care level.'
+        }
+    };
+    
+    if (envSpecific[envName] && envSpecific[envName][action]) {
+        return envSpecific[envName][action];
+    }
+    
+    // Default: no description if we can't infer one
+    return null;
+}
+
 function getDefaultHowToUse(category, envName) {
     return `
         <ol>
@@ -556,15 +700,123 @@ function showEnvironmentDetails(envName) {
         <div class="modal-section">
             <h3>System Integration</h3>
             <p><strong>Healthcare Systems:</strong> ${env.system || details.system || 'Multiple'}</p>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                This environment integrates with the specified healthcare systems, providing digital twin simulations 
+                and RL optimization capabilities for these platforms.
+            </p>
         </div>
         
         <div class="modal-section">
             <h3>Technical Specifications</h3>
-            <ul>
-                <li><strong>State Features:</strong> ${details.stateFeatures || env.stateFeatures || 'N/A'}</li>
-                <li><strong>Action Space:</strong> ${details.actionType || 'Discrete'} (${details.actionSpace || env.actionSpace || 'N/A'} actions)</li>
-                <li><strong>Multi-Agent:</strong> ${env.multi_agent ? 'Yes' : 'No'}</li>
-            </ul>
+            <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                <div style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <strong style="font-size: 1.05rem;">State Features:</strong>
+                        <span style="color: var(--primary-color); font-size: 1.1rem; font-weight: 600;">${details.stateFeatures || env.stateFeatures || 'N/A'}</span>
+                        <span class="tooltip-icon" title="State Features represent the dimensions of the observation space - the information the RL agent receives about the current environment state. Each feature is a numerical value (e.g., queue length, patient risk score, resource utilization) that helps the agent make decisions. More features provide richer context but may require more training data.">ℹ️</span>
+                    </div>
+                    <div style="background: white; padding: 1rem; border-radius: 6px; border-left: 4px solid var(--primary-color);">
+                        <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 0.75rem; line-height: 1.6;">
+                            <strong>What are State Features?</strong><br/>
+                            State features are the numerical values (dimensions) that the RL agent observes at each step of the simulation. Think of them as the "sensors" that tell the agent what's happening in the environment.
+                        </p>
+                        <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 0.75rem; line-height: 1.6;">
+                            <strong>What does the count represent?</strong><br/>
+                            The count (${details.stateFeatures || env.stateFeatures || 'N/A'}) represents how many different pieces of information the agent receives. For example:
+                        </p>
+                        <ul style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.8; padding-left: 1.5rem; margin-top: 0.5rem;">
+                            <li><strong>Queue-related features:</strong> Number of items waiting, average wait time, urgency levels</li>
+                            <li><strong>Resource features:</strong> Equipment availability, staff utilization, capacity metrics</li>
+                            <li><strong>Patient features:</strong> Risk scores, acuity levels, clinical indicators</li>
+                            <li><strong>System features:</strong> Current time, operational status, historical performance</li>
+                        </ul>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.75rem; line-height: 1.6;">
+                            <strong>Why it matters:</strong> More features provide richer context for decision-making, but also require more training data and computational resources. The agent learns patterns across all these features to make optimal decisions.
+                        </p>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <strong style="font-size: 1.05rem;">Action Type:</strong>
+                        <span style="color: var(--primary-color); font-size: 1.1rem; font-weight: 600;">${details.actionType || env.actionType || 'Discrete'}</span>
+                        <span class="tooltip-icon" title="Action Type defines how the agent selects actions. Discrete means the agent chooses from a fixed list of actions (e.g., 'schedule_urgent', 'defer', 'cancel'). Continuous means the agent selects continuous values (e.g., exact timing, dosages). Most healthcare RL environments use Discrete actions for interpretability.">ℹ️</span>
+                    </div>
+                    <div style="background: white; padding: 1rem; border-radius: 6px;">
+                        <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 0.5rem; line-height: 1.6;">
+                            <strong>What is Action Type?</strong><br/>
+                            ${env.actionType === 'Continuous' ? 
+                                'The agent selects continuous numerical values (e.g., exact timing, dosages). This allows for fine-grained control but can be harder to interpret and validate.' : 
+                                'The agent chooses from a fixed set of discrete actions (e.g., schedule, defer, cancel). This makes decisions interpretable and easier to validate in healthcare settings. Each action represents a specific operation or strategy.'}
+                        </p>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <strong style="font-size: 1.05rem;">Actions:</strong>
+                        <span style="color: var(--primary-color); font-size: 1.1rem; font-weight: 600;">${details.actionSpace || env.actionSpace || 'N/A'}</span>
+                        <span class="tooltip-icon" title="Actions are the decisions the RL agent can make at each step. Each action represents a specific operation (e.g., 'schedule_urgent', 'defer', 'cancel'). The agent learns which actions lead to better outcomes through trial and error during training.">ℹ️</span>
+                    </div>
+                    <div style="background: white; padding: 1rem; border-radius: 6px;">
+                        <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 0.75rem; line-height: 1.6;">
+                            <strong>What are Actions?</strong><br/>
+                            Actions are the possible decisions the RL agent can make at each step. The count (${details.actionSpace || env.actionSpace || 'N/A'}) represents the total number of different choices available. The agent learns through trial and error which actions lead to better outcomes (higher rewards).
+                        </p>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                    <strong style="font-size: 1.05rem;">Multi-Agent Support:</strong>
+                    <span style="color: var(--primary-color); font-size: 1.1rem; font-weight: 600; margin-left: 0.5rem;">${env.multi_agent ? 'Yes' : 'No'}</span>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem; line-height: 1.6;">
+                        ${env.multi_agent ? 'This environment supports multiple agents working together, enabling coordination across different workflows or departments. Agents can collaborate to optimize complex, interconnected healthcare processes.' : 'This environment uses a single agent that makes decisions independently. The agent optimizes decisions within its specific workflow.'}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-section">
+            <h3>Action Choices</h3>
+            <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                ${env.actions && env.actions.length > 0 ? `
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.6;">
+                        The RL agent can choose from the following ${env.actions.length} action${env.actions.length !== 1 ? 's' : ''} at each step. Each action represents a specific decision or operation the agent can take to interact with the environment.
+                    </p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0.75rem; margin-top: 1rem;">
+                        ${env.actions.map((action, index) => {
+                            const actionDisplay = action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            const actionDescription = getActionDescription(env.name, action);
+                            return `
+                                <div style="background: white; padding: 1rem; border-radius: 6px; border: 2px solid var(--primary-color); border-left: 4px solid var(--primary-color);">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                        <span style="background: var(--primary-color); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; flex-shrink: 0;">
+                                            ${index + 1}
+                                        </span>
+                                        <strong style="color: var(--text-primary); font-size: 0.95rem; font-family: monospace;">
+                                            ${actionDisplay}
+                                        </strong>
+                                    </div>
+                                    ${actionDescription ? `
+                                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem; line-height: 1.5; padding-left: 2rem;">
+                                            ${actionDescription}
+                                        </p>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 1rem; line-height: 1.6; padding: 0.75rem; background: #f0f9ff; border-radius: 6px; border-left: 4px solid var(--primary-color);">
+                        <strong>How Actions Work:</strong> The agent learns to select the best action based on the current state features. During training, the agent explores different actions and learns which ones lead to better outcomes (higher rewards). In production, the trained model uses this learned knowledge to make optimal decisions automatically.
+                    </p>
+                ` : `
+                    <div style="background: white; padding: 1rem; border-radius: 6px; text-align: center;">
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                            Action choices are not available for this environment. The action space is defined by the action type (${env.actionType || 'Discrete'}) with ${env.actionSpace || 'N/A'} possible actions.
+                        </p>
+                    </div>
+                `}
+            </div>
         </div>
         
         <div class="modal-section">
@@ -1260,4 +1512,5 @@ window.openTrainingMonitor = openTrainingMonitor;
 window.loadTrainingJob = loadTrainingJob;
 window.refreshJobStatus = refreshJobStatus;
 window.copyModelInfo = copyModelInfo;
+window.toggleSave = toggleSave;
 
