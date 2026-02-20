@@ -1,6 +1,7 @@
 // Generic Simulation Console for All RL Environments
 
-const API_BASE = 'http://localhost:8000';
+// API Base URL - can be overridden by config.js (for GitHub Pages) or window.API_BASE
+const API_BASE = window.API_BASE || 'http://localhost:8000';
 let currentEnvironment = null;
 let simulationState = null;
 let simulationInterval = null;

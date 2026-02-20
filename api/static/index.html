@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RL Hub - Environment Catalog</title>
     <link rel="stylesheet" href="/static/styles.css">
+    <!-- API Configuration - can be overridden by config.js for GitHub Pages -->
+    <script>
+        // Default API URL (for local development)
+        window.API_BASE = window.API_BASE || 'http://localhost:8000';
+    </script>
+    <!-- Load config.js if it exists (for GitHub Pages deployment) -->
+    <script src="config.js" onerror="console.log('Using default API URL')"></script>
 </head>
 <body>
     <div class="container">

@@ -1,6 +1,7 @@
 // Environment Catalog Application
 
-const API_BASE = 'http://localhost:8000';
+// API Base URL - can be overridden by config.js (for GitHub Pages) or window.API_BASE
+const API_BASE = window.API_BASE || 'http://localhost:8000';
 let allEnvironments = [];
 let filteredEnvironments = [];
 

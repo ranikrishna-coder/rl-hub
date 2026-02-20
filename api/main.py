@@ -28,9 +28,27 @@ if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # CORS middleware
+# Allow GitHub Pages and common deployment URLs
+# Note: FastAPI CORS doesn't support wildcards, so we allow all origins
+# In production, you may want to restrict this to specific domains
+allowed_origins = [
+    "http://localhost:8000",
+    "http://localhost:3000",
+    "http://127.0.0.1:8000",
+    "https://ranikrishna-coder.github.io",
+    "https://rl-hub.onrender.com",
+]
+# Add environment variable for additional origins
+if os.getenv("CORS_ORIGINS"):
+    allowed_origins.extend(os.getenv("CORS_ORIGINS").split(","))
+
+# For GitHub Pages, we need to allow all origins since we can't predict the exact URL
+# In production, you can restrict this by setting CORS_ORIGINS environment variable
+cors_origins = os.getenv("CORS_ORIGINS", "*").split(",") if os.getenv("CORS_ORIGINS") else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins if cors_origins != ["*"] else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

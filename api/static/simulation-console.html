@@ -155,6 +155,11 @@
         </div>
     </div>
 
+    <!-- API Configuration -->
+    <script>
+        window.API_BASE = window.API_BASE || 'http://localhost:8000';
+    </script>
+    <script src="config.js" onerror="console.log('Using default API URL')"></script>
     <script src="/static/simulation-console.js"></script>
     <script>
         // Make formatEnvironmentName available globally

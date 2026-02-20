@@ -1,17 +1,27 @@
-name: Deploy to GitHub Pages (Static Frontend)
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  deploy-frontend:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
     - name: Checkout
@@ -20,26 +30,72 @@ jobs:
     - name: Setup Pages
       uses: actions/configure-pages@v4
 
-    - name: Build static frontend
+    - name: Prepare static files
+      env:
+        API_URL: ${{ secrets.API_URL || 'https://rl-hub.onrender.com' }}
       run: |
+        echo "📦 Preparing static files for GitHub Pages..."
         mkdir -p _site
+        
+        # Copy all static files
         cp -r api/static/* _site/
-        # Create a simple redirect page that points to the API
-        echo '<!DOCTYPE html>
-        <html>
-        <head>
-          <title>RL Hub - Redirecting to API</title>
-          <meta http-equiv="refresh" content="0; url=https://YOUR_API_URL">
-        </head>
-        <body>
-          <p>Redirecting to RL Hub API... <a href="https://YOUR_API_URL">Click here</a></p>
-        </body>
-        </html>' > _site/index.html
+        
+        # Fix paths in HTML files (remove /static/ prefix for GitHub Pages)
+        find _site -name "*.html" -exec sed -i.bak 's|href="/static/|href="|g' {} \;
+        find _site -name "*.html" -exec sed -i.bak 's|src="/static/|src="|g' {} \;
+        find _site -name "*.html.bak" -delete
+        
+        # Create config.js with API endpoint
+        cat > _site/config.js <<EOF
+        // API Configuration for GitHub Pages
+        // This can be overridden by setting window.API_BASE before loading app.js
+        window.API_BASE = window.API_BASE || '${API_URL}';
+        console.log('🚀 RL Hub - API Base URL:', window.API_BASE);
+        EOF
+        
+        # Update index.html to load config.js first (if not already there)
+        if [ -f "_site/index.html" ]; then
+          # Check if config.js is already referenced
+          if ! grep -q "config.js" _site/index.html; then
+            # Insert config.js before app.js
+            sed -i.bak '/<script src="app.js"><\/script>/i\
+        <script src="config.js"><\/script>' _site/index.html
+            rm _site/index.html.bak 2>/dev/null || true
+          fi
+        fi
+        
+        # Update simulation-console.html similarly
+        if [ -f "_site/simulation-console.html" ]; then
+          if ! grep -q "config.js" _site/simulation-console.html; then
+            sed -i.bak '/<script src="simulation-console.js"><\/script>/i\
+        <script src="config.js"><\/script>' _site/simulation-console.html
+            rm _site/simulation-console.html.bak 2>/dev/null || true
+          fi
+        fi
+        
+        echo "✅ Static files prepared with API URL: ${API_URL}"
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
+      with:
+        path: _site
 
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
 
+    - name: Deployment summary
+      run: |
+        echo "## 🚀 Deployed to GitHub Pages" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Frontend deployed successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Access URLs:" >> $GITHUB_STEP_SUMMARY
+        echo "- **GitHub Pages**: \`https://ranikrishna-coder.github.io/rl-hub/\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **API Endpoint**: \`${API_URL}\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+        echo "1. Enable GitHub Pages in repository Settings → Pages" >> $GITHUB_STEP_SUMMARY
+        echo "2. Deploy the API to Render/Railway (see \`GITHUB_HOSTING.md\`)" >> $GITHUB_STEP_SUMMARY
+        echo "3. Update \`API_URL\` secret in GitHub if using different API URL" >> $GITHUB_STEP_SUMMARY
+        echo "4. Your app will be fully functional!" >> $GITHUB_STEP_SUMMARY
