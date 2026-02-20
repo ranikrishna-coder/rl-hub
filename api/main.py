@@ -98,6 +98,24 @@ async def root():
     }
 
 
+@app.get("/config.js")
+async def get_config():
+    """Serve config.js with API URL"""
+    # Get the API URL from environment or use current request host
+    api_url = os.getenv("API_URL", "https://rl-hub-api.onrender.com")
+    
+    # If API_URL is not set, try to construct from request
+    # This will be handled by the JavaScript auto-detection
+    
+    config_content = f"""// API Configuration
+// This can be overridden by setting window.API_BASE before loading app.js
+window.API_BASE = window.API_BASE || '{api_url}';
+console.log('🚀 RL Hub - API Base URL:', window.API_BASE);
+"""
+    from fastapi.responses import Response
+    return Response(content=config_content, media_type="application/javascript")
+
+
 @app.get("/test-console")
 async def test_console(env: Optional[str] = None):
     """Simulation console for any RL environment"""

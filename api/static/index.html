@@ -5,13 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RL Hub - Environment Catalog</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- API Configuration - can be overridden by config.js for GitHub Pages -->
+    <!-- API Configuration - auto-detects API URL -->
     <script>
-        // Default API URL (for local development)
-        window.API_BASE = window.API_BASE || 'http://localhost:8000';
+        // Auto-detect API URL based on current hostname
+        (function() {
+            const hostname = window.location.hostname;
+            const protocol = window.location.protocol;
+            
+            // If we're on localhost, use localhost API
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                window.API_BASE = window.API_BASE || 'http://localhost:8000';
+            }
+            // If we're on Render, use the current origin (same domain)
+            else if (hostname.includes('onrender.com')) {
+                window.API_BASE = window.API_BASE || `${protocol}//${hostname}`;
+            }
+            // If we're on GitHub Pages, use the Render API
+            else if (hostname.includes('github.io')) {
+                window.API_BASE = window.API_BASE || 'https://rl-hub-api.onrender.com';
+            }
+            // Default fallback
+            else {
+                window.API_BASE = window.API_BASE || 'https://rl-hub-api.onrender.com';
+            }
+            
+            console.log('🚀 RL Hub - Detected API Base URL:', window.API_BASE);
+        })();
     </script>
-    <!-- Load config.js if it exists (for GitHub Pages deployment) -->
-    <script src="config.js" onerror="console.log('Using default API URL')"></script>
+    <!-- Load config.js if it exists (can override auto-detection) -->
+    <script src="config.js" onerror="console.log('config.js not found, using auto-detected URL')"></script>
 </head>
 <body>
     <div class="container">

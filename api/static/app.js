@@ -1,7 +1,24 @@
 // Environment Catalog Application
 
-// API Base URL - can be overridden by config.js (for GitHub Pages) or window.API_BASE
-const API_BASE = window.API_BASE || 'http://localhost:8000';
+// API Base URL - auto-detected or set by config.js
+// This will use window.API_BASE which is set by the auto-detection script in index.html
+const API_BASE = window.API_BASE || (() => {
+    // Fallback detection if window.API_BASE wasn't set
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+    
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:8000';
+    } else if (hostname.includes('onrender.com')) {
+        return `${protocol}//${hostname}`;
+    } else if (hostname.includes('github.io')) {
+        return 'https://rl-hub-api.onrender.com';
+    } else {
+        return 'https://rl-hub-api.onrender.com';
+    }
+})();
+
+console.log('📡 Using API Base URL:', API_BASE);
 let allEnvironments = [];
 let filteredEnvironments = [];
 
