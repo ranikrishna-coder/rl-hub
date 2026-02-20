@@ -187,6 +187,9 @@ async function loadEnvironments() {
             initializeSaveData(env.name);
         });
         
+        // Reset fake counts only once (first time after update)
+        resetAllSaveCounts();
+        
         filteredEnvironments = allEnvironments;
         renderEnvironments();
         document.getElementById('loading').style.display = 'none';
@@ -405,13 +408,32 @@ function formatEnvironmentName(name) {
 }
 
 // Save/favorite management functions
+function resetAllSaveCounts() {
+    // Reset all save counts to 0 to remove fake random numbers (only run once)
+    const savedData = JSON.parse(localStorage.getItem('rl_hub_saves') || '{}');
+    const resetFlag = localStorage.getItem('rl_hub_counts_reset');
+    
+    // Only reset if we haven't done it before
+    if (!resetFlag) {
+        Object.keys(savedData).forEach(envName => {
+            // Reset count to 0 but keep saved state
+            if (savedData[envName].count > 4) {
+                savedData[envName].count = 0;
+            }
+        });
+        localStorage.setItem('rl_hub_saves', JSON.stringify(savedData));
+        localStorage.setItem('rl_hub_counts_reset', 'true');
+    }
+}
+
 function initializeSaveData(envName) {
     const savedData = JSON.parse(localStorage.getItem('rl_hub_saves') || '{}');
+    
     if (!savedData[envName]) {
-        // Initialize with a random count between 5-54 for first time
+        // Initialize with 0 count for authentic, legitimate appearance
         savedData[envName] = { 
             saved: false, 
-            count: Math.floor(Math.random() * 50) + 5 
+            count: 0 
         };
         localStorage.setItem('rl_hub_saves', JSON.stringify(savedData));
     }
