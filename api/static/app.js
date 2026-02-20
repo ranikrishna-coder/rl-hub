@@ -151,18 +151,33 @@ async function loadEnvironments() {
         const data = await response.json();
         allEnvironments = data.environments || [];
         
-        // Enhance with details
-        allEnvironments = allEnvironments.map(env => ({
-            ...env,
-            ...(environmentDetails[env.name] || {
-                category: env.category || 'other',
-                description: 'RL environment for optimization',
-                stateFeatures: 15,
-                actionType: 'Discrete',
-                actionSpace: 5,
-                kpis: ['Clinical Outcomes', 'Operational Efficiency', 'Financial Metrics']
-            })
-        }));
+        // Enhance with details - generate unique descriptions for each environment
+        allEnvironments = allEnvironments.map(env => {
+            // Always generate description - ignore any from API
+            const generatedDescription = environmentDetails[env.name]?.description || getEnvironmentDescription(env.name, env.category || 'other');
+            
+            // Debug: Log if description is still generic (for troubleshooting)
+            if (generatedDescription && generatedDescription.includes('RL environment for optimization')) {
+                console.warn(`⚠️ Generic description detected for ${env.name}, using generated description`);
+            }
+            
+            return {
+                ...env,
+                ...(environmentDetails[env.name] || {}),
+                // Force use of generated description (never use API description)
+                description: generatedDescription,
+                // Ensure category and workflow are set
+                category: env.category || environmentDetails[env.name]?.category || 'other',
+                workflow: env.workflow || environmentDetails[env.name]?.workflow || (env.category ? env.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'General')
+            };
+        });
+        
+        // Debug: Verify descriptions are set
+        console.log(`✅ Loaded ${allEnvironments.length} environments with descriptions`);
+        const sampleEnv = allEnvironments[0];
+        if (sampleEnv) {
+            console.log(`📝 Sample: ${sampleEnv.name} - Description: ${sampleEnv.description?.substring(0, 60)}...`);
+        }
         
         // Calculate and update stats dynamically
         const totalEnvs = allEnvironments.length;
@@ -407,6 +422,206 @@ function formatEnvironmentName(name) {
     return name.replace(/([A-Z])/g, ' $1').trim();
 }
 
+// Generate unique, use-case-specific descriptions for each environment
+function getEnvironmentDescription(envName, category) {
+    const descriptions = {
+        // Clinical environments
+        'TreatmentPathwayOptimization': 'Optimizes treatment sequences for patients with multiple conditions, balancing clinical outcomes, efficiency, and cost-effectiveness.',
+        'SepsisEarlyIntervention': 'Early detection and intervention for sepsis cases using SOFA scores and vital signs monitoring to reduce mortality rates.',
+        'ICUResourceAllocation': 'Optimally allocates ICU beds and staff resources based on patient acuity and resource availability to maximize care quality.',
+        'SurgicalScheduling': 'Intelligently schedules surgical procedures to optimize OR utilization while minimizing patient wait times and cancellations.',
+        'DiagnosticTestSequencing': 'Determines optimal order of diagnostic tests to accelerate diagnosis while minimizing costs and delays.',
+        'MedicationDosingOptimization': 'Personalizes medication dosages based on patient characteristics, drug interactions, and therapeutic response.',
+        'ReadmissionReduction': 'Identifies high-risk patients and applies targeted interventions to prevent avoidable hospital readmissions.',
+        'CareCoordination': 'Coordinates care across multiple providers and departments to ensure seamless patient transitions and continuity.',
+        'ChronicDiseaseManagement': 'Manages chronic conditions through proactive monitoring, medication adherence, and lifestyle interventions.',
+        'EmergencyTriage': 'Prioritizes emergency department patients based on acuity, resource availability, and clinical urgency.',
+        'PainManagementOptimization': 'Optimizes pain management strategies to balance patient comfort with medication safety and opioid reduction goals.',
+        'AntibioticStewardship': 'Promotes appropriate antibiotic use to combat resistance while ensuring effective treatment of infections.',
+        'OncologyTreatmentSequencing': 'Optimizes cancer treatment sequences including chemotherapy, radiation, and surgery timing for best outcomes.',
+        'LabTestPrioritization': 'Prioritizes laboratory tests based on clinical urgency, resource constraints, and diagnostic value.',
+        'ICUVentilatorAllocation': 'Allocates mechanical ventilators to critically ill patients based on severity, prognosis, and resource availability.',
+        'StrokeInterventionScheduling': 'Schedules stroke interventions including thrombolytics and thrombectomy to minimize time-to-treatment.',
+        'CardiacCareOptimization': 'Optimizes cardiac care pathways including cardiac catheterization, bypass surgery, and post-procedure monitoring.',
+        'DiabetesMonitoringOptimization': 'Optimizes diabetes monitoring frequency and intervention timing to prevent complications and improve glycemic control.',
+        'MentalHealthInterventionSequencing': 'Sequences mental health interventions including therapy, medication, and crisis interventions for optimal outcomes.',
+        'PostOperativeFollowupOptimization': 'Optimizes post-operative follow-up schedules to detect complications early while minimizing unnecessary visits.',
+        
+        // Imaging environments
+        'ImagingOrderPrioritization': 'Prioritizes imaging orders based on clinical urgency, equipment availability, and patient needs to reduce wait times.',
+        'RadiologyScheduling': 'Schedules radiology appointments to maximize scanner utilization while meeting patient and referring physician needs.',
+        'ScanParameterOptimization': 'Optimizes imaging scan parameters to balance image quality, radiation dose, and scan duration.',
+        'ImagingWorkflowRouting': 'Routes imaging studies through optimal workflow paths to minimize processing time and maximize throughput.',
+        'EquipmentUtilization': 'Maximizes utilization of imaging equipment including CT, MRI, and ultrasound scanners across multiple facilities.',
+        'MRIScanScheduling': 'Schedules MRI scans considering patient preparation needs, contrast requirements, and scanner availability.',
+        'CTScanPrioritization': 'Prioritizes CT scans based on clinical urgency, contrast requirements, and scanner capacity.',
+        'RadiologistTaskAssignment': 'Assigns radiology reading tasks to radiologists based on expertise, workload, and turnaround time requirements.',
+        'UltrasoundResourceAllocation': 'Allocates ultrasound resources across departments to balance urgent and routine study needs.',
+        'PACSWorkflowOptimization': 'Optimizes Picture Archiving and Communication System workflows to accelerate image retrieval and reporting.',
+        'ImagingResultTriage': 'Prioritizes imaging result review and reporting based on clinical urgency and critical finding potential.',
+        'AIAssistedDiagnostics': 'Integrates AI-assisted diagnostic tools to prioritize studies requiring immediate attention and flag abnormalities.',
+        'ImagingStudyBatchScheduling': 'Batches similar imaging studies to improve efficiency and reduce setup time between scans.',
+        'OncologyImagingPathway': 'Optimizes imaging pathways for cancer patients including screening, staging, and treatment response monitoring.',
+        'ImagingQualityControl': 'Monitors and optimizes imaging quality metrics to ensure diagnostic accuracy while maintaining efficiency.',
+        
+        // Population Health environments
+        'RiskStratification': 'Stratifies patient populations by risk level to enable targeted interventions and resource allocation.',
+        'PreventiveOutreach': 'Identifies patients due for preventive care and optimizes outreach strategies to improve screening rates.',
+        'VaccinationAllocation': 'Allocates vaccines across populations to maximize coverage while prioritizing high-risk groups.',
+        'HighRiskMonitoring': 'Monitors high-risk patients proactively to prevent adverse events and reduce emergency department visits.',
+        'PopulationCostOptimization': 'Optimizes population health spending to maximize outcomes while controlling per-member costs.',
+        'ChronicDiseaseOutreach': 'Targets chronic disease patients for proactive interventions to prevent complications and hospitalizations.',
+        'TelemonitoringOptimization': 'Optimizes remote patient monitoring programs to balance resource use with patient outcomes.',
+        'PreventiveScreeningPolicy': 'Determines optimal screening schedules and eligibility criteria to maximize early detection rates.',
+        'HighRiskPatientEngagement': 'Engages high-risk patients through personalized interventions to improve adherence and outcomes.',
+        'PopulationHealthCostAllocation': 'Allocates population health resources across programs to maximize population-level outcomes.',
+        'CommunityHealthProgramAllocation': 'Allocates community health programs to areas with greatest need and potential impact.',
+        'ReadmissionRiskMitigation': 'Identifies and intervenes with patients at high risk for readmission to prevent avoidable returns.',
+        'HealthLiteracyIntervention': 'Delivers health literacy interventions to improve patient understanding and self-management capabilities.',
+        'LifestyleInterventionSequencing': 'Sequences lifestyle interventions including nutrition, exercise, and smoking cessation programs.',
+        'VaccinationDrivePrioritization': 'Prioritizes vaccination drives across communities to maximize coverage and minimize disease spread.',
+        
+        // Revenue Cycle environments
+        'ClaimsRouting': 'Routes insurance claims to appropriate processors for optimal adjudication and payment speed.',
+        'DenialIntervention': 'Identifies claim denials and applies targeted interventions to maximize recovery and reduce future denials.',
+        'PaymentPlanSequencing': 'Optimizes patient payment plan structures to maximize collection rates while maintaining patient satisfaction.',
+        'BillingCodeOptimization': 'Optimizes billing code selection to maximize reimbursement while ensuring compliance and accuracy.',
+        'RevenueLeakageDetection': 'Detects and prevents revenue leakage through missed charges, under-coding, and billing errors.',
+        'PatientBillingPrioritization': 'Prioritizes patient billing activities to maximize collection rates and minimize bad debt.',
+        'ClaimsRejectionRecovery': 'Recovers rejected claims through systematic review, correction, and resubmission strategies.',
+        'PreAuthorizationWorkflow': 'Optimizes pre-authorization workflows to minimize delays and denials while ensuring timely care.',
+        'DenialAppealsSequencing': 'Prioritizes and sequences denial appeals to maximize recovery rates and minimize appeal costs.',
+        'PaymentReconciliation': 'Reconciles payments across multiple systems to ensure accurate posting and identify discrepancies.',
+        'CostToCollectOptimization': 'Minimizes cost-to-collect metrics while maximizing net revenue through efficient processes.',
+        'ContractComplianceScoring': 'Monitors and optimizes payer contract compliance to maximize reimbursement and minimize penalties.',
+        'InsurancePlanMatching': 'Matches patients to optimal insurance plans to maximize coverage and minimize out-of-pocket costs.',
+        'RevenueForecastSimulation': 'Forecasts revenue based on patient volumes, payer mix, and collection rates for financial planning.',
+        'PatientFinancialCounseling': 'Optimizes financial counseling delivery to improve payment rates and patient satisfaction.',
+        
+        // Clinical Trials environments
+        'TrialPatientMatching': 'Matches patients to appropriate clinical trials based on eligibility criteria and trial requirements.',
+        'AdaptiveTrialDesign': 'Adapts trial protocols in real-time based on interim results to maximize efficiency and ethical outcomes.',
+        'EnrollmentAcceleration': 'Accelerates patient enrollment in clinical trials through targeted outreach and streamlined processes.',
+        'ProtocolDeviationMitigation': 'Identifies and mitigates protocol deviations to maintain trial integrity and regulatory compliance.',
+        'DrugDosageTrialSequencing': 'Optimizes drug dosage escalation sequences in Phase I trials to balance safety and efficiency.',
+        'AdaptiveCohortAllocation': 'Dynamically allocates patients to trial cohorts based on biomarker responses and safety data.',
+        'TrialProtocolOptimization': 'Optimizes trial protocols to balance scientific rigor with patient recruitment and retention.',
+        'DrugSupplySequencing': 'Manages drug supply chains for clinical trials to prevent shortages and minimize waste.',
+        'TrialSiteResourceAllocation': 'Allocates resources across trial sites to maximize enrollment and data quality.',
+        'PatientFollowUpScheduling': 'Optimizes patient follow-up schedules in trials to maximize retention and data completeness.',
+        'EnrollmentFunnelOptimization': 'Optimizes the patient enrollment funnel from screening to randomization to maximize throughput.',
+        'AdverseEventPrediction': 'Predicts and prevents adverse events in clinical trials through proactive monitoring.',
+        'TrialOutcomeForecasting': 'Forecasts trial outcomes based on interim data to inform go/no-go decisions.',
+        'PatientRetentionSequencing': 'Optimizes patient retention strategies to minimize dropouts and maximize data quality.',
+        'MultiTrialResourceCoordination': 'Coordinates resources across multiple concurrent trials to maximize efficiency.',
+        
+        // Hospital Operations environments
+        'StaffingAllocation': 'Allocates staff across departments to optimize patient care and operational efficiency.',
+        'ORUtilization': 'Maximizes operating room utilization while balancing elective and emergency case needs.',
+        'SupplyChainInventory': 'Manages medical supply inventory to prevent shortages while minimizing carrying costs.',
+        'BedTurnoverOptimization': 'Optimizes bed turnover processes to maximize capacity and minimize patient wait times.',
+        'EquipmentMaintenance': 'Schedules equipment maintenance to minimize downtime while ensuring patient safety.',
+        
+        // Telehealth environments
+        'VirtualVisitRouting': 'Routes virtual visits to appropriate providers based on patient needs and provider availability.',
+        'EscalationPolicy': 'Determines when to escalate virtual visits to in-person care based on clinical indicators.',
+        'ProviderLoadBalancing': 'Balances provider workloads across virtual and in-person care to maximize access.',
+        'FollowUpOptimization': 'Optimizes follow-up visit scheduling for telehealth patients to ensure continuity of care.',
+        'DigitalAdherenceCoaching': 'Delivers digital coaching interventions to improve medication and treatment adherence.',
+        
+        // Interoperability environments
+        'DataReconciliation': 'Reconciles data across multiple healthcare systems to ensure data integrity and consistency.',
+        'CrossSystemAlertPrioritization': 'Prioritizes alerts from multiple systems to prevent alert fatigue and ensure critical notifications.',
+        'DuplicateRecordResolution': 'Identifies and resolves duplicate patient records across systems to maintain data quality.',
+        'InterFacilityTransfer': 'Optimizes patient transfers between facilities to ensure continuity of care and data exchange.',
+        'HIERouting': 'Routes health information exchange messages to appropriate systems and workflows.',
+        
+        // Cross-Workflow environments
+        'PatientJourneyOptimization': 'Multi-agent optimization across the entire patient care continuum from admission to discharge.',
+        'HospitalThroughput': 'Optimizes hospital-wide throughput to maximize capacity utilization and patient flow.',
+        'ClinicalFinancialTradeoff': 'Balances clinical quality and financial performance across all hospital operations.',
+        'ValueBasedCareOptimization': 'Optimizes value-based care metrics including quality scores and cost efficiency.',
+        'MultiHospitalNetworkCoordination': 'Coordinates operations across hospital networks to maximize resource utilization and care quality.'
+    };
+    
+    return descriptions[envName] || `Reinforcement learning environment for ${category.replace('_', ' ')} optimization and decision support.`;
+}
+
+// Generate use-case-specific descriptions
+function getUseCaseDescription(envName, category) {
+    const useCases = {
+        // Clinical
+        'TreatmentPathwayOptimization': 'Complex patient cases requiring coordinated multi-step treatment plans across multiple specialties.',
+        'SepsisEarlyIntervention': 'Critical care units, emergency departments, and inpatient wards for early sepsis detection.',
+        'ICUResourceAllocation': 'Intensive care units managing bed capacity, staff allocation, and patient transfers.',
+        'SurgicalScheduling': 'Operating room management, surgical services, and perioperative care coordination.',
+        'DiagnosticTestSequencing': 'Clinical decision support for ordering and sequencing diagnostic tests efficiently.',
+        'MedicationDosingOptimization': 'Pharmacy services, medication management, and personalized medicine programs.',
+        'ReadmissionReduction': 'Care transition programs, discharge planning, and post-acute care coordination.',
+        'CareCoordination': 'Care management programs, patient navigation, and multi-provider care coordination.',
+        'ChronicDiseaseManagement': 'Primary care, disease management programs, and population health initiatives.',
+        'EmergencyTriage': 'Emergency departments, urgent care centers, and triage systems.',
+        
+        // Imaging
+        'ImagingOrderPrioritization': 'Radiology departments, imaging centers, and emergency imaging services.',
+        'RadiologyScheduling': 'Radiology scheduling departments and imaging center operations.',
+        'ScanParameterOptimization': 'Radiology quality improvement and radiation safety programs.',
+        'ImagingWorkflowRouting': 'PACS administrators and imaging workflow optimization teams.',
+        'EquipmentUtilization': 'Imaging center operations and multi-site radiology departments.',
+        
+        // Population Health
+        'RiskStratification': 'Population health management, care coordination, and health plan operations.',
+        'PreventiveOutreach': 'Primary care practices, health plans, and population health programs.',
+        'VaccinationAllocation': 'Public health departments, health systems, and vaccination programs.',
+        'HighRiskMonitoring': 'Care management programs, chronic disease management, and patient monitoring services.',
+        'PopulationCostOptimization': 'Health plans, accountable care organizations, and population health management.',
+        
+        // Revenue Cycle
+        'ClaimsRouting': 'Revenue cycle management, billing departments, and claims processing centers.',
+        'DenialIntervention': 'Revenue cycle management, denial management teams, and billing operations.',
+        'PaymentPlanSequencing': 'Patient financial services, billing departments, and revenue cycle management.',
+        'BillingCodeOptimization': 'Coding departments, revenue integrity teams, and billing operations.',
+        'RevenueLeakageDetection': 'Revenue cycle management, finance departments, and billing operations.',
+        
+        // Clinical Trials
+        'TrialPatientMatching': 'Clinical research organizations, trial sites, and research coordinators.',
+        'AdaptiveTrialDesign': 'Biostatistics teams, clinical research organizations, and trial sponsors.',
+        'EnrollmentAcceleration': 'Clinical trial sites, research coordinators, and patient recruitment teams.',
+        'ProtocolDeviationMitigation': 'Clinical research quality assurance and regulatory compliance teams.',
+        'DrugDosageTrialSequencing': 'Phase I clinical trial units and early development research teams.',
+        
+        // Hospital Operations
+        'StaffingAllocation': 'Hospital operations, workforce management, and staffing departments.',
+        'ORUtilization': 'Operating room management, surgical services, and perioperative departments.',
+        'SupplyChainInventory': 'Supply chain management, materials management, and procurement departments.',
+        'BedTurnoverOptimization': 'Bed management, patient flow, and capacity management teams.',
+        'EquipmentMaintenance': 'Biomedical engineering, facilities management, and equipment maintenance teams.',
+        
+        // Telehealth
+        'VirtualVisitRouting': 'Telehealth platforms, virtual care delivery, and remote patient services.',
+        'EscalationPolicy': 'Telehealth triage, care coordination, and virtual care management.',
+        'ProviderLoadBalancing': 'Telehealth platforms, provider scheduling, and virtual care operations.',
+        'FollowUpOptimization': 'Telehealth care management and virtual care coordination.',
+        'DigitalAdherenceCoaching': 'Digital health programs, medication adherence, and patient engagement platforms.',
+        
+        // Interoperability
+        'DataReconciliation': 'Health information exchanges, data integration teams, and interoperability programs.',
+        'CrossSystemAlertPrioritization': 'Clinical informatics, alert management, and system integration teams.',
+        'DuplicateRecordResolution': 'Health information management, master patient index, and data quality teams.',
+        'InterFacilityTransfer': 'Care coordination, transfer centers, and health system operations.',
+        'HIERouting': 'Health information exchange operations and interoperability teams.',
+        
+        // Cross-Workflow
+        'PatientJourneyOptimization': 'Care coordination, patient flow optimization, and health system operations.',
+        'HospitalThroughput': 'Hospital operations, capacity management, and patient flow optimization.',
+        'ClinicalFinancialTradeoff': 'Hospital administration, finance, and clinical operations leadership.',
+        'ValueBasedCareOptimization': 'Accountable care organizations, value-based care programs, and health system strategy.',
+        'MultiHospitalNetworkCoordination': 'Health system operations, network management, and multi-site coordination.'
+    };
+    
+    return useCases[envName] || `General ${category.replace('_', ' ')} optimization and decision support applications.`;
+}
+
 // Save/favorite management functions
 function resetAllSaveCounts() {
     // Reset all save counts to 0 to remove fake random numbers (only run once)
@@ -495,7 +710,7 @@ function createEnvCard(env) {
                 </button>
             </div>
             <div class="env-description">
-                ${env.description || 'RL environment for optimization'}
+                ${env.description || getEnvironmentDescription(env.name, env.category || 'other') || 'Reinforcement learning environment for healthcare optimization.'}
             </div>
             <div class="env-details">
                 <div class="detail-item">
@@ -516,6 +731,598 @@ function createEnvCard(env) {
 }
 
 function getDefaultWhatItDoes(category, envName) {
+    // Generate environment-specific descriptions
+    const envSpecificDescriptions = {
+        // Clinical
+        'TreatmentPathwayOptimization': `
+            <p>This RL environment optimizes treatment sequences for patients with multiple conditions. 
+            It learns to balance clinical outcomes, efficiency, and cost-effectiveness by determining 
+            the optimal order and timing of treatments, medications, and interventions.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Reduces treatment pathway length and complexity</li>
+                <li>Improves patient outcomes through optimized sequencing</li>
+                <li>Minimizes treatment delays and wait times</li>
+                <li>Maximizes cost-effectiveness of care delivery</li>
+            </ul>
+        `,
+        'SepsisEarlyIntervention': `
+            <p>This RL environment focuses on early detection and intervention for sepsis cases. 
+            It uses SOFA scores, vital signs, and clinical indicators to identify at-risk patients 
+            and trigger appropriate interventions before sepsis becomes life-threatening.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Reduces sepsis mortality rates through early detection</li>
+                <li>Minimizes time to antibiotic administration</li>
+                <li>Improves bundle compliance and protocol adherence</li>
+                <li>Prevents progression to severe sepsis and septic shock</li>
+            </ul>
+        `,
+        'ICUResourceAllocation': `
+            <p>This RL environment optimally allocates ICU beds and staff resources based on patient 
+            acuity, resource availability, and predicted outcomes. It helps balance capacity constraints 
+            with patient care needs.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Maximizes ICU bed utilization and efficiency</li>
+                <li>Reduces patient wait times for critical care</li>
+                <li>Optimizes staff allocation across acuity levels</li>
+                <li>Improves patient outcomes through timely ICU access</li>
+            </ul>
+        `,
+        'SurgicalScheduling': `
+            <p>This RL environment intelligently schedules surgical procedures to optimize OR utilization 
+            while minimizing patient wait times, cancellations, and resource conflicts. It balances 
+            elective and emergency cases effectively.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Maximizes operating room utilization rates</li>
+                <li>Reduces surgical cancellations and delays</li>
+                <li>Minimizes patient wait times for procedures</li>
+                <li>Optimizes resource allocation across surgical specialties</li>
+            </ul>
+        `,
+        'DiagnosticTestSequencing': `
+            <p>This RL environment determines the optimal order of diagnostic tests to accelerate 
+            diagnosis while minimizing costs and delays. It considers test dependencies, urgency, 
+            and resource availability.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Accelerates time to diagnosis</li>
+                <li>Reduces unnecessary and redundant testing</li>
+                <li>Minimizes diagnostic costs</li>
+                <li>Improves test result turnaround times</li>
+            </ul>
+        `,
+        'MedicationDosingOptimization': `
+            <p>This RL environment personalizes medication dosages based on patient characteristics, 
+            drug interactions, therapeutic response, and safety considerations. It optimizes dosing 
+            regimens for maximum efficacy and minimum side effects.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Improves therapeutic outcomes through personalized dosing</li>
+                <li>Reduces medication-related adverse events</li>
+                <li>Minimizes drug interactions and complications</li>
+                <li>Optimizes medication costs and resource use</li>
+            </ul>
+        `,
+        'ReadmissionReduction': `
+            <p>This RL environment identifies high-risk patients and applies targeted interventions 
+            to prevent avoidable hospital readmissions. It optimizes discharge planning, follow-up care, 
+            and transition management.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Reduces 30-day readmission rates</li>
+                <li>Improves care transition quality</li>
+                <li>Enhances patient outcomes post-discharge</li>
+                <li>Reduces healthcare costs through prevention</li>
+            </ul>
+        `,
+        'CareCoordination': `
+            <p>This RL environment coordinates care across multiple providers and departments to 
+            ensure seamless patient transitions and continuity. It optimizes communication, handoffs, 
+            and care plan execution.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Improves care continuity across providers</li>
+                <li>Reduces care gaps and duplications</li>
+                <li>Enhances patient satisfaction</li>
+                <li>Optimizes resource use across care settings</li>
+            </ul>
+        `,
+        'ChronicDiseaseManagement': `
+            <p>This RL environment manages chronic conditions through proactive monitoring, medication 
+            adherence support, and lifestyle interventions. It optimizes intervention timing and intensity 
+            to prevent complications.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Prevents chronic disease complications</li>
+                <li>Improves medication adherence rates</li>
+                <li>Reduces emergency department visits</li>
+                <li>Enhances patient self-management capabilities</li>
+            </ul>
+        `,
+        'EmergencyTriage': `
+            <p>This RL environment prioritizes emergency department patients based on acuity, resource 
+            availability, and clinical urgency. It optimizes triage decisions to ensure critical 
+            patients receive timely care.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Reduces time to treatment for critical patients</li>
+                <li>Improves ED throughput and capacity</li>
+                <li>Minimizes patient wait times</li>
+                <li>Optimizes resource allocation in emergency settings</li>
+            </ul>
+        `,
+        // Imaging
+        'ImagingOrderPrioritization': `
+            <p>This RL environment prioritizes imaging orders based on clinical urgency, equipment 
+            availability, and patient needs. It reduces wait times for critical studies while 
+            maintaining high throughput.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Reduces wait times for urgent imaging studies</li>
+                <li>Improves scanner utilization and throughput</li>
+                <li>Optimizes scheduling to minimize patient delays</li>
+                <li>Enhances revenue through better resource management</li>
+            </ul>
+        `,
+        'RadiologyScheduling': `
+            <p>This RL environment schedules radiology appointments to maximize scanner utilization 
+            while meeting patient and referring physician needs. It balances routine and urgent studies 
+            effectively.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Maximizes scanner utilization rates</li>
+                <li>Reduces patient scheduling delays</li>
+                <li>Optimizes appointment slot allocation</li>
+                <li>Improves patient and provider satisfaction</li>
+            </ul>
+        `,
+        'ScanParameterOptimization': `
+            <p>This RL environment optimizes imaging scan parameters to balance image quality, 
+            radiation dose, and scan duration. It personalizes scan settings for each patient 
+            and study type.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Reduces radiation exposure while maintaining image quality</li>
+                <li>Improves diagnostic image quality</li>
+                <li>Minimizes scan duration and patient discomfort</li>
+                <li>Ensures compliance with radiation safety guidelines</li>
+            </ul>
+        `,
+        'ImagingWorkflowRouting': `
+            <p>This RL environment routes imaging studies through optimal workflow paths to minimize 
+            processing time and maximize throughput. It optimizes the journey from order to report.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Accelerates imaging study processing</li>
+                <li>Reduces time from scan to report</li>
+                <li>Optimizes workflow efficiency</li>
+                <li>Improves radiologist productivity</li>
+            </ul>
+        `,
+        'EquipmentUtilization': `
+            <p>This RL environment maximizes utilization of imaging equipment including CT, MRI, 
+            and ultrasound scanners across multiple facilities. It balances demand with capacity 
+            effectively.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Maximizes equipment utilization rates</li>
+                <li>Reduces equipment idle time</li>
+                <li>Optimizes multi-site resource allocation</li>
+                <li>Improves return on equipment investment</li>
+            </ul>
+        `,
+        // Population Health
+        'RiskStratification': `
+            <p>This RL environment stratifies patient populations by risk level to enable targeted 
+            interventions and resource allocation. It identifies high-risk patients who would 
+            benefit most from proactive care.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Identifies high-risk patients for targeted interventions</li>
+                <li>Optimizes resource allocation to highest-need patients</li>
+                <li>Improves population health outcomes</li>
+                <li>Reduces preventable hospitalizations</li>
+            </ul>
+        `,
+        'PreventiveOutreach': `
+            <p>This RL environment identifies patients due for preventive care and optimizes outreach 
+            strategies to improve screening rates. It personalizes communication and timing for 
+            maximum engagement.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Increases preventive care screening rates</li>
+                <li>Improves patient engagement and compliance</li>
+                <li>Enables early detection of health issues</li>
+                <li>Reduces long-term healthcare costs</li>
+            </ul>
+        `,
+        'VaccinationAllocation': `
+            <p>This RL environment allocates vaccines across populations to maximize coverage while 
+            prioritizing high-risk groups. It optimizes distribution strategies during normal operations 
+            and public health emergencies.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Maximizes vaccination coverage rates</li>
+                <li>Prioritizes high-risk populations effectively</li>
+                <li>Minimizes vaccine waste and expiration</li>
+                <li>Improves public health outcomes</li>
+            </ul>
+        `,
+        'HighRiskMonitoring': `
+            <p>This RL environment monitors high-risk patients proactively to prevent adverse events 
+            and reduce emergency department visits. It optimizes monitoring frequency and 
+            intervention timing.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Prevents adverse events through proactive monitoring</li>
+                <li>Reduces emergency department visits</li>
+                <li>Improves patient outcomes and quality of life</li>
+                <li>Optimizes care management resource allocation</li>
+            </ul>
+        `,
+        'PopulationCostOptimization': `
+            <p>This RL environment optimizes population health spending to maximize outcomes while 
+            controlling per-member costs. It allocates resources across programs and interventions 
+            strategically.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Maximizes population health outcomes per dollar spent</li>
+                <li>Controls per-member healthcare costs</li>
+                <li>Optimizes resource allocation across programs</li>
+                <li>Improves value-based care performance</li>
+            </ul>
+        `,
+        // Revenue Cycle
+        'ClaimsRouting': `
+            <p>This RL environment routes insurance claims to appropriate processors for optimal 
+            adjudication and payment speed. It matches claims to processors based on expertise, 
+            capacity, and success rates.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Increases first-pass claim approval rates</li>
+                <li>Accelerates payment processing times</li>
+                <li>Reduces claim denials and rejections</li>
+                <li>Improves cash flow and revenue collection</li>
+            </ul>
+        `,
+        'DenialIntervention': `
+            <p>This RL environment identifies claim denials and applies targeted interventions to 
+            maximize recovery and reduce future denials. It prioritizes high-value denials and 
+            optimizes appeal strategies.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Increases denial recovery rates</li>
+                <li>Reduces future denial rates through prevention</li>
+                <li>Optimizes appeal resource allocation</li>
+                <li>Improves net revenue collection</li>
+            </ul>
+        `,
+        'PaymentPlanSequencing': `
+            <p>This RL environment optimizes patient payment plan structures to maximize collection 
+            rates while maintaining patient satisfaction. It personalizes payment terms based on 
+            patient financial capacity.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Increases patient payment collection rates</li>
+                <li>Reduces bad debt and write-offs</li>
+                <li>Improves patient financial satisfaction</li>
+                <li>Optimizes payment plan terms and structures</li>
+            </ul>
+        `,
+        'BillingCodeOptimization': `
+            <p>This RL environment optimizes billing code selection to maximize reimbursement while 
+            ensuring compliance and accuracy. It helps prevent under-coding and over-coding issues.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Maximizes appropriate reimbursement</li>
+                <li>Ensures billing compliance and accuracy</li>
+                <li>Reduces audit risk and penalties</li>
+                <li>Improves revenue integrity</li>
+            </ul>
+        `,
+        'RevenueLeakageDetection': `
+            <p>This RL environment detects and prevents revenue leakage through missed charges, 
+            under-coding, and billing errors. It identifies patterns and applies corrective actions.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Identifies and recovers lost revenue</li>
+                <li>Prevents future revenue leakage</li>
+                <li>Improves charge capture accuracy</li>
+                <li>Enhances revenue cycle performance</li>
+            </ul>
+        `,
+        // Clinical Trials
+        'TrialPatientMatching': `
+            <p>This RL environment matches patients to appropriate clinical trials based on eligibility 
+            criteria and trial requirements. It optimizes matching to maximize enrollment and trial 
+            success rates.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Accelerates patient enrollment in trials</li>
+                <li>Improves patient-trial match quality</li>
+                <li>Maximizes trial enrollment rates</li>
+                <li>Enhances trial success probability</li>
+            </ul>
+        `,
+        'AdaptiveTrialDesign': `
+            <p>This RL environment adapts trial protocols in real-time based on interim results to 
+            maximize efficiency and ethical outcomes. It optimizes trial design dynamically.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Accelerates trial completion times</li>
+                <li>Improves trial efficiency and cost-effectiveness</li>
+                <li>Maximizes patient safety and ethical outcomes</li>
+                <li>Enhances trial success rates</li>
+            </ul>
+        `,
+        'EnrollmentAcceleration': `
+            <p>This RL environment accelerates patient enrollment in clinical trials through targeted 
+            outreach and streamlined processes. It optimizes recruitment strategies and timing.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Reduces time to full enrollment</li>
+                <li>Improves patient recruitment rates</li>
+                <li>Optimizes recruitment resource allocation</li>
+                <li>Enhances trial timeline adherence</li>
+            </ul>
+        `,
+        'ProtocolDeviationMitigation': `
+            <p>This RL environment identifies and mitigates protocol deviations to maintain trial 
+            integrity and regulatory compliance. It prevents deviations through proactive monitoring.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Reduces protocol deviation rates</li>
+                <li>Maintains trial data integrity</li>
+                <li>Ensures regulatory compliance</li>
+                <li>Improves trial quality and validity</li>
+            </ul>
+        `,
+        'DrugDosageTrialSequencing': `
+            <p>This RL environment optimizes drug dosage escalation sequences in Phase I trials to 
+            balance safety and efficiency. It determines optimal dose levels and escalation schedules.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Maximizes patient safety in dose-finding trials</li>
+                <li>Accelerates identification of optimal doses</li>
+                <li>Reduces trial duration and costs</li>
+                <li>Improves trial efficiency</li>
+            </ul>
+        `,
+        // Hospital Operations
+        'StaffingAllocation': `
+            <p>This RL environment allocates staff across departments to optimize patient care and 
+            operational efficiency. It balances workload, skill requirements, and cost constraints.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Optimizes staff utilization and productivity</li>
+                <li>Reduces staffing costs while maintaining quality</li>
+                <li>Improves patient care coverage</li>
+                <li>Enhances staff satisfaction through balanced workloads</li>
+            </ul>
+        `,
+        'ORUtilization': `
+            <p>This RL environment maximizes operating room utilization while balancing elective and 
+            emergency case needs. It optimizes OR scheduling and resource allocation.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Maximizes OR utilization rates</li>
+                <li>Reduces OR idle time and inefficiencies</li>
+                <li>Balances elective and emergency cases</li>
+                <li>Improves surgical services revenue</li>
+            </ul>
+        `,
+        'SupplyChainInventory': `
+            <p>This RL environment manages medical supply inventory to prevent shortages while minimizing 
+            carrying costs. It optimizes ordering, stocking, and distribution strategies.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Prevents supply shortages and stockouts</li>
+                <li>Minimizes inventory carrying costs</li>
+                <li>Reduces waste and expiration</li>
+                <li>Optimizes supply chain efficiency</li>
+            </ul>
+        `,
+        'BedTurnoverOptimization': `
+            <p>This RL environment optimizes bed turnover processes to maximize capacity and minimize 
+            patient wait times. It coordinates cleaning, maintenance, and patient flow.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Reduces bed turnover time</li>
+                <li>Maximizes bed capacity utilization</li>
+                <li>Minimizes patient wait times for admission</li>
+                <li>Improves patient flow and throughput</li>
+            </ul>
+        `,
+        'EquipmentMaintenance': `
+            <p>This RL environment schedules equipment maintenance to minimize downtime while ensuring 
+            patient safety. It balances preventive maintenance with operational needs.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Minimizes equipment downtime</li>
+                <li>Prevents equipment failures and safety issues</li>
+                <li>Optimizes maintenance scheduling</li>
+                <li>Extends equipment lifespan</li>
+            </ul>
+        `,
+        // Telehealth
+        'VirtualVisitRouting': `
+            <p>This RL environment routes virtual visits to appropriate providers based on patient needs 
+            and provider availability. It optimizes matching to maximize access and quality.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Reduces patient wait times for virtual care</li>
+                <li>Improves provider-patient matching</li>
+                <li>Maximizes provider utilization</li>
+                <li>Enhances virtual care quality and satisfaction</li>
+            </ul>
+        `,
+        'EscalationPolicy': `
+            <p>This RL environment determines when to escalate virtual visits to in-person care based 
+            on clinical indicators. It optimizes escalation decisions to ensure patient safety.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Ensures appropriate care escalation when needed</li>
+                <li>Prevents unnecessary in-person visits</li>
+                <li>Improves patient safety and outcomes</li>
+                <li>Optimizes care delivery efficiency</li>
+            </ul>
+        `,
+        'ProviderLoadBalancing': `
+            <p>This RL environment balances provider workloads across virtual and in-person care to 
+            maximize access. It optimizes scheduling and assignment strategies.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Balances provider workloads effectively</li>
+                <li>Maximizes patient access to care</li>
+                <li>Improves provider satisfaction</li>
+                <li>Optimizes care delivery capacity</li>
+            </ul>
+        `,
+        'FollowUpOptimization': `
+            <p>This RL environment optimizes follow-up visit scheduling for telehealth patients to 
+            ensure continuity of care. It personalizes follow-up timing and modality.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Improves care continuity for telehealth patients</li>
+                <li>Optimizes follow-up visit timing</li>
+                <li>Reduces care gaps and complications</li>
+                <li>Enhances patient engagement and outcomes</li>
+            </ul>
+        `,
+        'DigitalAdherenceCoaching': `
+            <p>This RL environment delivers digital coaching interventions to improve medication and 
+            treatment adherence. It personalizes coaching content, timing, and intensity.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Improves medication and treatment adherence</li>
+                <li>Reduces treatment failures and complications</li>
+                <li>Enhances patient engagement and self-management</li>
+                <li>Optimizes intervention resource allocation</li>
+            </ul>
+        `,
+        // Interoperability
+        'DataReconciliation': `
+            <p>This RL environment reconciles data across multiple healthcare systems to ensure data 
+            integrity and consistency. It identifies and resolves discrepancies automatically.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Ensures data accuracy across systems</li>
+                <li>Reduces data discrepancies and errors</li>
+                <li>Improves data quality and reliability</li>
+                <li>Enhances interoperability and data exchange</li>
+            </ul>
+        `,
+        'CrossSystemAlertPrioritization': `
+            <p>This RL environment prioritizes alerts from multiple systems to prevent alert fatigue 
+            and ensure critical notifications. It filters and ranks alerts intelligently.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Reduces alert fatigue for clinicians</li>
+                <li>Ensures critical alerts are not missed</li>
+                <li>Improves clinical decision-making</li>
+                <li>Enhances patient safety</li>
+            </ul>
+        `,
+        'DuplicateRecordResolution': `
+            <p>This RL environment identifies and resolves duplicate patient records across systems to 
+            maintain data quality. It merges records intelligently while preserving data integrity.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Eliminates duplicate patient records</li>
+                <li>Improves data quality and accuracy</li>
+                <li>Enhances patient matching and identification</li>
+                <li>Reduces data management errors</li>
+            </ul>
+        `,
+        'InterFacilityTransfer': `
+            <p>This RL environment optimizes patient transfers between facilities to ensure continuity 
+            of care and data exchange. It coordinates transfer logistics and information sharing.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Improves care continuity during transfers</li>
+                <li>Accelerates transfer processes</li>
+                <li>Ensures complete data exchange</li>
+                <li>Enhances patient safety during transitions</li>
+            </ul>
+        `,
+        'HIERouting': `
+            <p>This RL environment routes health information exchange messages to appropriate systems 
+            and workflows. It optimizes message routing for efficiency and accuracy.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Accelerates health information exchange</li>
+                <li>Ensures accurate message routing</li>
+                <li>Improves interoperability efficiency</li>
+                <li>Enhances data exchange reliability</li>
+            </ul>
+        `,
+        // Cross-Workflow
+        'PatientJourneyOptimization': `
+            <p>This RL environment uses multi-agent optimization across the entire patient care continuum 
+            from admission to discharge. It coordinates care across multiple departments and workflows.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Optimizes entire patient journey end-to-end</li>
+                <li>Coordinates care across multiple departments</li>
+                <li>Improves patient flow and throughput</li>
+                <li>Maximizes care quality and efficiency</li>
+            </ul>
+        `,
+        'HospitalThroughput': `
+            <p>This RL environment optimizes hospital-wide throughput to maximize capacity utilization 
+            and patient flow. It coordinates operations across all departments and services.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Maximizes hospital capacity utilization</li>
+                <li>Improves patient flow and throughput</li>
+                <li>Reduces bottlenecks and delays</li>
+                <li>Enhances overall operational efficiency</li>
+            </ul>
+        `,
+        'ClinicalFinancialTradeoff': `
+            <p>This RL environment balances clinical quality and financial performance across all hospital 
+            operations. It optimizes decisions to maximize value and outcomes.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Balances clinical quality with financial performance</li>
+                <li>Maximizes value-based care outcomes</li>
+                <li>Optimizes resource allocation strategically</li>
+                <li>Improves overall hospital performance</li>
+            </ul>
+        `,
+        'ValueBasedCareOptimization': `
+            <p>This RL environment optimizes value-based care metrics including quality scores and cost 
+            efficiency. It aligns operations with value-based payment models.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Improves quality scores and performance metrics</li>
+                <li>Optimizes cost efficiency and resource use</li>
+                <li>Maximizes value-based care payments</li>
+                <li>Enhances population health outcomes</li>
+            </ul>
+        `,
+        'MultiHospitalNetworkCoordination': `
+            <p>This RL environment coordinates operations across hospital networks to maximize resource 
+            utilization and care quality. It optimizes network-wide resource allocation and patient flow.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Maximizes network-wide resource utilization</li>
+                <li>Improves care quality across facilities</li>
+                <li>Optimizes patient transfers and routing</li>
+                <li>Enhances network operational efficiency</li>
+            </ul>
+        `
+    };
+    
+    // Return environment-specific description if available
+    if (envSpecificDescriptions[envName]) {
+        return envSpecificDescriptions[envName];
+    }
+    
+    // Fallback to category-based descriptions
     const categoryDescriptions = {
         'clinical': `
             <p>This RL environment optimizes clinical decision-making processes in healthcare settings. 
@@ -577,6 +1384,54 @@ function getDefaultWhatItDoes(category, envName) {
                 <li>Optimizes staff scheduling and allocation</li>
                 <li>Reduces operational costs</li>
                 <li>Enhances patient satisfaction through reduced wait times</li>
+            </ul>
+        `,
+        'clinical_trials': `
+            <p>This RL environment optimizes clinical trial operations including patient matching, 
+            enrollment, protocol adherence, and resource allocation. The agent learns to maximize 
+            trial efficiency and success rates.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Accelerates trial enrollment and completion</li>
+                <li>Improves trial efficiency and cost-effectiveness</li>
+                <li>Enhances protocol compliance and data quality</li>
+                <li>Maximizes trial success rates</li>
+            </ul>
+        `,
+        'telehealth': `
+            <p>This RL environment optimizes telehealth operations including visit routing, provider 
+            allocation, escalation decisions, and follow-up scheduling. The agent learns to maximize 
+            virtual care quality and efficiency.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Improves virtual care access and quality</li>
+                <li>Optimizes provider utilization and workload</li>
+                <li>Enhances patient satisfaction with virtual care</li>
+                <li>Maximizes telehealth program effectiveness</li>
+            </ul>
+        `,
+        'interoperability': `
+            <p>This RL environment optimizes health information exchange and interoperability operations 
+            including data reconciliation, alert prioritization, and message routing. The agent learns 
+            to maximize data quality and exchange efficiency.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Improves data quality and accuracy</li>
+                <li>Enhances interoperability and data exchange</li>
+                <li>Reduces data errors and discrepancies</li>
+                <li>Optimizes health information exchange efficiency</li>
+            </ul>
+        `,
+        'cross_workflow': `
+            <p>This RL environment uses multi-agent optimization to coordinate operations across multiple 
+            healthcare workflows and departments. Agents collaborate to optimize complex, interconnected 
+            healthcare processes.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Coordinates care across multiple workflows</li>
+                <li>Optimizes system-wide operations</li>
+                <li>Improves patient journey and outcomes</li>
+                <li>Maximizes overall healthcare system performance</li>
             </ul>
         `
     };
@@ -716,7 +1571,7 @@ function showEnvironmentDetails(envName) {
         
         <div class="modal-section">
             <h3>Description</h3>
-            <p>${details.description || env.description || 'RL environment for optimization'}</p>
+            <p>${details.description || env.description || getEnvironmentDescription(env.name, env.category || 'other')}</p>
         </div>
         
         <div class="modal-section">
@@ -724,7 +1579,8 @@ function showEnvironmentDetails(envName) {
             <p><strong>Healthcare Systems:</strong> ${env.system || details.system || 'Multiple'}</p>
             <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">
                 This environment integrates with the specified healthcare systems, providing digital twin simulations 
-                and RL optimization capabilities for these platforms.
+                and RL optimization capabilities for these platforms. The workflow category "${env.workflow || env.category || 'General'}" 
+                indicates the primary healthcare workflow this environment optimizes.
             </p>
         </div>
         
@@ -850,7 +1706,7 @@ function showEnvironmentDetails(envName) {
         
         <div class="modal-section">
             <h3>Use Cases</h3>
-            <p>${details.useCase || 'General healthcare optimization and decision support'}</p>
+            <p>${details.useCase || getUseCaseDescription(env.name, env.category || 'other')}</p>
         </div>
         
         <div class="env-actions" style="margin-top: 2rem; border-top: 2px solid var(--border-color); padding-top: 1.5rem;">
