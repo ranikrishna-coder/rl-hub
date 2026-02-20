@@ -1,0 +1,45 @@
+name: Deploy to GitHub Pages (Static Frontend)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Build static frontend
+      run: |
+        mkdir -p _site
+        cp -r api/static/* _site/
+        # Create a simple redirect page that points to the API
+        echo '<!DOCTYPE html>
+        <html>
+        <head>
+          <title>RL Hub - Redirecting to API</title>
+          <meta http-equiv="refresh" content="0; url=https://YOUR_API_URL">
+        </head>
+        <body>
+          <p>Redirecting to RL Hub API... <a href="https://YOUR_API_URL">Click here</a></p>
+        </body>
+        </html>' > _site/index.html
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+

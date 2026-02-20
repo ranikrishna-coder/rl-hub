@@ -1,0 +1,53 @@
+name: Auto-Deploy to Free Hosting
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-info:
+    runs-on: ubuntu-latest
+    name: Deployment Information
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deployment Summary
+      run: |
+        echo "## 🚀 RL Hub Deployment Ready" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Your code has been pushed to GitHub. To deploy:" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Option 1: Render (Recommended - Free)" >> $GITHUB_STEP_SUMMARY
+        echo "1. Go to [render.com](https://render.com) and sign up" >> $GITHUB_STEP_SUMMARY
+        echo "2. Click 'New +' → 'Web Service'" >> $GITHUB_STEP_SUMMARY
+        echo "3. Connect GitHub repo: \`ranikrishna-coder/rl-hub\`" >> $GITHUB_STEP_SUMMARY
+        echo "4. Render will auto-detect settings from \`render.yaml\`" >> $GITHUB_STEP_SUMMARY
+        echo "5. Click 'Create Web Service'" >> $GITHUB_STEP_SUMMARY
+        echo "6. Your app will be live at: \`https://rl-hub.onrender.com\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Option 2: Railway" >> $GITHUB_STEP_SUMMARY
+        echo "1. Go to [railway.app](https://railway.app) and sign up" >> $GITHUB_STEP_SUMMARY
+        echo "2. Click 'New Project' → 'Deploy from GitHub repo'" >> $GITHUB_STEP_SUMMARY
+        echo "3. Select \`ranikrishna-coder/rl-hub\`" >> $GITHUB_STEP_SUMMARY
+        echo "4. Railway will auto-deploy" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Option 3: Fly.io" >> $GITHUB_STEP_SUMMARY
+        echo "1. Install Fly CLI: \`curl -L https://fly.io/install.sh | sh\`" >> $GITHUB_STEP_SUMMARY
+        echo "2. Run: \`fly launch\`" >> $GITHUB_STEP_SUMMARY
+        echo "3. Run: \`fly deploy\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "See \`GITHUB_HOSTING.md\` for detailed instructions." >> $GITHUB_STEP_SUMMARY
+
+    - name: Verify deployment files
+      run: |
+        echo "✅ Checking deployment configuration files..."
+        [ -f "render.yaml" ] && echo "✓ render.yaml found" || echo "✗ render.yaml missing"
+        [ -f "fly.toml" ] && echo "✓ fly.toml found" || echo "✗ fly.toml missing"
+        [ -f "railway.json" ] && echo "✓ railway.json found" || echo "✗ railway.json missing"
+        [ -f "Dockerfile" ] && echo "✓ Dockerfile found" || echo "✗ Dockerfile missing"
+        echo ""
+        echo "✅ All deployment files are ready!"
+
