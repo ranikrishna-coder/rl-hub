@@ -8,14 +8,12 @@ REFACTORED: Uses verifier-based reward calculation instead of direct calculation
 
 import numpy as np
 from gymnasium import spaces
-from typing import Dict, Any, Optional, Tuple, Tuple
+from typing import Dict, Any, Optional, Tuple
 import sys
 import os
 import uuid
 
-# Add parent directories to path
-parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, parent_dir)
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from environments.base_environment import HealthcareRLEnvironment, KPIMetrics
 from simulator.patient_generator import PatientGenerator, ConditionSeverity

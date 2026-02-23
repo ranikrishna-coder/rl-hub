@@ -94,7 +94,100 @@ document.addEventListener('DOMContentLoaded', () => {
     loadEnvironments();
     setupEventListeners();
     setupRangeInputs();
+    setupVerifierControls();
 });
+
+// Recommended verifier by software system (aligned with catalog/training)
+function getVerifierRecommendationForSystem(system) {
+    if (!system || system === 'all') {
+        return { type: 'ensemble', weights: { clinical: 0.35, operational: 0.3, financial: 0.2, compliance: 0.15 } };
+    }
+    const s = system.toLowerCase();
+    if (s.includes('epic') || s.includes('cerner') || s.includes('allscripts') || s.includes('meditech')) {
+        return { type: 'ensemble', weights: { clinical: 0.45, operational: 0.25, financial: 0.15, compliance: 0.15 } };
+    }
+    if (s.includes('philips') || s.includes('ge healthcare')) {
+        return { type: 'ensemble', weights: { clinical: 0.3, operational: 0.45, financial: 0.15, compliance: 0.1 } };
+    }
+    if (s.includes('change healthcare')) {
+        return { type: 'ensemble', weights: { clinical: 0.15, operational: 0.2, financial: 0.45, compliance: 0.2 } };
+    }
+    if (s.includes('veeva') || s.includes('iqvia')) {
+        return { type: 'ensemble', weights: { clinical: 0.4, operational: 0.2, financial: 0.2, compliance: 0.2 } };
+    }
+    if (s.includes('health catalyst') || s.includes('innovaccer')) {
+        return { type: 'ensemble', weights: { clinical: 0.4, operational: 0.35, financial: 0.15, compliance: 0.1 } };
+    }
+    if (s.includes('teladoc') || s.includes('amwell')) {
+        return { type: 'ensemble', weights: { clinical: 0.35, operational: 0.4, financial: 0.15, compliance: 0.1 } };
+    }
+    if (s.includes('intersystems') || s.includes('orion health')) {
+        return { type: 'ensemble', weights: { clinical: 0.25, operational: 0.35, financial: 0.15, compliance: 0.25 } };
+    }
+    return { type: 'ensemble', weights: { clinical: 0.35, operational: 0.3, financial: 0.2, compliance: 0.15 } };
+}
+
+function updateSimulationVerifierForSystem() {
+    const systemSelect = document.getElementById('system-select');
+    const verifierTypeSelect = document.getElementById('verifier-type');
+    const verifierWeightsInput = document.getElementById('verifier-weights');
+    if (!systemSelect || !verifierTypeSelect) return;
+    const rec = getVerifierRecommendationForSystem(systemSelect.value);
+    verifierTypeSelect.value = rec.type;
+    if (verifierWeightsInput) verifierWeightsInput.value = JSON.stringify(rec.weights, null, 2);
+    if (verifierTypeSelect.value === 'ensemble') {
+        const g = document.getElementById('verifier-weights-group');
+        if (g) g.style.display = 'block';
+    }
+}
+
+function setupVerifierControls() {
+    const verifierTypeSelect = document.getElementById('verifier-type');
+    const verifierWeightsGroup = document.getElementById('verifier-weights-group');
+    
+    if (verifierTypeSelect && verifierWeightsGroup) {
+        verifierTypeSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'ensemble') {
+                verifierWeightsGroup.style.display = 'block';
+            } else {
+                verifierWeightsGroup.style.display = 'none';
+            }
+        });
+    }
+}
+
+function getFilteredEnvironmentsForSystem() {
+    const systemSel = document.getElementById('system-select');
+    const system = systemSel ? systemSel.value : 'all';
+    if (system === 'all') return allEnvironments;
+    return allEnvironments.filter(env => {
+        const envSystems = (env.system || '').split(',').map(s => s.trim()).filter(Boolean);
+        return envSystems.includes(system);
+    });
+}
+
+function populateEnvironmentSelect() {
+    const envSelect = document.getElementById('environment-select');
+    if (!envSelect) return;
+    const filtered = getFilteredEnvironmentsForSystem();
+    const currentVal = envSelect.value;
+    envSelect.innerHTML = '<option value="">Select an environment...</option>' +
+        filtered.map(env => {
+            const displayName = formatEnvironmentName(env.name);
+            const systemLabel = env.system ? ` (${env.system})` : '';
+            return `<option value="${env.name}">${displayName}${systemLabel}</option>`;
+        }).join('');
+    if (currentVal && filtered.some(e => e.name === currentVal)) {
+        envSelect.value = currentVal;
+    } else if (filtered.length > 0 && !currentVal) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const envParam = urlParams.get('env');
+        if (envParam && filtered.some(e => e.name === envParam)) {
+            envSelect.value = envParam;
+            selectEnvironment(envParam);
+        }
+    }
+}
 
 async function loadEnvironments() {
     try {
@@ -104,26 +197,44 @@ async function loadEnvironments() {
         const data = await response.json();
         allEnvironments = data.environments || [];
         
-        const select = document.getElementById('environment-select');
-        select.innerHTML = '<option value="">Select an environment...</option>' +
-            allEnvironments.map(env => {
-                const displayName = formatEnvironmentName(env.name);
-                return `<option value="${env.name}">${displayName}</option>`;
-            }).join('');
+        const systems = new Set();
+        allEnvironments.forEach(env => {
+            (env.system || '').split(',').forEach(s => {
+                const t = s.trim();
+                if (t) systems.add(t);
+            });
+        });
+        const systemList = Array.from(systems).sort((a, b) => a.localeCompare(b));
         
-        // Check if environment is specified in URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const envParam = urlParams.get('env');
-        if (envParam) {
-            select.value = envParam;
-            selectEnvironment(envParam);
+        const systemSelect = document.getElementById('system-select');
+        if (systemSelect) {
+            systemSelect.innerHTML = '<option value="all">All systems</option>' +
+                systemList.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('');
+            systemSelect.addEventListener('change', () => {
+                populateEnvironmentSelect();
+                updateSimulationVerifierForSystem();
+            });
         }
+        
+        const select = document.getElementById('environment-select');
+        populateEnvironmentSelect();
+        updateSimulationVerifierForSystem();
         
         select.addEventListener('change', (e) => {
             if (e.target.value) {
                 selectEnvironment(e.target.value);
             }
         });
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const envParam = urlParams.get('env');
+        if (envParam && allEnvironments.some(e => e.name === envParam)) {
+            const filtered = getFilteredEnvironmentsForSystem();
+            if (filtered.some(e => e.name === envParam)) {
+                select.value = envParam;
+                selectEnvironment(envParam);
+            }
+        }
     } catch (error) {
         console.error('Error loading environments:', error);
     }
@@ -264,8 +375,25 @@ async function initializeEnvironment() {
     const config = getConfiguration();
     
     try {
+        // Build API URL with verifier config if provided
+        let apiUrl = `${API_BASE}/kpis/${currentEnvironment}`;
+        const params = new URLSearchParams();
+        
+        if (config.verifier_config) {
+            params.append('verifier_type', config.verifier_config.type);
+            if (config.verifier_config.verifiers) {
+                params.append('verifier_config', JSON.stringify({
+                    verifiers: config.verifier_config.verifiers
+                }));
+            }
+        }
+        
+        if (params.toString()) {
+            apiUrl += '?' + params.toString();
+        }
+        
         // Initialize via API
-        const response = await fetch(`${API_BASE}/kpis/${currentEnvironment}`);
+        const response = await fetch(apiUrl);
         if (!response.ok) throw new Error('Failed to initialize environment');
         
         const envConfig = environmentConfigs[currentEnvironment];
@@ -326,6 +454,28 @@ function getConfiguration() {
     }
     
     config.agentStrategy = document.getElementById('agent-strategy').value;
+    
+    // Add verifier configuration
+    const verifierType = document.getElementById('verifier-type');
+    if (verifierType && verifierType.value !== 'default') {
+        config.verifier_config = {
+            type: verifierType.value
+        };
+        
+        // Add weights if ensemble and weights are provided
+        if (verifierType.value === 'ensemble') {
+            const verifierWeights = document.getElementById('verifier-weights');
+            if (verifierWeights && verifierWeights.value.trim()) {
+                try {
+                    const weights = JSON.parse(verifierWeights.value);
+                    config.verifier_config.verifiers = weights;
+                } catch (e) {
+                    console.warn('Invalid verifier weights JSON, using defaults:', e);
+                }
+            }
+        }
+    }
+    
     return config;
 }
 

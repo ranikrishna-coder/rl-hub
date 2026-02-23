@@ -1,0 +1,12 @@
+{
+  "job_id": "619b7cec-c0d7-4a26-a578-79a619ca25e7",
+  "environment_name": "ICUResourceAllocation",
+  "algorithm": "DQN",
+  "num_episodes": 100,
+  "mean_reward": 6.6212983606557385,
+  "max_reward": 14.651475409836065,
+  "min_reward": 2.6016393442622947,
+  "total_episodes_completed": 100,
+  "training_completed": true,
+  "timestamp": "1771633436.9192286"
+}

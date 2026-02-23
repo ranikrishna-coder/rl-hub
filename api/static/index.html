@@ -66,6 +66,13 @@
                 <input type="text" id="search-input" placeholder="Search environments..." />
                 <span class="search-icon">🔍</span>
             </div>
+            <div class="system-filter-wrap" style="display: flex; align-items: center; gap: 0.5rem;">
+                <label for="system-filter" style="font-size: 0.9rem; color: var(--text-secondary); white-space: nowrap;">Software system:</label>
+                <select id="system-filter" class="system-filter-select" title="Filter environments by healthcare software system (e.g. Epic, Cerner)">
+                    <option value="all">All systems</option>
+                    <!-- Populated by JS from environment data -->
+                </select>
+            </div>
             <div class="filter-buttons">
                 <button class="filter-btn active" data-category="all">All</button>
                 <button class="filter-btn" data-category="clinical">Clinical</button>

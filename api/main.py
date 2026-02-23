@@ -20,6 +20,21 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from environments import HealthcareRLEnvironment
 from portal.environment_registry import get_environment_class, list_all_environments
 
+# Import verifier architecture
+from verifiers.verifier_registry import VerifierRegistry, get_verifier
+from verifiers.base_verifier import VerifierConfig
+
+# Import observability
+from observability.reward_logger import RewardLogger
+from observability.action_trace_logger import ActionTraceLogger
+from observability.episode_metrics import EpisodeMetricsTracker
+from observability.audit_logger import AuditLogger
+
+# Import governance
+from governance.safety_guardrails import SafetyGuardrails, SafetyConfig
+from governance.risk_thresholds import RiskThresholds, RiskThresholdConfig
+from governance.compliance_rules import ComplianceRules
+
 app = FastAPI(title="RL Hub API", version="1.0.0")
 
 # Mount static files
@@ -57,6 +72,15 @@ app.add_middleware(
 # Training jobs storage (in production, use database)
 training_jobs: Dict[str, Dict[str, Any]] = {}
 
+# Observability storage (in production, use database)
+reward_loggers: Dict[str, RewardLogger] = {}
+action_trace_loggers: Dict[str, ActionTraceLogger] = {}
+episode_metrics_trackers: Dict[str, EpisodeMetricsTracker] = {}
+audit_loggers: Dict[str, AuditLogger] = {}
+
+# Governance storage
+governance_configs: Dict[str, Dict[str, Any]] = {}
+
 
 class TrainingRequest(BaseModel):
     environment_name: Optional[str] = None
@@ -65,6 +89,7 @@ class TrainingRequest(BaseModel):
     num_episodes: int = 100
     max_steps: int = 1000
     dataset_url: Optional[str] = None
+    verifier_config: Optional[Dict[str, Any]] = None  # Verifier configuration
 
 
 class TrainingResponse(BaseModel):
@@ -287,7 +312,8 @@ async def start_training(
             request.num_episodes,
             request.max_steps,
             request.dataset_url,
-            model_path
+            model_path,
+            request.verifier_config  # Pass verifier config
         )
         
         return TrainingResponse(
@@ -314,7 +340,8 @@ def run_training(
     num_episodes: int,
     max_steps: int,
     dataset_url: Optional[str],
-    model_path: str
+    model_path: str,
+    verifier_config: Optional[Dict[str, Any]] = None
 ):
     """Run training in background"""
     try:
@@ -334,22 +361,52 @@ def run_training(
         if env_class is None:
             raise ValueError(f"Environment class for {environment_name} is None - check registry")
         
+        # Create verifier if config provided
+        verifier = None
+        if verifier_config:
+            try:
+                verifier_type = verifier_config.get("type", "ensemble")
+                if verifier_type == "ensemble" or verifier_type is None:
+                    verifier = VerifierRegistry.create_default_ensemble(
+                        configs=verifier_config.get("verifiers", {})
+                    )
+                else:
+                    verifier_config_obj = VerifierConfig(
+                        weights=verifier_config.get("weights", {}),
+                        thresholds=verifier_config.get("thresholds", {}),
+                        enabled=verifier_config.get("enabled", True),
+                        metadata=verifier_config.get("metadata", {})
+                    )
+                    verifier = VerifierRegistry.create_verifier(verifier_type, verifier_config_obj)
+            except Exception as e:
+                print(f"Warning: Failed to create verifier: {e}, using default")
+                verifier = None
+        
         # Create environment with error handling
         try:
-            # Try with config and max_steps
-            if config is not None:
-                env = env_class(config=config, max_steps=max_steps)
-            else:
-                env = env_class(max_steps=max_steps)
-        except TypeError:
-            # Fallback: try without max_steps if not supported
-            try:
+            # Check if constructor accepts verifier parameter
+            import inspect
+            sig = inspect.signature(env_class.__init__)
+            has_verifier_param = 'verifier' in sig.parameters
+            
+            # Try with config, max_steps, and verifier
+            if verifier is not None and has_verifier_param:
                 if config is not None:
-                    env = env_class(config=config)
+                    env = env_class(config=config, max_steps=max_steps, verifier=verifier)
                 else:
+                    env = env_class(max_steps=max_steps, verifier=verifier)
+            elif config is not None:
+                try:
+                    env = env_class(config=config, max_steps=max_steps)
+                except TypeError:
+                    env = env_class(config=config)
+            else:
+                try:
+                    env = env_class(max_steps=max_steps)
+                except TypeError:
                     env = env_class()
-            except Exception as e:
-                raise ValueError(f"Failed to instantiate environment {environment_name}: {str(e)}")
+        except Exception as e:
+            raise ValueError(f"Failed to instantiate environment {environment_name}: {str(e)}")
         
         # Validate environment has required methods
         if not hasattr(env, 'reset') or not hasattr(env, 'step') or not hasattr(env, 'action_space'):
@@ -357,6 +414,9 @@ def run_training(
         
         # Simple training loop (in production, use stable-baselines3 or similar)
         total_rewards = []
+        consecutive_errors = 0
+        # Allow up to 20% of episodes to fail (min 10, max 50); also stop on 10+ consecutive failures
+        max_total_errors = min(50, max(10, int(0.20 * num_episodes)))
         for episode in range(num_episodes):
             try:
                 # Reset environment
@@ -399,6 +459,7 @@ def run_training(
                         break
                 
                 total_rewards.append(episode_reward)
+                consecutive_errors = 0  # Reset on successful episode
                 training_jobs[job_id]["progress"] = int((episode + 1) / num_episodes * 100)
                 
                 # Update progress every 10 episodes or at the end
@@ -408,6 +469,7 @@ def run_training(
                     
             except Exception as episode_error:
                 # Log episode error but continue training
+                consecutive_errors += 1
                 error_msg = str(episode_error)
                 print(f"Error in episode {episode + 1} for {environment_name}: {error_msg}")
                 training_jobs[job_id]["episode_errors"] = training_jobs[job_id].get("episode_errors", [])
@@ -419,9 +481,11 @@ def run_training(
                 total_rewards.append(0.0)
                 training_jobs[job_id]["progress"] = int((episode + 1) / num_episodes * 100)
                 
-                # If too many consecutive errors, stop training
-                if len(training_jobs[job_id]["episode_errors"]) > 10:
-                    raise ValueError(f"Too many episode errors (>10). Last error: {error_msg}")
+                # Stop on too many consecutive errors (sustained failure) or if total errors exceed cap
+                if consecutive_errors > 10:
+                    raise ValueError(f"Too many consecutive episode errors ({consecutive_errors}). Last error: {error_msg}")
+                if len(training_jobs[job_id]["episode_errors"]) > max_total_errors:
+                    raise ValueError(f"Too many total episode errors (>{max_total_errors}). Last error: {error_msg}")
         
         # Calculate final statistics
         if len(total_rewards) > 0:
@@ -485,15 +549,57 @@ async def get_training_status(job_id: str):
 
 
 @app.get("/kpis/{environment_name}")
-async def get_kpis(environment_name: str, episode_id: Optional[int] = None):
+async def get_kpis(
+    environment_name: str, 
+    episode_id: Optional[int] = None,
+    verifier_type: Optional[str] = None,
+    verifier_config: Optional[str] = None  # JSON string of verifier config
+):
     """Get KPI metrics for an environment"""
     try:
         env_class = get_environment_class(environment_name)
         if env_class is None:
             raise HTTPException(status_code=404, detail=f"Environment {environment_name} not found")
         
-        # Create environment instance
-        env = env_class()
+        # Parse verifier config if provided
+        verifier = None
+        if verifier_type or verifier_config:
+            try:
+                config_dict = json.loads(verifier_config) if verifier_config else {}
+                if verifier_type == "ensemble" or verifier_type is None:
+                    # Default to ensemble if not specified
+                    verifier = VerifierRegistry.create_default_ensemble(
+                        configs=config_dict.get("verifiers", {})
+                    )
+                else:
+                    verifier_config_obj = VerifierConfig(
+                        weights=config_dict.get("weights", {}),
+                        thresholds=config_dict.get("thresholds", {}),
+                        enabled=config_dict.get("enabled", True),
+                        metadata=config_dict.get("metadata", {})
+                    )
+                    verifier = VerifierRegistry.create_verifier(verifier_type, verifier_config_obj)
+            except Exception as e:
+                # If verifier creation fails, use default (environment will create its own)
+                print(f"Warning: Failed to create verifier: {e}")
+                verifier = None
+        
+        # Create environment instance with verifier if provided
+        try:
+            if verifier is not None and hasattr(env_class, '__init__'):
+                # Check if constructor accepts verifier parameter
+                import inspect
+                sig = inspect.signature(env_class.__init__)
+                if 'verifier' in sig.parameters:
+                    env = env_class(verifier=verifier)
+                else:
+                    env = env_class()
+            else:
+                env = env_class()
+        except TypeError:
+            # Fallback if verifier parameter not supported
+            env = env_class()
+        
         state, info = env.reset()
         
         # Run a few steps to generate KPIs
@@ -509,7 +615,8 @@ async def get_kpis(environment_name: str, episode_id: Optional[int] = None):
         return {
             "environment_name": environment_name,
             "kpis": kpis.__dict__,
-            "episode_summary": env.get_episode_summary()
+            "episode_summary": env.get_episode_summary(),
+            "verifier_used": verifier.__class__.__name__ if verifier else "default"
         }
     
     except Exception as e:
@@ -645,6 +752,195 @@ async def validate_all_environments():
         "valid": valid_count,
         "failed": failed_count,
         "results": results
+    }
+
+
+# ============================================================================
+# VERIFIER ARCHITECTURE ENDPOINTS
+# ============================================================================
+
+@app.get("/verifiers")
+async def list_verifiers():
+    """List all available verifier types"""
+    verifier_types = VerifierRegistry.list_verifier_types()
+    instances = VerifierRegistry.list_instances()
+    
+    return {
+        "verifier_types": verifier_types,
+        "instances": instances,
+        "count": len(instances)
+    }
+
+
+class VerifierConfigRequest(BaseModel):
+    """Request model for verifier configuration"""
+    verifier_type: str
+    environment_name: str
+    weights: Dict[str, float]
+    thresholds: Optional[Dict[str, float]] = None
+    enabled: bool = True
+    metadata: Optional[Dict[str, Any]] = None
+
+
+@app.post("/verifiers/configure")
+async def configure_verifier(request: VerifierConfigRequest):
+    """Configure a verifier for an environment"""
+    try:
+        config = VerifierConfig(
+            weights=request.weights,
+            thresholds=request.thresholds or {},
+            enabled=request.enabled,
+            metadata=request.metadata or {}
+        )
+        
+        verifier = VerifierRegistry.create_verifier(
+            verifier_type=request.verifier_type,
+            config=config,
+            instance_id=f"{request.environment_name}_{request.verifier_type}"
+        )
+        
+        return {
+            "success": True,
+            "verifier_type": request.verifier_type,
+            "environment_name": request.environment_name,
+            "instance_id": f"{request.environment_name}_{request.verifier_type}",
+            "config": {
+                "weights": request.weights,
+                "thresholds": request.thresholds,
+                "enabled": request.enabled
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/episodes/{episode_id}/reward-breakdown")
+async def get_reward_breakdown(episode_id: str):
+    """Get reward breakdown for an episode"""
+    # Find reward logger for this episode
+    # In production, this would query the database
+    for logger in reward_loggers.values():
+        breakdown = logger.get_reward_breakdown(episode_id, 0)  # Get first step as example
+        if breakdown:
+            episode_logs = logger.get_episode_rewards(episode_id)
+            return {
+                "episode_id": episode_id,
+                "total_steps": len(episode_logs),
+                "reward_breakdowns": [
+                    {
+                        "step_id": log.step_id,
+                        "reward": log.reward,
+                        "breakdown": log.reward_breakdown,
+                        "verifier": log.verifier_name
+                    }
+                    for log in episode_logs
+                ],
+                "summary": logger.get_episode_summary(episode_id)
+            }
+    
+    raise HTTPException(status_code=404, detail=f"Episode {episode_id} not found")
+
+
+@app.get("/episodes/{episode_id}/audit-log")
+async def get_audit_log(episode_id: str):
+    """Get audit log for an episode"""
+    # Find audit logger for this episode
+    for logger in audit_loggers.values():
+        audit_log = logger.get_episode_audit_log(episode_id)
+        if audit_log:
+            return {
+                "episode_id": episode_id,
+                "events": [
+                    {
+                        "event_type": log.event_type.value,
+                        "message": log.message,
+                        "details": log.details,
+                        "timestamp": log.timestamp.isoformat(),
+                        "step_id": log.step_id
+                    }
+                    for log in audit_log
+                ]
+            }
+    
+    raise HTTPException(status_code=404, detail=f"Audit log for episode {episode_id} not found")
+
+
+@app.get("/environments/{environment_name}/risk-report")
+async def get_risk_report(environment_name: str):
+    """Get risk report for an environment"""
+    try:
+        # Get risk thresholds
+        risk_thresholds = RiskThresholds()
+        
+        # Get compliance violations
+        compliance_rules = ComplianceRules()
+        violations = compliance_rules.get_violations(environment_name=environment_name)
+        
+        return {
+            "environment_name": environment_name,
+            "risk_thresholds": {
+                "max_risk_score": risk_thresholds.config.max_risk_score,
+                "critical_threshold": risk_thresholds.config.critical_risk_threshold,
+                "warning_threshold": risk_thresholds.config.warning_risk_threshold
+            },
+            "compliance_violations": {
+                "total": len(violations),
+                "by_severity": {
+                    "critical": len([v for v in violations if v.get('severity') == 'critical']),
+                    "error": len([v for v in violations if v.get('severity') == 'error']),
+                    "warning": len([v for v in violations if v.get('severity') == 'warning'])
+                },
+                "recent_violations": violations[-10:] if len(violations) > 10 else violations
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class GovernanceConfigRequest(BaseModel):
+    """Request model for governance configuration"""
+    environment_name: str
+    max_risk_threshold: float = 0.8
+    compliance_hard_stop: bool = True
+    human_in_the_loop: bool = False
+    override_actions: Optional[Dict[str, str]] = None
+
+
+@app.post("/governance/configure")
+async def configure_governance(request: GovernanceConfigRequest):
+    """Configure governance settings for an environment"""
+    try:
+        safety_config = SafetyConfig(
+            max_risk_threshold=request.max_risk_threshold,
+            compliance_hard_stop=request.compliance_hard_stop,
+            human_in_the_loop=request.human_in_the_loop,
+            override_actions=request.override_actions or {}
+        )
+        
+        governance_configs[request.environment_name] = {
+            "safety_config": safety_config.__dict__,
+            "environment_name": request.environment_name
+        }
+        
+        return {
+            "success": True,
+            "environment_name": request.environment_name,
+            "config": {
+                "max_risk_threshold": request.max_risk_threshold,
+                "compliance_hard_stop": request.compliance_hard_stop,
+                "human_in_the_loop": request.human_in_the_loop
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/governance")
+async def get_governance_configs():
+    """Get all governance configurations"""
+    return {
+        "configs": governance_configs,
+        "count": len(governance_configs)
     }
 
 

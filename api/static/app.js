@@ -197,6 +197,17 @@ async function loadEnvironments() {
         document.getElementById('total-categories').textContent = categories.size;
         document.getElementById('total-systems').textContent = systems.size;
         
+        // Populate Software System filter dropdown
+        const systemFilter = document.getElementById('system-filter');
+        if (systemFilter) {
+            const systemList = Array.from(systems).sort((a, b) => a.localeCompare(b));
+            systemFilter.innerHTML = '<option value="all">All systems</option>' +
+                systemList.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('');
+            systemFilter.addEventListener('change', () => {
+                filterEnvironments(document.getElementById('search-input').value, getActiveCategory());
+            });
+        }
+        
         // Initialize save data for all environments
         allEnvironments.forEach(env => {
             initializeSaveData(env.name);
@@ -331,7 +342,7 @@ function openHelpSection() {
                                     ${workflow.description}
                                 </p>
                                 <p style="font-size: 0.75rem; color: var(--text-secondary);">
-                                    <strong>System:</strong> ${workflow.system}
+                                    <strong>Software system:</strong> ${workflow.system}
                                 </p>
                             </div>
                         `).join('')}
@@ -377,7 +388,13 @@ function getActiveCategory() {
     return activeBtn ? activeBtn.dataset.category : 'all';
 }
 
+function getActiveSystem() {
+    const sel = document.getElementById('system-filter');
+    return sel ? sel.value : 'all';
+}
+
 function filterEnvironments(searchTerm, category) {
+    const system = getActiveSystem();
     filteredEnvironments = allEnvironments.filter(env => {
         const matchesSearch = !searchTerm || 
             env.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -385,7 +402,10 @@ function filterEnvironments(searchTerm, category) {
         
         const matchesCategory = category === 'all' || env.category === category;
         
-        return matchesSearch && matchesCategory;
+        const envSystems = (env.system || '').split(',').map(s => s.trim()).filter(Boolean);
+        const matchesSystem = system === 'all' || envSystems.includes(system);
+        
+        return matchesSearch && matchesCategory && matchesSystem;
     });
     
     renderEnvironments();
@@ -714,7 +734,7 @@ function createEnvCard(env) {
             </div>
             <div class="env-details">
                 <div class="detail-item">
-                    <span class="detail-label">System:</span>
+                    <span class="detail-label">Software system:</span>
                     <span class="detail-value">${env.system || 'Multiple'}</span>
                 </div>
             </div>
@@ -1575,8 +1595,8 @@ function showEnvironmentDetails(envName) {
         </div>
         
         <div class="modal-section">
-            <h3>System Integration</h3>
-            <p><strong>Healthcare Systems:</strong> ${env.system || details.system || 'Multiple'}</p>
+            <h3>Software system integration</h3>
+            <p><strong>Software system:</strong> ${env.system || details.system || 'Multiple'}</p>
             <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">
                 This environment integrates with the specified healthcare systems, providing digital twin simulations 
                 and RL optimization capabilities for these platforms. The workflow category "${env.workflow || env.category || 'General'}" 
@@ -1756,65 +1776,106 @@ async function testEnvironment(envName) {
 function openTrainingConfig(envName) {
     const env = allEnvironments.find(e => e.name === envName);
     const exampleConfig = getExampleConfig(envName);
+    const systemStr = (env && env.system) ? env.system : 'Multiple';
+    const envSystemsList = systemStr.split(',').map(s => s.trim()).filter(Boolean);
+    const hasMultiple = envSystemsList.length > 1;
     
     const configModal = document.createElement('div');
-    configModal.className = 'modal';
+    configModal.className = 'modal training-config-modal';
     configModal.id = 'training-config-modal';
     configModal.innerHTML = `
-        <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-content">
             <span class="close" onclick="closeTrainingConfig()">&times;</span>
-            <h2 style="margin-bottom: 1.5rem;">🎓 Configure Training: ${formatEnvironmentName(envName)}</h2>
+            <h2 style="margin-bottom: 0.5rem; font-size: 1.35rem;">🎓 Configure Training: ${formatEnvironmentName(envName)}</h2>
             
-            <div class="config-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color);">
+            <div class="training-system-block">
+                <label>Software system <span class="tooltip-icon" title="Select the healthcare software system this training is for. Verifier and weights will be suggested based on the selected system.">ℹ️</span></label>
+                <select id="training-software-system" class="system-filter-select" style="min-width: 200px;" onchange="updateTrainingVerifierForSystem(); var v=document.getElementById('training-system-header-value'); if(v) v.textContent=this.options[this.selectedIndex].text;">
+                    <option value="all">All (${systemStr})</option>
+                    ${envSystemsList.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('')}
+                </select>
+                <small>Training context for this run. Verifier suggestions update when you change the system.</small>
+            </div>
+            
+            <div class="config-tabs">
                 <button class="config-tab active" onclick="switchConfigTab('manual')" id="tab-manual">📝 Manual Entry</button>
                 <button class="config-tab" onclick="switchConfigTab('json')" id="tab-json">📄 JSON Upload</button>
                 <button class="config-tab" onclick="switchConfigTab('api')" id="tab-api">🔌 API Example</button>
             </div>
             
-            <!-- Manual Entry Tab -->
             <div id="config-manual" class="config-tab-content">
-                <div class="form-group">
-                    <label>Algorithm:</label>
-                    <select id="training-algorithm" onchange="updateModelInfo()">
-                        <option value="PPO" selected>PPO (Proximal Policy Optimization)</option>
-                        <option value="DQN">DQN (Deep Q-Network)</option>
-                        <option value="A2C">A2C (Advantage Actor-Critic)</option>
-                        <option value="SAC">SAC (Soft Actor-Critic)</option>
-                    </select>
-                    <small id="model-info" style="display: block; margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.85rem;">
-                        <strong>Model Architecture:</strong> PPO uses a Multi-Layer Perceptron (MLP) policy network with separate actor and critic networks. 
-                        Default: [64, 64] hidden layers with tanh activation.
-                    </small>
-                </div>
-                <div class="form-group">
-                    <label>Dataset URL (Optional):</label>
-                    <input type="url" id="training-dataset-url" placeholder="https://example.com/dataset.csv" />
-                    <small>Provide a URL to download training data (CSV, JSON, or other formats). If not provided, synthetic data will be generated.</small>
-                </div>
-                <div class="form-group">
-                    <label>Number of Episodes:</label>
-                    <input type="number" id="training-episodes" value="100" min="10" max="10000" />
-                    <small>More episodes = better learning but longer training time</small>
-                </div>
-                <div class="form-group">
-                    <label>Max Steps per Episode:</label>
-                    <input type="number" id="training-max-steps" value="1000" min="100" max="10000" />
-                    <small>Maximum steps before episode terminates</small>
-                </div>
-                <div class="form-group">
-                    <label>Environment Configuration (JSON):</label>
-                    <textarea id="training-config-json" rows="8" placeholder='{"queue_size": 15, "high_urgency_pct": 30, "avg_order_value": 500}'>${JSON.stringify(exampleConfig, null, 2)}</textarea>
-                    <small>Optional: Environment-specific parameters. Leave empty for defaults.</small>
-                </div>
+                <section class="training-section">
+                    <span class="training-section-title">Algorithm</span>
+                    <div class="form-group">
+                        <label>Algorithm</label>
+                        <select id="training-algorithm" onchange="updateModelInfo()">
+                            <option value="PPO" selected>PPO (Proximal Policy Optimization)</option>
+                            <option value="DQN">DQN (Deep Q-Network)</option>
+                            <option value="A2C">A2C (Advantage Actor-Critic)</option>
+                            <option value="SAC">SAC (Soft Actor-Critic)</option>
+                        </select>
+                        <small id="model-info">PPO uses an MLP policy network with separate actor and critic. Default: [64, 64] hidden layers.</small>
+                    </div>
+                </section>
                 
-                <div style="background: #f0f9ff; padding: 1rem; border-radius: 6px; border-left: 4px solid var(--primary-color); margin-top: 1.5rem;">
-                    <h4 style="margin-bottom: 0.75rem; color: var(--primary-color);">📦 Model Storage & Usage</h4>
-                    <ul style="font-size: 0.85rem; line-height: 1.8; color: var(--text-secondary); padding-left: 1.5rem;">
-                        <li><strong>Model Location:</strong> Trained models are saved to <code>./models/{'{algorithm}'}/</code> directory</li>
-                        <li><strong>Model Format:</strong> Models are saved as ZIP files containing the policy network weights and metadata</li>
-                        <li><strong>Download:</strong> After training completes, download via API: <code>GET /models/{'{algorithm}'}/{'{model_filename}'}</code></li>
-                        <li><strong>Usage:</strong> Load models using stable-baselines3: <code>model = PPO.load("path/to/model.zip")</code></li>
-                        <li><strong>Deployment:</strong> Use <code>model.predict(observation)</code> for real-time decision-making</li>
+                <section class="training-section">
+                    <span class="training-section-title">Reward verifier</span>
+                    <div class="form-group">
+                        <label>Verifier <span class="tooltip-icon" title="Select the reward verifier. Ensemble combines clinical, operational, financial, and compliance verifiers.">ℹ️</span></label>
+                        <select id="training-verifier-type" onchange="updateVerifierWeightsVisibility()">
+                            <option value="ensemble" selected>Ensemble (Default)</option>
+                            <option value="clinical">Clinical Verifier</option>
+                            <option value="operational">Operational Verifier</option>
+                            <option value="financial">Financial Verifier</option>
+                            <option value="compliance">Compliance Verifier</option>
+                            <option value="default">Default (Environment Built-in)</option>
+                        </select>
+                        <small>Choose a software system above to get a suggested verifier and weights.</small>
+                        <div id="training-verifier-hint" class="verifier-hint"></div>
+                    </div>
+                    <div class="form-group" id="training-verifier-weights-group" style="display: none;">
+                        <label>Verifier weights (JSON) <span class="tooltip-icon" title="Optional. Updated when you change the software system.">ℹ️</span></label>
+                        <textarea id="training-verifier-weights" rows="4" placeholder='{"clinical": 0.4, "operational": 0.3, "financial": 0.2, "compliance": 0.1}'></textarea>
+                        <small>Optional. Suggested weights are set from the selected software system.</small>
+                    </div>
+                </section>
+                
+                <section class="training-section">
+                    <span class="training-section-title">Training parameters</span>
+                    <div class="form-group">
+                        <label>Dataset URL (optional)</label>
+                        <input type="url" id="training-dataset-url" placeholder="https://example.com/dataset.csv" />
+                        <small>URL to training data (CSV/JSON). Omit for synthetic data.</small>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Episodes</label>
+                            <input type="number" id="training-episodes" value="100" min="10" max="10000" />
+                            <small>More episodes = longer training.</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Max steps per episode</label>
+                            <input type="number" id="training-max-steps" value="1000" min="100" max="10000" />
+                            <small>Steps before episode ends.</small>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="training-section">
+                    <span class="training-section-title">Environment configuration</span>
+                    <div class="form-group">
+                        <label>Config (JSON)</label>
+                        <textarea id="training-config-json" rows="6" placeholder='{"queue_size": 15, "high_urgency_pct": 30}' style="min-height: 120px;">${JSON.stringify(exampleConfig, null, 2)}</textarea>
+                        <small>Optional. Environment-specific parameters. Leave as-is for defaults.</small>
+                    </div>
+                </section>
+                
+                <div class="model-storage-block">
+                    <h4>📦 Model storage & usage</h4>
+                    <ul style="padding-left: 1.25rem; margin: 0;">
+                        <li><strong>Location:</strong> <code>./models/&lt;algorithm&gt;/</code></li>
+                        <li><strong>Download:</strong> <code>GET /models/ppo/&lt;filename&gt;</code></li>
+                        <li><strong>Load:</strong> <code>model = PPO.load("model.zip")</code> then <code>model.predict(observation)</code></li>
                     </ul>
                 </div>
             </div>
@@ -1833,9 +1894,18 @@ function openTrainingConfig(envName) {
                         num_episodes: 100,
                         max_steps: 1000,
                         dataset_url: null,
-                        config: exampleConfig
+                        config: exampleConfig,
+                        verifier_config: {
+                            type: 'ensemble',
+                            verifiers: {
+                                clinical: { weights: { risk_improvement: 0.5, vital_stability: 0.5 } },
+                                operational: { weights: { pathway_efficiency: 1.0 } },
+                                financial: { weights: { cost_effectiveness: 1.0 } },
+                                compliance: { weights: { rule_compliance: 1.0 } }
+                            }
+                        }
                     }, null, 2)}</textarea>
-                    <small>Include <code>"dataset_url"</code> field to provide training data URL</small>
+                    <small>Include <code>"dataset_url"</code> field to provide training data URL, and <code>"verifier_config"</code> to configure reward verifiers</small>
                 </div>
                 <div id="json-validation" style="margin-top: 1rem;"></div>
             </div>
@@ -1854,7 +1924,16 @@ function openTrainingConfig(envName) {
                     num_episodes: 100,
                     max_steps: 1000,
                     dataset_url: 'https://example.com/training_data.csv',
-                    config: exampleConfig
+                    config: exampleConfig,
+                    verifier_config: {
+                        type: 'ensemble',
+                        verifiers: {
+                            clinical: { weights: { risk_improvement: 0.5, vital_stability: 0.5 } },
+                            operational: { weights: { pathway_efficiency: 1.0 } },
+                            financial: { weights: { cost_effectiveness: 1.0 } },
+                            compliance: { weights: { rule_compliance: 1.0 } }
+                        }
+                    }
                 }, null, 2)}</code></pre>
                 
                 <h3>Model Information:</h3>
@@ -1873,14 +1952,17 @@ function openTrainingConfig(envName) {
                     num_episodes: 100,
                     max_steps: 1000,
                     dataset_url: 'https://example.com/training_data.csv',
-                    config: exampleConfig
+                    config: exampleConfig,
+                    verifier_config: {
+                        type: 'ensemble'
+                    }
                 })}'</code></pre>
                 
                 <h3>Python Example:</h3>
                 <pre style="background: #f1f5f9; padding: 1rem; border-radius: 6px; overflow-x: auto;"><code>import requests
 from stable_baselines3 import PPO
 
-# Start training
+# Start training with verifier configuration
 response = requests.post(
     "${API_BASE}/train/${envName}",
     json={
@@ -1889,7 +1971,16 @@ response = requests.post(
         "num_episodes": 100,
         "max_steps": 1000,
         "dataset_url": "https://example.com/training_data.csv",
-        "config": ${JSON.stringify(exampleConfig)}
+        "config": ${JSON.stringify(exampleConfig)},
+        "verifier_config": {
+            "type": "ensemble",
+            "verifiers": {
+                "clinical": {"weights": {"risk_improvement": 0.5, "vital_stability": 0.5}},
+                "operational": {"weights": {"pathway_efficiency": 1.0}},
+                "financial": {"weights": {"cost_effectiveness": 1.0}},
+                "compliance": {"weights": {"rule_compliance": 1.0}}
+            }
+        }
     }
 )
 
@@ -1914,6 +2005,15 @@ print(f"Training started: {job_data['job_id']}")
     `;
     document.body.appendChild(configModal);
     configModal.style.display = 'block';
+    const systemSelect = document.getElementById('training-software-system');
+    if (systemSelect && envSystemsList.length > 0) {
+        systemSelect.value = envSystemsList.length === 1 ? envSystemsList[0] : 'all';
+        const headerVal = document.getElementById('training-system-header-value');
+        if (headerVal) headerVal.textContent = systemSelect.options[systemSelect.selectedIndex].text;
+    }
+    updateTrainingVerifierForSystem();
+    updateModelInfo();
+    updateVerifierWeightsVisibility();
 }
 
 function getExampleConfig(envName) {
@@ -2004,6 +2104,63 @@ function updateModelInfo() {
     }
 }
 
+function updateVerifierWeightsVisibility() {
+    const verifierType = document.getElementById('training-verifier-type');
+    const verifierWeightsGroup = document.getElementById('training-verifier-weights-group');
+    
+    if (verifierType && verifierWeightsGroup) {
+        if (verifierType.value === 'ensemble') {
+            verifierWeightsGroup.style.display = 'block';
+        } else {
+            verifierWeightsGroup.style.display = 'none';
+        }
+    }
+}
+
+// Recommended verifier type and weights by software system (consistent across card, simulation, training)
+function getVerifierRecommendationForSystem(system) {
+    if (!system || system === 'all') {
+        return { type: 'ensemble', weights: { clinical: 0.35, operational: 0.3, financial: 0.2, compliance: 0.15 }, hint: 'Balanced for all systems' };
+    }
+    const s = system.toLowerCase();
+    if (s.includes('epic') || s.includes('cerner') || s.includes('allscripts') || s.includes('meditech')) {
+        return { type: 'ensemble', weights: { clinical: 0.45, operational: 0.25, financial: 0.15, compliance: 0.15 }, hint: 'Clinical EHR focus' };
+    }
+    if (s.includes('philips') || s.includes('ge healthcare')) {
+        return { type: 'ensemble', weights: { clinical: 0.3, operational: 0.45, financial: 0.15, compliance: 0.1 }, hint: 'Imaging workflow focus' };
+    }
+    if (s.includes('change healthcare')) {
+        return { type: 'ensemble', weights: { clinical: 0.15, operational: 0.2, financial: 0.45, compliance: 0.2 }, hint: 'Revenue cycle focus' };
+    }
+    if (s.includes('veeva') || s.includes('iqvia')) {
+        return { type: 'ensemble', weights: { clinical: 0.4, operational: 0.2, financial: 0.2, compliance: 0.2 }, hint: 'Clinical trials focus' };
+    }
+    if (s.includes('health catalyst') || s.includes('innovaccer')) {
+        return { type: 'ensemble', weights: { clinical: 0.4, operational: 0.35, financial: 0.15, compliance: 0.1 }, hint: 'Population health focus' };
+    }
+    if (s.includes('teladoc') || s.includes('amwell')) {
+        return { type: 'ensemble', weights: { clinical: 0.35, operational: 0.4, financial: 0.15, compliance: 0.1 }, hint: 'Telehealth focus' };
+    }
+    if (s.includes('intersystems') || s.includes('orion health')) {
+        return { type: 'ensemble', weights: { clinical: 0.25, operational: 0.35, financial: 0.15, compliance: 0.25 }, hint: 'Interoperability focus' };
+    }
+    return { type: 'ensemble', weights: { clinical: 0.35, operational: 0.3, financial: 0.2, compliance: 0.15 }, hint: 'Balanced default' };
+}
+
+function updateTrainingVerifierForSystem() {
+    const systemSelect = document.getElementById('training-software-system');
+    const verifierTypeSelect = document.getElementById('training-verifier-type');
+    const verifierWeightsInput = document.getElementById('training-verifier-weights');
+    const verifierHintEl = document.getElementById('training-verifier-hint');
+    if (!systemSelect || !verifierTypeSelect) return;
+    const system = systemSelect.value;
+    const rec = getVerifierRecommendationForSystem(system);
+    verifierTypeSelect.value = rec.type;
+    if (verifierWeightsInput) verifierWeightsInput.value = JSON.stringify(rec.weights, null, 2);
+    updateVerifierWeightsVisibility();
+    if (verifierHintEl) verifierHintEl.textContent = rec.hint ? `Suggested for selected system: ${rec.hint}` : '';
+}
+
 async function submitTrainingConfig(envName) {
     const activeTab = document.querySelector('.config-tab.active').id.replace('tab-', '');
     let config = null;
@@ -2011,12 +2168,35 @@ async function submitTrainingConfig(envName) {
     let numEpisodes = 100;
     let maxSteps = 1000;
     let datasetUrl = null;
+    let verifierConfig = null;
     
     if (activeTab === 'manual') {
         algorithm = document.getElementById('training-algorithm').value;
         numEpisodes = parseInt(document.getElementById('training-episodes').value);
         maxSteps = parseInt(document.getElementById('training-max-steps').value);
         datasetUrl = document.getElementById('training-dataset-url').value.trim() || null;
+        
+        // Get verifier configuration
+        const verifierType = document.getElementById('training-verifier-type');
+        if (verifierType && verifierType.value !== 'default') {
+            verifierConfig = {
+                type: verifierType.value
+            };
+            
+            // Add weights if ensemble and weights are provided
+            if (verifierType.value === 'ensemble') {
+                const verifierWeights = document.getElementById('training-verifier-weights');
+                if (verifierWeights && verifierWeights.value.trim()) {
+                    try {
+                        const weights = JSON.parse(verifierWeights.value);
+                        verifierConfig.verifiers = weights;
+                    } catch (e) {
+                        console.warn('Invalid verifier weights JSON, using defaults:', e);
+                    }
+                }
+            }
+        }
+        
         const configJson = document.getElementById('training-config-json').value.trim();
         if (configJson) {
             try {
@@ -2039,28 +2219,36 @@ async function submitTrainingConfig(envName) {
         numEpisodes = parsed.num_episodes || 100;
         maxSteps = parsed.max_steps || 1000;
         datasetUrl = parsed.dataset_url || null;
+        verifierConfig = parsed.verifier_config || null;
         config = parsed.config || parsed;
     }
     
     closeTrainingConfig();
-    await startTraining(envName, algorithm, numEpisodes, maxSteps, config, datasetUrl);
+    await startTraining(envName, algorithm, numEpisodes, maxSteps, config, datasetUrl, verifierConfig);
 }
 
-async function startTraining(envName, algorithm = 'PPO', numEpisodes = 100, maxSteps = 1000, config = null, datasetUrl = null) {
+async function startTraining(envName, algorithm = 'PPO', numEpisodes = 100, maxSteps = 1000, config = null, datasetUrl = null, verifierConfig = null) {
     try {
+        const requestBody = {
+            environment_name: envName,
+            algorithm: algorithm,
+            num_episodes: numEpisodes,
+            max_steps: maxSteps,
+            dataset_url: datasetUrl,
+            config: config
+        };
+        
+        // Add verifier config if provided
+        if (verifierConfig) {
+            requestBody.verifier_config = verifierConfig;
+        }
+        
         const response = await fetch(`${API_BASE}/train/${envName}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                environment_name: envName,
-                algorithm: algorithm,
-                num_episodes: numEpisodes,
-                max_steps: maxSteps,
-                dataset_url: datasetUrl,
-                config: config
-            })
+            body: JSON.stringify(requestBody)
         });
         
         if (!response.ok) {
@@ -2386,6 +2574,7 @@ window.submitTrainingConfig = submitTrainingConfig;
 window.openHelpSection = openHelpSection;
 window.closeModal = closeModal;
 window.updateModelInfo = updateModelInfo;
+window.updateVerifierWeightsVisibility = updateVerifierWeightsVisibility;
 window.openTrainingMonitor = openTrainingMonitor;
 window.loadTrainingJob = loadTrainingJob;
 window.refreshJobStatus = refreshJobStatus;

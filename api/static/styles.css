@@ -108,6 +108,24 @@ body {
     margin-bottom: 1.5rem;
 }
 
+.system-filter-wrap {
+    margin-bottom: 0.75rem;
+}
+.system-filter-select {
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--card-bg);
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    min-width: 180px;
+    cursor: pointer;
+}
+.system-filter-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
 .search-box {
     position: relative;
     margin-bottom: 1rem;
@@ -554,6 +572,156 @@ body {
     .filter-buttons {
         justify-content: center;
     }
+}
+
+/* Training config modal – sections and form layout */
+.training-config-modal .modal-content {
+    max-width: 720px;
+    padding: 1.75rem 2rem;
+}
+.training-config-modal .config-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0;
+}
+.training-config-modal .config-tab {
+    padding: 0.6rem 1rem;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    background: none;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-radius: 4px 4px 0 0;
+    transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+.training-config-modal .config-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-color);
+}
+.training-config-modal .config-tab.active {
+    color: var(--primary-color);
+    font-weight: 600;
+    border-bottom-color: var(--primary-color);
+    background: transparent;
+}
+.training-config-modal .config-tab-content {
+    padding-top: 0.5rem;
+}
+.training-config-modal .training-section {
+    margin-bottom: 1.5rem;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.training-config-modal .training-section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+.training-config-modal .training-section-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    display: block;
+}
+.training-config-modal .form-group {
+    margin-bottom: 1.1rem;
+}
+.training-config-modal .form-group:last-child {
+    margin-bottom: 0;
+}
+.training-config-modal .form-group label {
+    display: block;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.4rem;
+    font-size: 0.95rem;
+}
+.training-config-modal .form-group small {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+.training-config-modal .form-group input[type="text"],
+.training-config-modal .form-group input[type="number"],
+.training-config-modal .form-group input[type="url"],
+.training-config-modal .form-group select {
+    width: 100%;
+    max-width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.training-config-modal .form-group input:focus,
+.training-config-modal .form-group select:focus,
+.training-config-modal .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.training-config-modal .form-group textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-family: ui-monospace, monospace;
+    resize: vertical;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.training-config-modal .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+.training-config-modal .training-system-block {
+    padding: 1rem 1.25rem;
+    background: var(--bg-color);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 1.25rem;
+}
+.training-config-modal .training-system-block label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+.training-config-modal .training-system-block small {
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+.training-config-modal .verifier-hint {
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--primary-color);
+    line-height: 1.4;
+}
+.training-config-modal .model-storage-block {
+    background: #f0f9ff;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+    margin-top: 1.25rem;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+}
+.training-config-modal .model-storage-block h4 {
+    margin-bottom: 0.5rem;
+    color: var(--primary-color);
+    font-size: 1rem;
 }
 
 /* Tooltip styles */
