@@ -2418,37 +2418,60 @@ function displayTrainingJob(jobData) {
         </div>
     ` : '';
     
-    const resultsSection = jobData.results ? `
+    const resultsSection = jobData.results ? (() => {
+        const meanR = jobData.results.mean_reward;
+        const maxR = jobData.results.max_reward;
+        const minR = jobData.results.min_reward;
+        const eps = jobData.results.total_episodes || jobData.num_episodes || 0;
+        const completed = jobData.results.episodes_completed ?? eps;
+        
+        let summaryText = '';
+        if (typeof meanR === 'number') {
+            const spread = (typeof maxR === 'number' && typeof minR === 'number') ? (maxR - minR) : null;
+            summaryText = 'Mean reward (' + meanR.toFixed(2) + ') is the average return per episode — higher means the agent learned better policies. ';
+            if (typeof maxR === 'number') summaryText += 'Max (' + maxR.toFixed(2) + ') is the best single episode. ';
+            if (typeof minR === 'number') summaryText += 'Min (' + minR.toFixed(2) + ') is the worst. ';
+            if (spread !== null) summaryText += 'A narrow spread suggests stable learning; a wide spread means more variance. ';
+            summaryText += 'Episodes (' + completed + '/' + eps + ') shows how many runs completed. More episodes generally improve learning.';
+        } else {
+            summaryText = 'Run training to see reward metrics. Mean reward indicates average performance per episode; max/min show best and worst runs.';
+        }
+        
+        return `
         <div style="background: #f0f9ff; padding: 1rem; border-radius: 6px; margin-top: 1rem;">
             <h4 style="margin-bottom: 0.75rem; color: var(--primary-color);">📈 Training Results</h4>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; font-size: 0.9rem;">
                 <div>
                     <strong>Mean Reward:</strong><br/>
                     <span style="color: var(--primary-color); font-size: 1.1rem; font-weight: 600;">
-                        ${jobData.results.mean_reward?.toFixed(2) || 'N/A'}
+                        ${jobData.results.mean_reward?.toFixed(2) ?? 'N/A'}
                     </span>
                 </div>
                 <div>
                     <strong>Max Reward:</strong><br/>
                     <span style="color: var(--secondary-color); font-size: 1.1rem; font-weight: 600;">
-                        ${jobData.results.max_reward?.toFixed(2) || 'N/A'}
+                        ${jobData.results.max_reward?.toFixed(2) ?? 'N/A'}
                     </span>
                 </div>
                 <div>
                     <strong>Min Reward:</strong><br/>
                     <span style="color: var(--text-secondary); font-size: 1.1rem; font-weight: 600;">
-                        ${jobData.results.min_reward?.toFixed(2) || 'N/A'}
+                        ${jobData.results.min_reward?.toFixed(2) ?? 'N/A'}
                     </span>
                 </div>
                 <div>
                     <strong>Episodes:</strong><br/>
                     <span style="color: var(--text-primary); font-size: 1.1rem; font-weight: 600;">
-                        ${jobData.results.total_episodes || jobData.num_episodes || 'N/A'}
+                        ${completed} / ${jobData.results.total_episodes || jobData.num_episodes || 'N/A'}
                     </span>
                 </div>
             </div>
+            <div style="margin-top: 0.75rem; padding: 0.6rem 0.75rem; background: rgba(37,99,235,0.08); border-radius: 6px; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">
+                <strong style="color: var(--text-primary);">Why these values:</strong> ${summaryText}
+            </div>
         </div>
-    ` : '';
+    `;
+    })() : '';
     
     const modelSection = (jobData.status === 'completed' && jobData.model_url) ? `
         <div style="background: #dcfce7; padding: 1rem; border-radius: 6px; margin-top: 1rem; border-left: 4px solid var(--secondary-color);">

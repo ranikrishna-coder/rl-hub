@@ -1045,6 +1045,32 @@ function resetSimulation() {
     showFinalResults();
 }
 
+function getMetricReasoning(m, stepCount, isComplete) {
+    const utilization = m.utilization || 0;
+    const processed = m.processed || 0;
+    const totalReward = m.totalReward || 0;
+    const urgentWaiting = m.urgentWaiting ?? 0;
+    
+    return {
+        clinical: (stepCount === 0) ? 'Run the simulation to see clinical outcomes.' :
+            `Higher steps completed (${stepCount}) means the agent advanced further in the pathway. ` +
+            (urgentWaiting > 0 ? `Urgent waiting: ${urgentWaiting} — indicates cases needing prioritization. ` : '') +
+            (isComplete ? 'Status Complete means all items were processed.' : 'In Progress means more steps can be taken.'),
+        efficiency: (stepCount === 0) ? 'Run the simulation to see efficiency metrics.' :
+            `Items processed (${processed}) shows throughput. ` +
+            (m.utilization !== undefined ? `Utilization ${utilization.toFixed(0)}% indicates resource use — higher is better if quality is maintained. ` : '') +
+            'More steps with fewer items remaining suggests better operational flow.',
+        financial: (stepCount === 0) ? 'Run the simulation to see financial impact.' :
+            `Total reward (${totalReward.toFixed(2)}) aggregates per-step rewards — higher means the agent made more valuable decisions. ` +
+            (m.revenue !== undefined ? `Revenue reflects value captured (e.g., billed items). ` : '') +
+            'Revenue per hour normalizes output by time for comparison.',
+        roi: (stepCount === 0) ? 'Run the simulation to see ROI assessment.' :
+            `Strategy and efficiency together determine value. ` +
+            (utilization > 70 ? 'High utilization with completion suggests strong ROI.' : utilization > 50 ? 'Medium efficiency — consider tuning strategy.' : 'Low utilization — the agent may need more steps or a different strategy.') +
+            (isComplete ? ' Completion indicates the run finished successfully.' : '')
+    };
+}
+
 function showFinalResults() {
     if (!simulationState) {
         ['results-clinical', 'results-efficiency', 'results-financial', 'results-roi'].forEach(id => {
@@ -1060,11 +1086,16 @@ function showFinalResults() {
                         simulationState.appointments?.length === 0) && 
                        (simulationState.processed?.length > 0 || simulationState.scheduled?.length > 0);
     
+    const reasoning = getMetricReasoning(m, stepCount, isComplete);
+    
     // Clinical Outcomes
     const clinicalHtml = `
         <strong>Steps Completed:</strong> ${stepCount}<br>
         <strong>Status:</strong> ${isComplete ? 'Complete' : 'In Progress'}<br>
         ${m.urgentWaiting !== undefined ? `<strong>Urgent Waiting:</strong> ${m.urgentWaiting}` : ''}
+        <div class="metric-reasoning" style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(37,99,235,0.06); border-radius: 6px; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45;">
+            <strong style="color: var(--text-primary);">Why:</strong> ${reasoning.clinical}
+        </div>
     `;
     document.getElementById('results-clinical').innerHTML = clinicalHtml;
     
@@ -1073,6 +1104,9 @@ function showFinalResults() {
         <strong>Total Steps:</strong> ${stepCount}<br>
         <strong>Items Processed:</strong> ${m.processed || 0}<br>
         ${m.utilization !== undefined ? `<strong>Utilization:</strong> ${m.utilization.toFixed(1)}%` : ''}
+        <div class="metric-reasoning" style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(37,99,235,0.06); border-radius: 6px; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45;">
+            <strong style="color: var(--text-primary);">Why:</strong> ${reasoning.efficiency}
+        </div>
     `;
     document.getElementById('results-efficiency').innerHTML = efficiencyHtml;
     
@@ -1081,6 +1115,9 @@ function showFinalResults() {
         <strong>Total Reward:</strong> ${(m.totalReward || 0).toFixed(2)}<br>
         ${m.revenue !== undefined ? `<strong>Revenue:</strong> $${Math.round(m.revenue)}` : ''}
         ${m.revenue && stepCount > 0 ? `<strong>Revenue/Hour:</strong> $${Math.round(m.revenue / (stepCount / 60)) || 0}` : ''}
+        <div class="metric-reasoning" style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(37,99,235,0.06); border-radius: 6px; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45;">
+            <strong style="color: var(--text-primary);">Why:</strong> ${reasoning.financial}
+        </div>
     `;
     document.getElementById('results-financial').innerHTML = financialHtml;
     
@@ -1091,6 +1128,9 @@ function showFinalResults() {
         <strong>Strategy:</strong> ${strategy}<br>
         <strong>Efficiency:</strong> ${efficiencyLevel}<br>
         <strong>Assessment:</strong> ${stepCount > 0 ? (isComplete ? '✅ Simulation completed successfully' : '🔄 Simulation in progress') : '⏸️ Not started'}
+        <div class="metric-reasoning" style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(37,99,235,0.06); border-radius: 6px; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45;">
+            <strong style="color: var(--text-primary);">Why:</strong> ${reasoning.roi}
+        </div>
     `;
     document.getElementById('results-roi').innerHTML = roiHtml;
 }
