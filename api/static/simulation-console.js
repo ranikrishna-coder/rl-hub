@@ -263,14 +263,16 @@ function loadEnvironmentConfig(envName) {
     
     if (!config) {
         // Generic configuration for environments without specific config
+        const maxStepsTooltip = 'Maximum number of simulation steps before the episode ends (10–1000). Longer episodes allow for more complex scenarios and better evaluation of long-term strategies. Shorter episodes give quick feedback.';
+        const randomSeedTooltip = 'Optional random seed for reproducible simulations. Enter a number to get the same random sequence each run (useful for comparing strategies). Leave empty for different random behavior each run.';
         configDiv.innerHTML = `
             <div class="form-group">
-                <label>Max Steps:</label>
-                <input type="number" id="max-steps" value="100" min="10" max="1000" />
+                <label>Max Steps: <span class="tooltip-icon" title="${maxStepsTooltip}">ℹ️</span></label>
+                <input type="number" id="max-steps" value="100" min="10" max="1000" title="${maxStepsTooltip}" />
             </div>
             <div class="form-group">
-                <label>Random Seed (optional):</label>
-                <input type="number" id="random-seed" value="" placeholder="Auto" />
+                <label>Random Seed (optional): <span class="tooltip-icon" title="${randomSeedTooltip}">ℹ️</span></label>
+                <input type="number" id="random-seed" value="" placeholder="Auto" title="${randomSeedTooltip}" />
             </div>
         `;
         return;
