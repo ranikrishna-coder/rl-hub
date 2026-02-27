@@ -24,6 +24,7 @@ pandas>=2.0.0
 # Utilities
 python-dotenv>=1.0.0
 python-multipart>=0.0.6
+requests>=2.28.0  # Required for Jira API calls (create subtask, delete subtasks, etc.)
 
 # Optional: Monitoring and Visualization
 tensorboard>=2.14.0
