@@ -571,13 +571,9 @@ console.log('🚀 RL Hub - API Base URL:', window.API_BASE);
 
 @app.get("/test-console")
 async def test_console(env: Optional[str] = None):
-    """Simulation console for any RL environment"""
+    """Simulation console for any RL environment (serves simulation-console.html)."""
     static_dir = os.path.join(os.path.dirname(__file__), "static")
-    # Use generic simulation console for all environments
     console_path = os.path.join(static_dir, "simulation-console.html")
-    if not os.path.exists(console_path):
-        # Fallback to old console if new one doesn't exist
-        console_path = os.path.join(static_dir, "test-console.html")
     if os.path.exists(console_path):
         return FileResponse(console_path)
     raise HTTPException(status_code=404, detail="Simulation console not found")

@@ -17,6 +17,10 @@
         {
           "id": "61",
           "name": "Code Review"
+        },
+        {
+          "id": "21",
+          "name": "Blocked"
         }
       ]
     },
