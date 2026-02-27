@@ -24,14 +24,14 @@
                 <div class="config-section">
                     <h3>Environment Selection</h3>
                     <div class="form-group">
-                        <label>Software system: <span class="tooltip-icon" title="Filter environments by healthcare software system (e.g. Epic, Cerner, Philips). Select a system to see only environments that integrate with it.">ℹ️</span></label>
+                        <label>Software system: <span class="tooltip-icon" title="Filter environments by software system (e.g. Jira, Epic, Cerner, Philips). Select a system to see only environments that integrate with it.">ℹ️</span></label>
                         <select id="system-select">
                             <option value="all">All systems</option>
                             <!-- Populated by JS -->
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Environment: <span class="tooltip-icon" title="Select the RL environment you want to simulate. Each environment represents a different healthcare optimization scenario.">ℹ️</span></label>
+                        <label>Environment: <span class="tooltip-icon" title="Select the RL environment you want to simulate. Each environment represents a different workflow optimization scenario.">ℹ️</span></label>
                         <select id="environment-select">
                             <option value="">Loading environments...</option>
                         </select>
@@ -45,8 +45,9 @@
 
                 <div class="config-section">
                     <h3>Verifier Configuration</h3>
+                    <div id="jira-verifier-info" class="jira-verifier-info" style="display: none; margin-bottom: 0.75rem; padding: 0.5rem; background: rgba(37,99,235,0.08); border-radius: 6px; font-size: 0.85rem;"></div>
                     <div class="form-group">
-                        <label>Reward Verifier: <span class="tooltip-icon" title="Select the reward verifier to use for calculating rewards. Ensemble combines multiple verifiers (clinical, operational, financial, compliance) for comprehensive evaluation. Individual verifiers focus on specific aspects.">ℹ️</span></label>
+                        <label>Reward Verifier: <span class="tooltip-icon" title="Select the reward verifier to use for calculating rewards. For Jira envs, use Default (environment built-in) to match app verifiers (Jira Issue Resolution / Jira Comment Management).">ℹ️</span></label>
                         <select id="verifier-type">
                             <option value="ensemble" selected>Ensemble (Default - All Verifiers)</option>
                             <option value="clinical">Clinical Verifier</option>
@@ -72,6 +73,14 @@
                             <option value="urgency_first">Urgency First</option>
                             <option value="value_first">High Value First</option>
                             <option value="balanced">Balanced (RL Optimized)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Agent Model: <span class="tooltip-icon" title="Select which trained or baseline model to conceptually use for the agent. In this console, this is used as documentation alongside the Agent Strategy (simulation remains client-side).">ℹ️</span></label>
+                        <select id="agent-model">
+                            <option value="baseline" selected>Baseline (no trained model)</option>
+                            <option value="ppo">PPO-trained model (offline)</option>
+                            <option value="slm">SLM (Jira)</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -121,6 +130,10 @@
                         <div id="action-history" class="order-list">
                             <div class="empty-state">No actions taken yet</div>
                         </div>
+                        <div style="margin-top: 0.5rem;">
+                            <button class="btn btn-secondary" id="btn-download-jira-subtasks" title="Download a JSON log of all Jira subtasks created by the agent during this simulation session.">Download</button>
+                        </div>
+                        <pre id="jira-subtask-console-output" style="margin-top: 0.5rem; padding: 0.5rem; background: #0f172a; color: #e5e7eb; border-radius: 4px; font-size: 0.8rem; max-height: 180px; overflow-y: auto; white-space: pre-wrap;"></pre>
                     </div>
                 </div>
             </div>
@@ -142,41 +155,30 @@
                     </div>
                 </div>
 
-                <div class="kpi-section">
-                    <h3>Key Performance Indicators <span class="tooltip-icon" title="Structured metrics organized by category: Clinical Outcomes (patient health metrics), Operational Efficiency (resource utilization, wait times), and Financial Metrics (revenue, costs). These KPIs help assess the overall impact of the RL agent's decisions.">ℹ️</span></h3>
-                    <div id="kpi-display" class="kpi-display">
-                        <div class="empty-state">Initialize environment to see KPIs</div>
+                <div class="human-eval-section" style="margin-top: 1.25rem; padding: 1rem; background: rgba(251,191,36,0.12); border-radius: 8px; border-left: 4px solid #d97706;">
+                    <h3>👤 Human Evaluation <span class="tooltip-icon" title="Record your approval or rejection for this simulation run. For training jobs, use the Training Monitor and open Human Evaluation from the job card.">ℹ️</span></h3>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Approve or reject this run (for RLHF / model selection).</p>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <button type="button" class="btn btn-small" id="human-eval-yes" title="Approve this run">✅ Yes</button>
+                        <button type="button" class="btn btn-small" id="human-eval-no" title="Reject this run">❌ No</button>
                     </div>
-                </div>
-
-                <div class="recommendations">
-                    <h3>💡 AI Recommendations <span class="tooltip-icon" title="Intelligent recommendations based on current simulation state. The system analyzes metrics and suggests optimizations to improve performance.">ℹ️</span></h3>
-                    <div id="recommendations-list" class="recommendations-list">
-                        <div class="empty-state">Run simulation to see recommendations</div>
-                    </div>
+                    <textarea id="human-eval-comment" placeholder="Optional comment…" rows="2" style="width: 100%; padding: 0.5rem; border-radius: 4px; font-size: 0.85rem; resize: vertical; margin-bottom: 0.5rem;"></textarea>
+                    <div id="human-eval-status" style="font-size: 0.8rem; color: var(--text-secondary);"></div>
                 </div>
             </div>
         </div>
 
         <!-- Bottom Panel: Results Summary -->
         <div class="results-panel">
-            <h2>📊 Simulation Results <span class="tooltip-icon" title="Summary of simulation results across four key dimensions: Clinical Outcomes (patient health impact), Operational Efficiency (resource utilization), Financial Impact (revenue and costs), and ROI Assessment (overall value and efficiency level).">ℹ️</span></h2>
+            <h2>📊 Simulation Results <span class="tooltip-icon" title="Success and lagging indicators for the RL run. Run summary shows immediate outcomes; lagging indicators help assess long-term behavior and convergence.">ℹ️</span></h2>
             <div class="results-grid">
-                <div class="result-card" title="Measures the impact on patient health outcomes, including steps completed, completion status, and urgent cases waiting. Higher values indicate better clinical performance.">
-                    <h4>Clinical Outcomes</h4>
-                    <div id="results-clinical" class="result-content">-</div>
+                <div class="result-card" title="Immediate outcomes: steps taken, total reward, and whether the episode reached a terminal state. Defines success of the run.">
+                    <h4>Run Summary</h4>
+                    <div id="results-run-summary" class="result-content">-</div>
                 </div>
-                <div class="result-card" title="Tracks operational performance including total steps, items processed, and resource utilization percentage. Higher utilization with more items processed indicates better efficiency.">
-                    <h4>Operational Efficiency</h4>
-                    <div id="results-efficiency" class="result-content">-</div>
-                </div>
-                <div class="result-card" title="Shows financial performance including total reward earned, revenue generated, and revenue per hour. Useful for assessing the economic value of the RL agent's decisions.">
-                    <h4>Financial Impact</h4>
-                    <div id="results-financial" class="result-content">-</div>
-                </div>
-                <div class="result-card" title="Overall assessment of return on investment, including the strategy used, efficiency level (High/Medium/Low), and completion status. Helps determine if the RL approach is providing value.">
-                    <h4>ROI Assessment</h4>
-                    <div id="results-roi" class="result-content">-</div>
+                <div class="result-card" title="Lagging indicators: average reward per step and steps to complete. Useful for comparing strategies and assessing convergence over time.">
+                    <h4>Lagging Indicators</h4>
+                    <div id="results-lagging" class="result-content">-</div>
                 </div>
             </div>
         </div>

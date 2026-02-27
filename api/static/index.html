@@ -36,7 +36,15 @@
     <script src="config.js" onerror="console.log('config.js not found, using auto-detected URL')"></script>
 </head>
 <body>
-    <div class="container">
+    <!-- Full-page environment detail view (replaces catalog when "View details" is clicked) -->
+    <div id="env-detail-page" class="env-detail-page" style="display: none;">
+        <div class="env-detail-inner">
+            <button type="button" class="btn-back-catalog" id="btn-back-catalog" aria-label="Back to catalog">← Back to Catalog</button>
+            <div id="env-detail-body"></div>
+        </div>
+    </div>
+
+    <div class="container" id="catalog-container">
         <div class="top-bar">
             <button class="help-button" onclick="openHelpSection()">
                 📚 Help & Documentation
@@ -44,10 +52,10 @@
         </div>
         <header class="header">
             <h1>🏥 RL Hub</h1>
-            <p class="subtitle">100 Reinforcement Learning Environments for Healthcare Optimization</p>
+            <p class="subtitle" id="subtitle-env-count">Reinforcement Learning Environments for Workflow Optimization</p>
             <div class="stats">
                 <div class="stat-item">
-                    <span class="stat-number" id="total-envs">100</span>
+                    <span class="stat-number" id="total-envs">—</span>
                     <span class="stat-label">Environments</span>
                 </div>
                 <div class="stat-item">
@@ -66,24 +74,33 @@
                 <input type="text" id="search-input" placeholder="Search environments..." />
                 <span class="search-icon">🔍</span>
             </div>
+            <div class="domain-filter-wrap" style="display: flex; align-items: center; gap: 0.5rem;">
+                <label for="domain-filter" style="font-size: 0.9rem; color: var(--text-secondary); white-space: nowrap;">Domain:</label>
+                <select id="domain-filter" class="system-filter-select" title="Filter by domain: Enterprise apps (Jira) or Operational workflows (all other environments)">
+                    <option value="all">All</option>
+                    <option value="enterprise">Enterprise apps</option>
+                    <option value="healthcare">Operational workflows</option>
+                </select>
+            </div>
             <div class="system-filter-wrap" style="display: flex; align-items: center; gap: 0.5rem;">
                 <label for="system-filter" style="font-size: 0.9rem; color: var(--text-secondary); white-space: nowrap;">Software system:</label>
-                <select id="system-filter" class="system-filter-select" title="Filter environments by healthcare software system (e.g. Epic, Cerner)">
+                <select id="system-filter" class="system-filter-select" title="Filter environments by software system. Enterprise apps shows Jira; Healthcare shows Epic, Cerner, etc.">
                     <option value="all">All systems</option>
                     <!-- Populated by JS from environment data -->
                 </select>
             </div>
-            <div class="filter-buttons">
-                <button class="filter-btn active" data-category="all">All</button>
-                <button class="filter-btn" data-category="clinical">Clinical</button>
-                <button class="filter-btn" data-category="imaging">Imaging</button>
-                <button class="filter-btn" data-category="population_health">Population Health</button>
-                <button class="filter-btn" data-category="revenue_cycle">Revenue Cycle</button>
-                <button class="filter-btn" data-category="clinical_trials">Clinical Trials</button>
-                <button class="filter-btn" data-category="hospital_operations">Hospital Ops</button>
-                <button class="filter-btn" data-category="telehealth">Telehealth</button>
-                <button class="filter-btn" data-category="interoperability">Interoperability</button>
-                <button class="filter-btn" data-category="cross_workflow">Cross-Workflow</button>
+            <div class="filter-buttons" id="filter-buttons">
+                <button class="filter-btn active" data-category="all" data-domain="all">All</button>
+                <button class="filter-btn" data-category="jira" data-domain="enterprise">Jira</button>
+                <button class="filter-btn" data-category="clinical" data-domain="healthcare">Clinical</button>
+                <button class="filter-btn" data-category="imaging" data-domain="healthcare">Imaging</button>
+                <button class="filter-btn" data-category="population_health" data-domain="healthcare">Population</button>
+                <button class="filter-btn" data-category="revenue_cycle" data-domain="healthcare">Revenue</button>
+                <button class="filter-btn" data-category="clinical_trials" data-domain="healthcare">Clinical Trials</button>
+                <button class="filter-btn" data-category="hospital_operations" data-domain="healthcare">Operations</button>
+                <button class="filter-btn" data-category="telehealth" data-domain="healthcare">Telehealth</button>
+                <button class="filter-btn" data-category="interoperability" data-domain="healthcare">Interoperability</button>
+                <button class="filter-btn" data-category="cross_workflow" data-domain="healthcare">Cross-Workflow</button>
             </div>
         </div>
 
@@ -93,14 +110,6 @@
 
         <div id="loading" class="loading">Loading environments...</div>
         <div id="error" class="error" style="display: none;"></div>
-    </div>
-
-    <!-- Environment Detail Modal -->
-    <div id="env-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('env-modal')">&times;</span>
-            <div id="modal-body"></div>
-        </div>
     </div>
 
     <!-- Help Section Modal -->

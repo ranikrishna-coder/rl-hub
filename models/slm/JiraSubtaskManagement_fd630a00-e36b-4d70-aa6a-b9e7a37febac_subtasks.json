@@ -1,0 +1,208 @@
+{
+  "job_id": "fd630a00-e36b-4d70-aa6a-b9e7a37febac",
+  "environment_name": "JiraSubtaskManagement",
+  "algorithm": "SLM",
+  "num_episodes": 30,
+  "subtask_episodes": [
+    {
+      "episode": 1,
+      "step": 2,
+      "issue_key": "PROJ-101",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 2,
+      "step": 2,
+      "issue_key": "PROJ-102",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 3,
+      "step": 2,
+      "issue_key": "PROJ-103",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 4,
+      "step": 2,
+      "issue_key": "PROJ-104",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 5,
+      "step": 2,
+      "issue_key": "PROJ-105",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 6,
+      "step": 2,
+      "issue_key": "PROJ-106",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 7,
+      "step": 2,
+      "issue_key": "PROJ-107",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 9,
+      "step": 2,
+      "issue_key": "PROJ-109",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 10,
+      "step": 2,
+      "issue_key": "PROJ-110",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 11,
+      "step": 2,
+      "issue_key": "PROJ-111",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 14,
+      "step": 2,
+      "issue_key": "PROJ-114",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 15,
+      "step": 2,
+      "issue_key": "PROJ-115",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 17,
+      "step": 2,
+      "issue_key": "PROJ-117",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 19,
+      "step": 2,
+      "issue_key": "PROJ-119",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 20,
+      "step": 2,
+      "issue_key": "PROJ-120",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 22,
+      "step": 2,
+      "issue_key": "PROJ-122",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 23,
+      "step": 2,
+      "issue_key": "PROJ-123",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 24,
+      "step": 2,
+      "issue_key": "PROJ-124",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 25,
+      "step": 2,
+      "issue_key": "PROJ-125",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    },
+    {
+      "episode": 30,
+      "step": 2,
+      "issue_key": "PROJ-130",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    }
+  ]
+}

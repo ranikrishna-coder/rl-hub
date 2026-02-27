@@ -117,7 +117,7 @@ const environmentDetails = {
     'DataReconciliation': {
         category: 'interoperability',
         system: 'InterSystems, Orion Health',
-        description: 'Reconciles data across multiple healthcare systems to ensure data integrity and consistency.',
+        description: 'Reconciles data across multiple enterprise systems to ensure data integrity and consistency.',
         stateFeatures: 16,
         actionType: 'Discrete',
         actionSpace: 5,
@@ -134,6 +134,54 @@ const environmentDetails = {
         kpis: ['Journey Score', 'Risk Score', 'Journey Length', 'Journey Cost'],
         useCase: 'Care coordination, patient flow optimization',
         multiAgent: true
+    },
+    'JiraIssueResolution': {
+        category: 'jira',
+        system: 'Jira (Atlassian)',
+        description: 'Jira Issue Resolution Flow: resolve issues end-to-end by fetching issue details, checking valid transitions, and applying the correct transition (e.g. to Done).',
+        stateFeatures: 7,
+        actionType: 'Discrete',
+        actionSpace: 4,
+        kpis: ['Tool Sequence Correct', 'Valid Transition Used', 'Steps to Resolution', 'Workflow Compliance'],
+        useCase: 'Issue resolution workflows, ticket closure, status transitions',
+        whatItDoes: '<p>Validates and rewards the correct Jira Issue Resolution workflow: <strong>get_issue_summary_and_description</strong> → <strong>get_transitions</strong> → <strong>transition_issue</strong>. Ensures transition_id is valid from get_transitions.</p>',
+        howToUse: '<p>Use action 0 for the correct next step; wrong order or invalid transition incurs a penalty. Run simulation or training to learn the optimal sequence.</p>'
+    },
+    'JiraStatusUpdate': {
+        category: 'jira',
+        system: 'Jira (Atlassian)',
+        description: 'Jira Status Update Workflow: change issue status across valid states by fetching transitions and applying the chosen transition.',
+        stateFeatures: 6,
+        actionType: 'Discrete',
+        actionSpace: 3,
+        kpis: ['Valid Transition Used', 'Sequence Correct', 'Steps Completed', 'Workflow Compliance'],
+        useCase: 'Status updates, moving issues To Do → In Progress → Done',
+        whatItDoes: '<p>Validates the Status Update workflow: <strong>get_transitions</strong> → <strong>transition_issue</strong>. Only valid transitions are allowed; transition IDs must match available options.</p>',
+        howToUse: '<p>Use action 0 for the correct next step. Sequential status updates are enforced.</p>'
+    },
+    'JiraCommentManagement': {
+        category: 'jira',
+        system: 'Jira (Atlassian)',
+        description: 'Jira Comment Thread Management: add and validate issue comments, then retrieve the comment thread.',
+        stateFeatures: 6,
+        actionType: 'Discrete',
+        actionSpace: 3,
+        kpis: ['Comment Added', 'Thread Retrieved', 'Sequence Correct', 'Workflow Compliance'],
+        useCase: 'Adding comments to issues, retrieving comment threads',
+        whatItDoes: '<p>Validates the Comment Management workflow: <strong>add_comment</strong> → <strong>get_comments</strong>. Comments must have valid content; issue must exist before commenting.</p>',
+        howToUse: '<p>Use action 0 for the correct next step. Add comment first, then get_comments.</p>'
+    },
+    'JiraSubtaskManagement': {
+        category: 'jira',
+        system: 'Jira (Atlassian)',
+        description: 'Jira Subtask Management: add subtasks to existing Jira tickets by fetching parent issue and creating subtask under it.',
+        stateFeatures: 6,
+        actionType: 'Discrete',
+        actionSpace: 3,
+        kpis: ['Parent Fetched', 'Subtask Created', 'Sequence Correct', 'Workflow Compliance'],
+        useCase: 'Adding subtasks to Jira issues',
+        whatItDoes: '<p>Validates the Subtask Management workflow: <strong>get_issue_summary_and_description</strong> → <strong>create_subtask</strong>. Fetches parent issue, then creates a subtask under it.</p>',
+        howToUse: '<p>Use action 0 for the correct next step. Fetch parent first, then create_subtask.</p>'
     }
 };
 
@@ -150,6 +198,24 @@ async function loadEnvironments() {
         
         const data = await response.json();
         allEnvironments = data.environments || [];
+        
+        // Fallback: ensure JiraSubtaskManagement is in catalog (in case API hasn't been redeployed)
+        if (!allEnvironments.some(e => e.name === 'JiraSubtaskManagement')) {
+            const jiraSubtask = {
+                name: 'JiraSubtaskManagement',
+                class_path: 'environments.jira.jira_workflow_env.JiraSubtaskManagementEnv',
+                system: 'Jira (Atlassian)',
+                workflow: 'Jira',
+                category: 'jira',
+                multi_agent: false,
+                actionSpace: 3,
+                stateFeatures: 6,
+                actionType: 'Discrete',
+                actions: ['action_0', 'action_1', 'action_2']
+            };
+            allEnvironments.push(jiraSubtask);
+            console.log('Added JiraSubtaskManagement to catalog (API fallback)');
+        }
         
         // Enhance with details - generate unique descriptions for each environment
         allEnvironments = allEnvironments.map(env => {
@@ -196,13 +262,22 @@ async function loadEnvironments() {
         document.getElementById('total-envs').textContent = totalEnvs;
         document.getElementById('total-categories').textContent = categories.size;
         document.getElementById('total-systems').textContent = systems.size;
+        const subtitleEl = document.getElementById('subtitle-env-count');
+        if (subtitleEl) subtitleEl.textContent = `${totalEnvs} Reinforcement Learning Environments for Workflow Optimization`;
         
-        // Populate Software System filter dropdown
+        // Populate Domain filter and Software System filter dropdown
+        const domainFilter = document.getElementById('domain-filter');
+        if (domainFilter) {
+            domainFilter.addEventListener('change', () => {
+                updateFilterButtonsForDomain();
+                updateSystemFilterOptions();
+                filterEnvironments(document.getElementById('search-input').value, getActiveCategory());
+            });
+        }
+        updateFilterButtonsForDomain();
+        updateSystemFilterOptions();
         const systemFilter = document.getElementById('system-filter');
         if (systemFilter) {
-            const systemList = Array.from(systems).sort((a, b) => a.localeCompare(b));
-            systemFilter.innerHTML = '<option value="all">All systems</option>' +
-                systemList.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('');
             systemFilter.addEventListener('change', () => {
                 filterEnvironments(document.getElementById('search-input').value, getActiveCategory());
             });
@@ -227,6 +302,10 @@ async function loadEnvironments() {
 }
 
 function setupEventListeners() {
+    // Back to catalog (full-page detail view)
+    const btnBack = document.getElementById('btn-back-catalog');
+    if (btnBack) btnBack.addEventListener('click', closeEnvDetailPage);
+    
     // Search
     document.getElementById('search-input').addEventListener('input', (e) => {
         filterEnvironments(e.target.value, getActiveCategory());
@@ -299,10 +378,10 @@ function openHelpSection() {
         <h1 style="margin-bottom: 2rem;">📚 Help & Documentation</h1>
         
         <div class="help-section" style="margin-bottom: 3rem;">
-            <h2 style="color: var(--primary-color); margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">🏥 Healthcare Systems Integrated</h2>
+            <h2 style="color: var(--primary-color); margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">🏢 Integrated Software Systems</h2>
             <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
-                This platform integrates with the following major healthcare systems, providing digital twin simulations 
-                and RL environments for optimization:
+                This platform integrates with multiple operational software systems, providing digital twin simulations 
+                and RL environments for workflow optimization:
             </p>
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
                 ${Object.entries(systemsMap).map(([system, envs]) => `
@@ -355,7 +434,7 @@ function openHelpSection() {
             <h2 style="color: var(--primary-color); margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">📖 Quick Start Guide</h2>
             <div style="background: #f0f9ff; padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--primary-color);">
                 <ol style="line-height: 2; padding-left: 1.5rem;">
-                    <li><strong>Browse Environments:</strong> Use the search and filter options to find RL environments relevant to your healthcare system.</li>
+                    <li><strong>Browse Environments:</strong> Use the search and filter options to find RL environments relevant to your software systems and workflows.</li>
                     <li><strong>View Details:</strong> Click "View Details" on any environment card to learn about its capabilities and use cases.</li>
                     <li><strong>Test with Simulation:</strong> Click "🧪 Simulation" to open the interactive console and test the environment with your parameters.</li>
                     <li><strong>Train an Agent:</strong> Click "🎓 Start Training" to configure and train an RL agent for production use.</li>
@@ -393,8 +472,66 @@ function getActiveSystem() {
     return sel ? sel.value : 'all';
 }
 
+function getActiveDomain() {
+    const sel = document.getElementById('domain-filter');
+    return sel ? sel.value : 'all';
+}
+
+function updateFilterButtonsForDomain() {
+    const domain = getActiveDomain();
+    const container = document.getElementById('filter-buttons');
+    if (!container) return;
+    container.querySelectorAll('.filter-btn').forEach(btn => {
+        const btnDomain = btn.dataset.domain || 'all';
+        if (domain === 'all') {
+            btn.style.display = '';
+        } else if (domain === 'enterprise') {
+            btn.style.display = (btnDomain === 'enterprise' || btn.dataset.category === 'all') ? '' : 'none';
+        } else if (domain === 'healthcare') {
+            btn.style.display = (btnDomain === 'healthcare' || btn.dataset.category === 'all') ? '' : 'none';
+        }
+    });
+    const activeBtn = container.querySelector('.filter-btn.active');
+    const activeDomain = activeBtn ? (activeBtn.dataset.domain || 'all') : 'all';
+    const activeHidden = activeBtn && activeBtn.style.display === 'none';
+    if (activeHidden || (domain === 'enterprise' && activeDomain === 'healthcare') || (domain === 'healthcare' && activeDomain === 'enterprise')) {
+        container.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        const allBtn = container.querySelector('.filter-btn[data-category="all"]');
+        if (allBtn && allBtn.style.display !== 'none') allBtn.classList.add('active');
+    }
+}
+
+function updateSystemFilterOptions() {
+    const domain = getActiveDomain();
+    const systemFilter = document.getElementById('system-filter');
+    if (!systemFilter) return;
+    let envsForSystems = allEnvironments;
+    if (domain === 'enterprise') {
+        envsForSystems = allEnvironments.filter(env => env.category === 'jira');
+    } else if (domain === 'healthcare') {
+        envsForSystems = allEnvironments.filter(env => env.category !== 'jira');
+    }
+    const systems = new Set();
+    envsForSystems.forEach(env => {
+        (env.system || '').split(',').forEach(s => {
+            const t = s.trim();
+            if (t) systems.add(t);
+        });
+    });
+    const systemList = Array.from(systems).sort((a, b) => a.localeCompare(b));
+    const currentVal = systemFilter.value;
+    systemFilter.innerHTML = '<option value="all">All systems</option>' +
+        systemList.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('');
+    if (currentVal && systemList.includes(currentVal)) {
+        systemFilter.value = currentVal;
+    } else if (domain === 'enterprise' && systemList.length === 1) {
+        systemFilter.value = systemList[0];
+    }
+}
+
 function filterEnvironments(searchTerm, category) {
     const system = getActiveSystem();
+    const domain = getActiveDomain();
     filteredEnvironments = allEnvironments.filter(env => {
         const matchesSearch = !searchTerm || 
             env.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -405,7 +542,14 @@ function filterEnvironments(searchTerm, category) {
         const envSystems = (env.system || '').split(',').map(s => s.trim()).filter(Boolean);
         const matchesSystem = system === 'all' || envSystems.includes(system);
         
-        return matchesSearch && matchesCategory && matchesSystem;
+        let matchesDomain = true;
+        // When a specific system is selected, system filter takes precedence over domain
+        if (system === 'all') {
+            if (domain === 'enterprise') matchesDomain = env.category === 'jira';
+            else if (domain === 'healthcare') matchesDomain = env.category !== 'jira';
+        }
+        
+        return matchesSearch && matchesCategory && matchesSystem && matchesDomain;
     });
     
     renderEnvironments();
@@ -550,7 +694,7 @@ function getEnvironmentDescription(envName, category) {
         'DigitalAdherenceCoaching': 'Delivers digital coaching interventions to improve medication and treatment adherence.',
         
         // Interoperability environments
-        'DataReconciliation': 'Reconciles data across multiple healthcare systems to ensure data integrity and consistency.',
+        'DataReconciliation': 'Reconciles data across multiple operational systems to ensure data integrity and consistency.',
         'CrossSystemAlertPrioritization': 'Prioritizes alerts from multiple systems to prevent alert fatigue and ensure critical notifications.',
         'DuplicateRecordResolution': 'Identifies and resolves duplicate patient records across systems to maintain data quality.',
         'InterFacilityTransfer': 'Optimizes patient transfers between facilities to ensure continuity of care and data exchange.',
@@ -561,10 +705,14 @@ function getEnvironmentDescription(envName, category) {
         'HospitalThroughput': 'Optimizes hospital-wide throughput to maximize capacity utilization and patient flow.',
         'ClinicalFinancialTradeoff': 'Balances clinical quality and financial performance across all hospital operations.',
         'ValueBasedCareOptimization': 'Optimizes value-based care metrics including quality scores and cost efficiency.',
-        'MultiHospitalNetworkCoordination': 'Coordinates operations across hospital networks to maximize resource utilization and care quality.'
+        'MultiHospitalNetworkCoordination': 'Coordinates operations across hospital networks to maximize resource utilization and care quality.',
+        'JiraIssueResolution': 'Jira Issue Resolution Flow: resolve issues end-to-end via get_issue_summary_and_description → get_transitions → transition_issue.',
+        'JiraStatusUpdate': 'Jira Status Update Workflow: change issue status using get_transitions → transition_issue with valid transition IDs.',
+        'JiraCommentManagement': 'Jira Comment Thread Management: add_comment → get_comments for issue comment workflows.',
+        'JiraSubtaskManagement': 'Jira Subtask Management: get_issue_summary_and_description → create_subtask for adding subtasks to issues.'
     };
     
-    return descriptions[envName] || `Reinforcement learning environment for ${category.replace('_', ' ')} optimization and decision support.`;
+    return descriptions[envName] || (category === 'jira' ? `Jira workflow environment for ${envName.replace(/([A-Z])/g, ' $1').trim().toLowerCase()} optimization.` : `Reinforcement learning environment for ${category.replace('_', ' ')} optimization and decision support.`);
 }
 
 // Generate use-case-specific descriptions
@@ -636,10 +784,14 @@ function getUseCaseDescription(envName, category) {
         'HospitalThroughput': 'Hospital operations, capacity management, and patient flow optimization.',
         'ClinicalFinancialTradeoff': 'Hospital administration, finance, and clinical operations leadership.',
         'ValueBasedCareOptimization': 'Accountable care organizations, value-based care programs, and health system strategy.',
-        'MultiHospitalNetworkCoordination': 'Health system operations, network management, and multi-site coordination.'
+        'MultiHospitalNetworkCoordination': 'Health system operations, network management, and multi-site coordination.',
+        'JiraIssueResolution': 'Issue resolution workflows, ticket closure, and status transitions in Jira.',
+        'JiraStatusUpdate': 'Status updates and moving issues (e.g. To Do → In Progress → Done) in Jira.',
+        'JiraCommentManagement': 'Adding and retrieving issue comments in Jira.',
+        'JiraSubtaskManagement': 'Adding subtasks to existing Jira issues.'
     };
     
-    return useCases[envName] || `General ${category.replace('_', ' ')} optimization and decision support applications.`;
+    return useCases[envName] || (category === 'jira' ? `Jira workflow: ${envName.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}.` : `General ${category.replace('_', ' ')} optimization and decision support applications.`);
 }
 
 // Save/favorite management functions
@@ -730,7 +882,7 @@ function createEnvCard(env) {
                 </button>
             </div>
             <div class="env-description">
-                ${env.description || getEnvironmentDescription(env.name, env.category || 'other') || 'Reinforcement learning environment for healthcare optimization.'}
+                ${env.description || getEnvironmentDescription(env.name, env.category || 'other') || 'Reinforcement learning environment for workflow optimization.'}
             </div>
             <div class="env-details">
                 <div class="detail-item">
@@ -827,15 +979,15 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'ReadmissionReduction': `
-            <p>This RL environment identifies high-risk patients and applies targeted interventions 
-            to prevent avoidable hospital readmissions. It optimizes discharge planning, follow-up care, 
-            and transition management.</p>
+            <p>This RL environment identifies high-risk entities and applies targeted interventions 
+            to prevent avoidable repeat work or reprocessing. It optimizes handoffs, follow-up actions, 
+            and transition management across the workflow.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
-                <li>Reduces 30-day readmission rates</li>
-                <li>Improves care transition quality</li>
-                <li>Enhances patient outcomes post-discharge</li>
-                <li>Reduces healthcare costs through prevention</li>
+                <li>Reduces rework and retries</li>
+                <li>Improves transition quality between process stages</li>
+                <li>Enhances overall outcome quality</li>
+                <li>Reduces costs through prevention</li>
             </ul>
         `,
         'CareCoordination': `
@@ -956,7 +1108,7 @@ function getDefaultWhatItDoes(category, envName) {
                 <li>Increases preventive care screening rates</li>
                 <li>Improves patient engagement and compliance</li>
                 <li>Enables early detection of health issues</li>
-                <li>Reduces long-term healthcare costs</li>
+                <li>Reduces long-term costs</li>
             </ul>
         `,
         'VaccinationAllocation': `
@@ -990,7 +1142,7 @@ function getDefaultWhatItDoes(category, envName) {
             <p><strong>Key Benefits:</strong></p>
             <ul>
                 <li>Maximizes population health outcomes per dollar spent</li>
-                <li>Controls per-member healthcare costs</li>
+                <li>Controls per-member total costs</li>
                 <li>Optimizes resource allocation across programs</li>
                 <li>Improves value-based care performance</li>
             </ul>
@@ -1225,7 +1377,7 @@ function getDefaultWhatItDoes(category, envName) {
         `,
         // Interoperability
         'DataReconciliation': `
-            <p>This RL environment reconciles data across multiple healthcare systems to ensure data 
+            <p>This RL environment reconciles data across multiple operational systems to ensure data 
             integrity and consistency. It identifies and resolves discrepancies automatically.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1345,9 +1497,9 @@ function getDefaultWhatItDoes(category, envName) {
     // Fallback to category-based descriptions
     const categoryDescriptions = {
         'clinical': `
-            <p>This RL environment optimizes clinical decision-making processes in healthcare settings. 
-            It uses reinforcement learning to learn optimal strategies for patient care, resource allocation, 
-            and treatment sequencing. The agent learns from trial and error to maximize clinical outcomes 
+            <p>This RL environment optimizes decision-making processes in operational settings. 
+            It uses reinforcement learning to learn optimal strategies for task handling, resource allocation, 
+            and sequencing. The agent learns from trial and error to maximize outcomes 
             while balancing efficiency and cost-effectiveness.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1371,7 +1523,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'revenue_cycle': `
-            <p>This RL environment optimizes healthcare revenue cycle management processes, including 
+            <p>This RL environment optimizes revenue cycle management processes, including 
             claims processing, denial management, and payment collection. The agent learns strategies 
             to maximize revenue recovery while minimizing processing costs and delays.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1444,22 +1596,22 @@ function getDefaultWhatItDoes(category, envName) {
         `,
         'cross_workflow': `
             <p>This RL environment uses multi-agent optimization to coordinate operations across multiple 
-            healthcare workflows and departments. Agents collaborate to optimize complex, interconnected 
-            healthcare processes.</p>
+            workflows and departments. Agents collaborate to optimize complex, interconnected 
+            enterprise processes.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
                 <li>Coordinates care across multiple workflows</li>
                 <li>Optimizes system-wide operations</li>
                 <li>Improves patient journey and outcomes</li>
-                <li>Maximizes overall healthcare system performance</li>
+                <li>Maximizes overall system performance</li>
             </ul>
         `
     };
     
     return categoryDescriptions[category] || `
-        <p>This RL environment uses reinforcement learning to optimize healthcare processes and decision-making. 
+        <p>This RL environment uses reinforcement learning to optimize operational processes and decision-making. 
         The agent learns optimal strategies through trial and error, maximizing desired outcomes while 
-        balancing multiple objectives such as clinical quality, operational efficiency, and financial performance.</p>
+        balancing multiple objectives such as quality, operational efficiency, and financial performance.</p>
     `;
 }
 
@@ -1545,7 +1697,7 @@ function getDefaultHowToUse(category, envName) {
     return `
         <ol>
             <li><strong>Access the Simulation:</strong> Click the "🧪 Simulation" button to open the interactive simulation console.</li>
-            <li><strong>Configure Parameters:</strong> Adjust the environment configuration parameters in the left panel to match your healthcare setting (e.g., queue sizes, resource availability, urgency levels).</li>
+            <li><strong>Configure Parameters:</strong> Adjust the environment configuration parameters in the left panel to match your workflow setting (e.g., queue sizes, resource availability, urgency levels).</li>
             <li><strong>Select Agent Strategy:</strong> Choose an RL agent strategy (Random, Urgency First, Value First, or Balanced) to see how different approaches perform.</li>
             <li><strong>Initialize Environment:</strong> Click "Initialize Environment" to start a new simulation episode with your configured parameters.</li>
             <li><strong>Run Simulation:</strong> Use "Step Forward" to advance one step at a time, or "Auto Run" to let the simulation run automatically at your selected speed.</li>
@@ -1555,6 +1707,13 @@ function getDefaultHowToUse(category, envName) {
         </ol>
         <p><strong>Training:</strong> For production use, click "Start Training" to train a custom RL agent on your historical data. The trained model can then be deployed to make real-time decisions.</p>
     `;
+}
+
+function closeEnvDetailPage() {
+    const page = document.getElementById('env-detail-page');
+    const catalog = document.getElementById('catalog-container');
+    if (page) page.style.display = 'none';
+    if (catalog) catalog.style.display = 'block';
 }
 
 function showEnvironmentDetails(envName) {
@@ -1568,193 +1727,67 @@ function showEnvironmentDetails(envName) {
     const whatItDoes = details.whatItDoes || getDefaultWhatItDoes(env.category, envName);
     const howToUse = details.howToUse || getDefaultHowToUse(env.category, envName);
     
-    const modalBody = document.getElementById('modal-body');
-    modalBody.innerHTML = `
-        <div class="modal-header">
-            <h2>${formatEnvironmentName(env.name)}</h2>
-            <span class="env-category category-${env.category}">${env.category}</span>
-        </div>
-        
-        <div class="modal-section">
-            <h3>What This RL Environment Does</h3>
-            <div class="info-box">
-                ${whatItDoes}
+    const description = details.description || env.description || getEnvironmentDescription(env.name, env.category || 'other');
+    const shortDesc = description.length > 200 ? description.slice(0, 197) + '...' : description;
+    const useCase = details.useCase || getUseCaseDescription(env.name, env.category || 'other');
+
+    const detailBody = document.getElementById('env-detail-body');
+    detailBody.innerHTML = `
+        <div class="detail-hero">
+            <div class="detail-hero-left">
+                <h1 class="detail-page-title">${formatEnvironmentName(env.name)}</h1>
+                <span class="env-category category-${env.category}">${env.category}</span>
+            </div>
+            <div class="detail-action-bar">
+                <button class="btn btn-primary" onclick="window.location.href='simulation-console.html?env=${envName}'" title="Open simulation console">🧪 Open Simulation</button>
+                <button class="btn btn-secondary" onclick="openTrainingConfig('${envName}')" title="Start PPO training">🎓 Start Training</button>
+                <button class="btn btn-outline" onclick="openTrainingMonitor()" title="View training jobs" style="background: var(--card-bg); border-color: var(--border-color); color: var(--text-primary);">📊 Monitor Training</button>
             </div>
         </div>
-        
-        <div class="modal-section">
-            <h3>How to Use This Environment</h3>
-            <div class="info-box">
-                ${howToUse}
+
+        <div class="detail-grid">
+            <div class="detail-card">
+                <h3>Overview</h3>
+                <p>${shortDesc}</p>
+                <p style="margin-top: 0.75rem; font-size: 0.85rem;"><strong>System:</strong> ${env.system || details.system || 'Multiple'}</p>
+                <p style="margin-top: 0.25rem; font-size: 0.85rem;"><strong>Use case:</strong> ${useCase}</p>
             </div>
-        </div>
-        
-        <div class="modal-section">
-            <h3>Description</h3>
-            <p>${details.description || env.description || getEnvironmentDescription(env.name, env.category || 'other')}</p>
-        </div>
-        
-        <div class="modal-section">
-            <h3>Software system integration</h3>
-            <p><strong>Software system:</strong> ${env.system || details.system || 'Multiple'}</p>
-            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">
-                This environment integrates with the specified healthcare systems, providing digital twin simulations 
-                and RL optimization capabilities for these platforms. The workflow category "${env.workflow || env.category || 'General'}" 
-                indicates the primary healthcare workflow this environment optimizes.
-            </p>
-        </div>
-        
-        <div class="modal-section">
-            <h3>Technical Specifications</h3>
-            <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color);">
-                <div style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <strong style="font-size: 1.05rem;">State Features:</strong>
-                        <span style="color: var(--primary-color); font-size: 1.1rem; font-weight: 600;">${details.stateFeatures || env.stateFeatures || 'N/A'}</span>
-                        <span class="tooltip-icon" title="State Features represent the dimensions of the observation space - the information the RL agent receives about the current environment state. Each feature is a numerical value (e.g., queue length, patient risk score, resource utilization) that helps the agent make decisions. More features provide richer context but may require more training data.">ℹ️</span>
-                    </div>
-                    <div style="background: white; padding: 1rem; border-radius: 6px; border-left: 4px solid var(--primary-color);">
-                        <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 0.75rem; line-height: 1.6;">
-                            <strong>What are State Features?</strong><br/>
-                            State features are the numerical values (dimensions) that the RL agent observes at each step of the simulation. Think of them as the "sensors" that tell the agent what's happening in the environment.
-                        </p>
-                        <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 0.75rem; line-height: 1.6;">
-                            <strong>What does the count represent?</strong><br/>
-                            The count (${details.stateFeatures || env.stateFeatures || 'N/A'}) represents how many different pieces of information the agent receives. For example:
-                        </p>
-                        <ul style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.8; padding-left: 1.5rem; margin-top: 0.5rem;">
-                            <li><strong>Queue-related features:</strong> Number of items waiting, average wait time, urgency levels</li>
-                            <li><strong>Resource features:</strong> Equipment availability, staff utilization, capacity metrics</li>
-                            <li><strong>Patient features:</strong> Risk scores, acuity levels, clinical indicators</li>
-                            <li><strong>System features:</strong> Current time, operational status, historical performance</li>
-                        </ul>
-                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.75rem; line-height: 1.6;">
-                            <strong>Why it matters:</strong> More features provide richer context for decision-making, but also require more training data and computational resources. The agent learns patterns across all these features to make optimal decisions.
-                        </p>
-                    </div>
-                </div>
-                
-                <div style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <strong style="font-size: 1.05rem;">Action Type:</strong>
-                        <span style="color: var(--primary-color); font-size: 1.1rem; font-weight: 600;">${details.actionType || env.actionType || 'Discrete'}</span>
-                        <span class="tooltip-icon" title="Action Type defines how the agent selects actions. Discrete means the agent chooses from a fixed list of actions (e.g., 'schedule_urgent', 'defer', 'cancel'). Continuous means the agent selects continuous values (e.g., exact timing, dosages). Most healthcare RL environments use Discrete actions for interpretability.">ℹ️</span>
-                    </div>
-                    <div style="background: white; padding: 1rem; border-radius: 6px;">
-                        <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 0.5rem; line-height: 1.6;">
-                            <strong>What is Action Type?</strong><br/>
-                            ${env.actionType === 'Continuous' ? 
-                                'The agent selects continuous numerical values (e.g., exact timing, dosages). This allows for fine-grained control but can be harder to interpret and validate.' : 
-                                'The agent chooses from a fixed set of discrete actions (e.g., schedule, defer, cancel). This makes decisions interpretable and easier to validate in healthcare settings. Each action represents a specific operation or strategy.'}
-                        </p>
-                    </div>
-                </div>
-                
-                <div style="margin-bottom: 1.5rem;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <strong style="font-size: 1.05rem;">Actions:</strong>
-                        <span style="color: var(--primary-color); font-size: 1.1rem; font-weight: 600;">${details.actionSpace || env.actionSpace || 'N/A'}</span>
-                        <span class="tooltip-icon" title="Actions are the decisions the RL agent can make at each step. Each action represents a specific operation (e.g., 'schedule_urgent', 'defer', 'cancel'). The agent learns which actions lead to better outcomes through trial and error during training.">ℹ️</span>
-                    </div>
-                    <div style="background: white; padding: 1rem; border-radius: 6px;">
-                        <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 0.75rem; line-height: 1.6;">
-                            <strong>What are Actions?</strong><br/>
-                            Actions are the possible decisions the RL agent can make at each step. The count (${details.actionSpace || env.actionSpace || 'N/A'}) represents the total number of different choices available. The agent learns through trial and error which actions lead to better outcomes (higher rewards).
-                        </p>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
-                    <strong style="font-size: 1.05rem;">Multi-Agent Support:</strong>
-                    <span style="color: var(--primary-color); font-size: 1.1rem; font-weight: 600; margin-left: 0.5rem;">${env.multi_agent ? 'Yes' : 'No'}</span>
-                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem; line-height: 1.6;">
-                        ${env.multi_agent ? 'This environment supports multiple agents working together, enabling coordination across different workflows or departments. Agents can collaborate to optimize complex, interconnected healthcare processes.' : 'This environment uses a single agent that makes decisions independently. The agent optimizes decisions within its specific workflow.'}
-                    </p>
+            <div class="detail-card">
+                <h3>Specifications</h3>
+                <div class="spec-grid">
+                    <div class="spec-item"><label>State features</label><span>${details.stateFeatures || env.stateFeatures || 'N/A'}</span></div>
+                    <div class="spec-item"><label>Action type</label><span>${details.actionType || env.actionType || 'Discrete'}</span></div>
+                    <div class="spec-item"><label>Actions</label><span>${details.actionSpace || env.actionSpace || 'N/A'}</span></div>
+                    <div class="spec-item"><label>Multi-agent</label><span>${env.multi_agent ? 'Yes' : 'No'}</span></div>
                 </div>
             </div>
-        </div>
-        
-        <div class="modal-section">
-            <h3>Action Choices</h3>
-            <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div class="detail-card">
+                <h3>KPIs</h3>
+                <div class="kpi-list">${kpis.map(kpi => `<span class="kpi-item">${kpi}</span>`).join('')}</div>
+            </div>
+            <div class="detail-card">
+                <h3>Action choices</h3>
                 ${env.actions && env.actions.length > 0 ? `
-                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.6;">
-                        The RL agent can choose from the following ${env.actions.length} action${env.actions.length !== 1 ? 's' : ''} at each step. Each action represents a specific decision or operation the agent can take to interact with the environment.
-                    </p>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0.75rem; margin-top: 1rem;">
-                        ${env.actions.map((action, index) => {
-                            const actionDisplay = action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                            const actionDescription = getActionDescription(env.name, action);
-                            return `
-                                <div style="background: white; padding: 1rem; border-radius: 6px; border: 2px solid var(--primary-color); border-left: 4px solid var(--primary-color);">
-                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                        <span style="background: var(--primary-color); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; flex-shrink: 0;">
-                                            ${index + 1}
-                                        </span>
-                                        <strong style="color: var(--text-primary); font-size: 0.95rem; font-family: monospace;">
-                                            ${actionDisplay}
-                                        </strong>
-                                    </div>
-                                    ${actionDescription ? `
-                                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem; line-height: 1.5; padding-left: 2rem;">
-                                            ${actionDescription}
-                                        </p>
-                                    ` : ''}
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 1rem; line-height: 1.6; padding: 0.75rem; background: #f0f9ff; border-radius: 6px; border-left: 4px solid var(--primary-color);">
-                        <strong>How Actions Work:</strong> The agent learns to select the best action based on the current state features. During training, the agent explores different actions and learns which ones lead to better outcomes (higher rewards). In production, the trained model uses this learned knowledge to make optimal decisions automatically.
-                    </p>
-                ` : `
-                    <div style="background: white; padding: 1rem; border-radius: 6px; text-align: center;">
-                        <p style="color: var(--text-secondary); font-size: 0.9rem;">
-                            Action choices are not available for this environment. The action space is defined by the action type (${env.actionType || 'Discrete'}) with ${env.actionSpace || 'N/A'} possible actions.
-                        </p>
-                    </div>
-                `}
+                    <div class="action-chips">${env.actions.map((action, i) => {
+                        const display = action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        return `<span class="action-chip" title="${getActionDescription(env.name, action) || ''}">${i + 1}. ${display}</span>`;
+                    }).join('')}</div>
+                ` : `<p>${env.actionType || 'Discrete'} · ${env.actionSpace || 'N/A'} actions</p>`}
             </div>
         </div>
-        
-        <div class="modal-section">
-            <h3>Key Performance Indicators (KPIs)</h3>
-            <div class="kpi-list">
-                ${kpis.map(kpi => `<div class="kpi-item">${kpi}</div>`).join('')}
-            </div>
+
+        <div class="detail-section" style="margin-top: 1.5rem;">
+            <h3>What it does</h3>
+            <div class="info-box">${whatItDoes}</div>
         </div>
-        
-        <div class="modal-section">
-            <h3>Use Cases</h3>
-            <p>${details.useCase || getUseCaseDescription(env.name, env.category || 'other')}</p>
-        </div>
-        
-        <div class="env-actions" style="margin-top: 2rem; border-top: 2px solid var(--border-color); padding-top: 1.5rem;">
-            <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f0f9ff; border-left: 4px solid var(--primary-color); border-radius: 6px;">
-                <button class="btn btn-primary" onclick="window.location.href='simulation-console.html?env=${envName}'" title="Open the interactive simulation console to test and explore the environment with different parameters. This allows you to manually control the simulation, adjust settings, and see real-time results without training an agent.">
-                    🧪 Open Simulation
-                </button>
-                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.75rem; line-height: 1.6;">
-                    <strong style="color: var(--primary-color);">🧪 Simulation (Interactive Testing):</strong> Manually configure parameters, run simulations step-by-step, and observe results in real-time. Perfect for understanding how the environment works, testing different scenarios, and exploring the impact of various configurations. <strong>No AI training involved</strong> - you control everything manually.
-                </p>
-            </div>
-            <div style="padding: 1rem; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
-                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
-                    <button class="btn btn-secondary" onclick="openTrainingConfig('${envName}')" title="Start training an RL agent (using PPO algorithm) to learn optimal decision-making strategies. This process runs in the background and creates a trained model that can make automated decisions.">
-                        🎓 Start Training
-                    </button>
-                    <button class="btn btn-outline" onclick="openTrainingMonitor()" title="Monitor active training jobs, view progress, and download completed models." style="background: white; border-color: #f59e0b; color: #92400e;">
-                        📊 Monitor Training
-                    </button>
-                </div>
-                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.75rem; line-height: 1.6;">
-                    <strong style="color: #92400e;">🎓 Training (AI Learning):</strong> Train an AI agent using PPO (Proximal Policy Optimization) to learn optimal strategies through trial and error. The agent explores thousands of scenarios, learns from rewards/penalties, and develops a policy for automated decision-making. Creates a <strong>production-ready model</strong> that can make real-time decisions without human intervention.
-                </p>
-            </div>
+        <div class="detail-section">
+            <h3>How to use</h3>
+            <div class="info-box">${howToUse}</div>
         </div>
     `;
     
-    document.getElementById('env-modal').style.display = 'block';
+    document.getElementById('catalog-container').style.display = 'none';
+    document.getElementById('env-detail-page').style.display = 'block';
 }
 
 async function testEnvironment(envName) {
@@ -1773,13 +1806,34 @@ async function testEnvironment(envName) {
     }
 }
 
+const JIRA_ENV_VERIFIERS = [
+    { value: 'jira_workflow:issue_resolution', label: 'Jira Issue Resolution' },
+    { value: 'jira_workflow:status_update', label: 'Jira Status Update' },
+    { value: 'jira_workflow:comment_management', label: 'Jira Comment Management' },
+    { value: 'jira_workflow:subtask_management', label: 'Jira Task Management' }
+];
+const JIRA_ENVS = ['JiraIssueResolution', 'JiraStatusUpdate', 'JiraCommentManagement', 'JiraSubtaskManagement'];
+const JIRA_ENV_TO_WORKFLOW = { JiraIssueResolution: 'issue_resolution', JiraStatusUpdate: 'status_update', JiraCommentManagement: 'comment_management', JiraSubtaskManagement: 'subtask_management' };
+
 function openTrainingConfig(envName) {
     const env = allEnvironments.find(e => e.name === envName);
     const exampleConfig = getExampleConfig(envName);
     const systemStr = (env && env.system) ? env.system : 'Multiple';
     const envSystemsList = systemStr.split(',').map(s => s.trim()).filter(Boolean);
     const hasMultiple = envSystemsList.length > 1;
-    
+    const isJiraEnv = JIRA_ENVS.includes(envName);
+    const defaultJiraWorkflow = JIRA_ENV_TO_WORKFLOW[envName] || 'issue_resolution';
+    const hasVerifierForWorkflow = JIRA_ENV_VERIFIERS.some(v => v.value === 'jira_workflow:' + defaultJiraWorkflow);
+    const verifierOptionsHtml = isJiraEnv
+        ? JIRA_ENV_VERIFIERS.map(v => `<option value="${v.value}"${v.value === 'jira_workflow:' + defaultJiraWorkflow ? ' selected' : ''}>${v.label}</option>`).join('') +
+            `<option value="default"${!hasVerifierForWorkflow ? ' selected' : ''}>Default (Environment Built-in)</option>`
+        : `<option value="ensemble" selected>Ensemble (Default)</option>
+                            <option value="clinical">Clinical Verifier</option>
+                            <option value="operational">Operational Verifier</option>
+                            <option value="financial">Financial Verifier</option>
+                            <option value="compliance">Compliance Verifier</option>
+                            <option value="default">Default (Environment Built-in)</option>`;
+
     const configModal = document.createElement('div');
     configModal.className = 'modal training-config-modal';
     configModal.id = 'training-config-modal';
@@ -1789,10 +1843,11 @@ function openTrainingConfig(envName) {
             <h2 style="margin-bottom: 0.5rem; font-size: 1.35rem;">🎓 Configure Training: ${formatEnvironmentName(envName)}</h2>
             
             <div class="training-system-block">
-                <label>Software system <span class="tooltip-icon" title="Select the healthcare software system this training is for. Verifier and weights will be suggested based on the selected system.">ℹ️</span></label>
+                <label>Software system <span class="tooltip-icon" title="Select the software system this training is for. Verifier and weights will be suggested based on the selected system.">ℹ️</span></label>
                 <select id="training-software-system" class="system-filter-select" style="min-width: 200px;" onchange="updateTrainingVerifierForSystem(); var v=document.getElementById('training-system-header-value'); if(v) v.textContent=this.options[this.selectedIndex].text;">
-                    <option value="all">All (${systemStr})</option>
-                    ${envSystemsList.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('')}
+                    ${envSystemsList.length === 1
+                        ? `<option value="${envSystemsList[0].replace(/"/g, '&quot;')}" selected>${envSystemsList[0]}</option>`
+                        : `<option value="all">All (${systemStr})</option>` + envSystemsList.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('')}
                 </select>
                 <small>Training context for this run. Verifier suggestions update when you change the system.</small>
             </div>
@@ -1805,14 +1860,15 @@ function openTrainingConfig(envName) {
             
             <div id="config-manual" class="config-tab-content">
                 <section class="training-section">
-                    <span class="training-section-title">Algorithm</span>
+                    <span class="training-section-title">Agent model</span>
                     <div class="form-group">
-                        <label>Algorithm</label>
+                        <label>Agent model</label>
                         <select id="training-algorithm" onchange="updateModelInfo()">
                             <option value="PPO" selected>PPO (Proximal Policy Optimization)</option>
                             <option value="DQN">DQN (Deep Q-Network)</option>
                             <option value="A2C">A2C (Advantage Actor-Critic)</option>
                             <option value="SAC">SAC (Soft Actor-Critic)</option>
+                            <option value="SLM">SLM (Small Language Model – Jira)</option>
                         </select>
                         <small id="model-info">PPO uses an MLP policy network with separate actor and critic. Default: [64, 64] hidden layers.</small>
                     </div>
@@ -1821,14 +1877,9 @@ function openTrainingConfig(envName) {
                 <section class="training-section">
                     <span class="training-section-title">Reward verifier</span>
                     <div class="form-group">
-                        <label>Verifier <span class="tooltip-icon" title="Select the reward verifier. Ensemble combines clinical, operational, financial, and compliance verifiers.">ℹ️</span></label>
+                        <label>Verifier <span class="tooltip-icon" title="Select the reward verifier. For Jira envs choose Issue Resolution, Status Update, or Comment Management. Ensemble combines clinical, operational, financial, and compliance verifiers.">ℹ️</span></label>
                         <select id="training-verifier-type" onchange="updateVerifierWeightsVisibility()">
-                            <option value="ensemble" selected>Ensemble (Default)</option>
-                            <option value="clinical">Clinical Verifier</option>
-                            <option value="operational">Operational Verifier</option>
-                            <option value="financial">Financial Verifier</option>
-                            <option value="compliance">Compliance Verifier</option>
-                            <option value="default">Default (Environment Built-in)</option>
+                            ${verifierOptionsHtml}
                         </select>
                         <small>Choose a software system above to get a suggested verifier and weights.</small>
                         <div id="training-verifier-hint" class="verifier-hint"></div>
@@ -1861,12 +1912,34 @@ function openTrainingConfig(envName) {
                     </div>
                 </section>
                 
+                <section class="training-section" id="jira-scenario-section" style="display: ${envName === 'JiraStatusUpdate' ? 'block' : 'none'};">
+                    <span class="training-section-title">Jira scenario</span>
+                    <div class="form-group">
+                        <label>Scenario <span class="tooltip-icon" title="Select the status update scenario. Agent runs across all Jira issues in mock data.">ℹ️</span></label>
+                        <select id="training-jira-scenario">
+                            <option value="in_progress_to_blocked" ${(exampleConfig.scenario_id || 'in_progress_to_blocked') === 'in_progress_to_blocked' ? 'selected' : ''}>Change from in-progress to blocked</option>
+                            <option value="in_progress_to_done" ${exampleConfig.scenario_id === 'in_progress_to_done' ? 'selected' : ''}>Change from in-progress to done</option>
+                        </select>
+                        <small>Agent runs across all mock Jira issues. No live Jira instance required.</small>
+                    </div>
+                </section>
+                <section class="training-section" id="jira-subtask-scenario-section" style="display: ${envName === 'JiraSubtaskManagement' ? 'block' : 'none'};">
+                    <span class="training-section-title">Jira sub-task scenario</span>
+                    <div class="form-group">
+                        <label>Scenario <span class="tooltip-icon" title="Select the sub-task scenario. Agent runs across all Jira issues in mock data.">ℹ️</span></label>
+                        <select id="training-jira-subtask-scenario">
+                            <option value="create_subtask" ${(exampleConfig.scenario_id || 'create_subtask') === 'create_subtask' ? 'selected' : ''}>Create sub-task</option>
+                            <option value="delete_subtask" ${exampleConfig.scenario_id === 'delete_subtask' ? 'selected' : ''}>Delete sub task</option>
+                        </select>
+                        <small>Agent runs across all mock Jira issues. No live Jira instance required.</small>
+                    </div>
+                </section>
                 <section class="training-section">
                     <span class="training-section-title">Environment configuration</span>
                     <div class="form-group">
                         <label>Config (JSON)</label>
                         <textarea id="training-config-json" rows="6" placeholder='{"queue_size": 15, "high_urgency_pct": 30}' style="min-height: 120px;">${JSON.stringify(exampleConfig, null, 2)}</textarea>
-                        <small>Optional. Environment-specific parameters. Leave as-is for defaults.</small>
+                        <small>Optional. Environment-specific parameters. Include scenario_id for Jira Status Update. Agent runs across all issues.</small>
                     </div>
                 </section>
                 
@@ -2040,6 +2113,14 @@ function getExampleConfig(envName) {
             icu_beds: 20,
             stepdown_beds: 30,
             patient_queue: 5
+        },
+        'JiraStatusUpdate': {
+            scenario_id: 'in_progress_to_blocked'
+        },
+        'JiraIssueResolution': {},
+        'JiraCommentManagement': {},
+        'JiraSubtaskManagement': {
+            scenario_id: 'create_subtask'
         }
     };
     return examples[envName] || { queue_size: 10, resource_availability: 70 };
@@ -2048,7 +2129,7 @@ function getExampleConfig(envName) {
 function switchConfigTab(tab) {
     document.querySelectorAll('.config-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.config-tab-content').forEach(c => c.style.display = 'none');
-    
+
     document.getElementById(`tab-${tab}`).classList.add('active');
     document.getElementById(`config-${tab}`).style.display = 'block';
 }
@@ -2097,7 +2178,8 @@ function updateModelInfo() {
         'PPO': '<strong>Model Architecture:</strong> PPO uses a Multi-Layer Perceptron (MLP) policy network with separate actor and critic networks. Default: [64, 64] hidden layers with tanh activation.',
         'DQN': '<strong>Model Architecture:</strong> DQN uses a deep Q-network with MLP architecture. Default: [64, 64] hidden layers with ReLU activation.',
         'A2C': '<strong>Model Architecture:</strong> A2C uses an MLP policy network with shared feature extractor. Default: [64, 64] hidden layers.',
-        'SAC': '<strong>Model Architecture:</strong> SAC uses twin Q-networks and a policy network. Default: [256, 256] hidden layers for better performance.'
+        'SAC': '<strong>Model Architecture:</strong> SAC uses twin Q-networks and a policy network. Default: [256, 256] hidden layers for better performance.',
+        'SLM': '<strong>Jira SLM:</strong> Uses a Small Language Model (e.g. Qwen2.5-0.5B-Instruct) to predict the next workflow tool from state. Recommended for Jira Issue Resolution, Status Update, and Comment Management. Install: pip install transformers accelerate.'
     };
     if (modelInfo) {
         modelInfo.innerHTML = modelDescriptions[algorithm] || modelDescriptions['PPO'];
@@ -2107,13 +2189,11 @@ function updateModelInfo() {
 function updateVerifierWeightsVisibility() {
     const verifierType = document.getElementById('training-verifier-type');
     const verifierWeightsGroup = document.getElementById('training-verifier-weights-group');
-    
+
     if (verifierType && verifierWeightsGroup) {
-        if (verifierType.value === 'ensemble') {
-            verifierWeightsGroup.style.display = 'block';
-        } else {
-            verifierWeightsGroup.style.display = 'none';
-        }
+        const isEnsemble = verifierType.value === 'ensemble';
+        const isJiraWorkflow = verifierType.value.startsWith('jira_workflow:');
+        verifierWeightsGroup.style.display = (isEnsemble && !isJiraWorkflow) ? 'block' : 'none';
     }
 }
 
@@ -2126,10 +2206,10 @@ function getVerifierRecommendationForSystem(system) {
     if (s.includes('epic') || s.includes('cerner') || s.includes('allscripts') || s.includes('meditech')) {
         return { type: 'ensemble', weights: { clinical: 0.45, operational: 0.25, financial: 0.15, compliance: 0.15 }, hint: 'Clinical EHR focus' };
     }
-    if (s.includes('philips') || s.includes('ge healthcare')) {
+    if (s.includes('philips') || s.includes('ge ')) {
         return { type: 'ensemble', weights: { clinical: 0.3, operational: 0.45, financial: 0.15, compliance: 0.1 }, hint: 'Imaging workflow focus' };
     }
-    if (s.includes('change healthcare')) {
+    if (s.includes('change ')) {
         return { type: 'ensemble', weights: { clinical: 0.15, operational: 0.2, financial: 0.45, compliance: 0.2 }, hint: 'Revenue cycle focus' };
     }
     if (s.includes('veeva') || s.includes('iqvia')) {
@@ -2155,8 +2235,12 @@ function updateTrainingVerifierForSystem() {
     if (!systemSelect || !verifierTypeSelect) return;
     const system = systemSelect.value;
     const rec = getVerifierRecommendationForSystem(system);
-    verifierTypeSelect.value = rec.type;
-    if (verifierWeightsInput) verifierWeightsInput.value = JSON.stringify(rec.weights, null, 2);
+    // Preserve Jira verifier choice when system is Jira and user already selected a Jira verifier
+    const isJiraSystem = system && (system.toLowerCase().includes('jira') || system.toLowerCase().includes('atlassian'));
+    if (!(isJiraSystem && verifierTypeSelect.value.startsWith('jira_workflow:'))) {
+        verifierTypeSelect.value = rec.type;
+        if (verifierWeightsInput) verifierWeightsInput.value = JSON.stringify(rec.weights || {}, null, 2);
+    }
     updateVerifierWeightsVisibility();
     if (verifierHintEl) verifierHintEl.textContent = rec.hint ? `Suggested for selected system: ${rec.hint}` : '';
 }
@@ -2179,10 +2263,16 @@ async function submitTrainingConfig(envName) {
         // Get verifier configuration
         const verifierType = document.getElementById('training-verifier-type');
         if (verifierType && verifierType.value !== 'default') {
-            verifierConfig = {
-                type: verifierType.value
-            };
-            
+            if (verifierType.value.startsWith('jira_workflow:')) {
+                verifierConfig = {
+                    type: 'jira_workflow',
+                    metadata: { workflow_id: verifierType.value.split(':')[1] }
+                };
+            } else {
+                verifierConfig = {
+                    type: verifierType.value
+                };
+            }
             // Add weights if ensemble and weights are provided
             if (verifierType.value === 'ensemble') {
                 const verifierWeights = document.getElementById('training-verifier-weights');
@@ -2196,7 +2286,7 @@ async function submitTrainingConfig(envName) {
                 }
             }
         }
-        
+
         const configJson = document.getElementById('training-config-json').value.trim();
         if (configJson) {
             try {
@@ -2204,6 +2294,22 @@ async function submitTrainingConfig(envName) {
             } catch (e) {
                 alert(`❌ Invalid JSON in configuration: ${e.message}`);
                 return;
+            }
+        }
+        // Merge Jira scenario from dropdown for JiraStatusUpdate
+        if (envName === 'JiraStatusUpdate') {
+            const scenarioEl = document.getElementById('training-jira-scenario');
+            if (scenarioEl) {
+                config = config || {};
+                config.scenario_id = scenarioEl.value;
+            }
+        }
+        // Merge Jira subtask scenario from dropdown for JiraSubtaskManagement
+        if (envName === 'JiraSubtaskManagement') {
+            const subtaskScenarioEl = document.getElementById('training-jira-subtask-scenario');
+            if (subtaskScenarioEl) {
+                config = config || {};
+                config.scenario_id = subtaskScenarioEl.value;
             }
         }
     } else if (activeTab === 'json') {
@@ -2493,6 +2599,26 @@ function displayTrainingJob(jobData) {
             </div>
         </div>
     ` : '';
+
+    const subtaskSection = (jobData.status === 'completed'
+        && jobData.environment_name === 'JiraSubtaskManagement'
+        && jobData.subtask_log_url) ? `
+        <div style="background: #eff6ff; padding: 1rem; border-radius: 6px; margin-top: 1rem; border-left: 4px solid #2563eb;">
+            <h4 style="margin-bottom: 0.75rem; color: #1d4ed8;">🧾 Subtask Action Log</h4>
+            <p style="font-size: 0.9rem; margin-bottom: 0.75rem; color: var(--text-secondary);">
+                Download a JSON log of episodes where the agent created Jira subtasks
+                (<code>create_subtask</code>) during training.
+            </p>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <a href="${API_BASE}${jobData.subtask_log_url}" class="btn btn-outline" download style="text-decoration: none;">
+                    ⬇️ Download Subtask Log
+                </a>
+            </div>
+            <div style="margin-top: 0.75rem; padding: 0.75rem; background: white; border-radius: 4px; font-size: 0.85rem; font-family: monospace; color: var(--text-secondary);">
+                <strong>Log URL:</strong> ${API_BASE}${jobData.subtask_log_url}
+            </div>
+        </div>
+    ` : '';
     
     const errorSection = (jobData.status === 'failed' && jobData.error) ? `
         <div style="background: #fee2e2; padding: 1rem; border-radius: 6px; margin-top: 1rem; border-left: 4px solid var(--danger-color);">
@@ -2500,7 +2626,57 @@ function displayTrainingJob(jobData) {
             <pre style="background: white; padding: 0.75rem; border-radius: 4px; font-size: 0.85rem; overflow-x: auto; color: var(--text-primary);">${jobData.error}</pre>
         </div>
     ` : '';
-    
+
+    const lastEval = jobData.last_human_evaluation;
+    const humanEvalSection = `
+        <div id="job-card-human-eval" style="background: #fef3c7; padding: 1rem; border-radius: 6px; margin-top: 1rem; border-left: 4px solid #d97706;">
+            <h4 style="margin-bottom: 0.75rem; color: #92400e;">👤 Human Evaluation</h4>
+            <p style="font-size: 0.9rem; margin-bottom: 0.75rem; color: var(--text-secondary);">
+                Record your approval or rejection for this run (for RLHF / model selection).
+            </p>
+            ${lastEval ? `
+            <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: white; border-radius: 4px; font-size: 0.85rem;">
+                <strong>Last evaluation:</strong> ${lastEval.decision === 'yes' ? '✅ Yes' : '❌ No'}
+                ${lastEval.comments ? ` — ${(lastEval.comments || '').replace(/</g, '&lt;').substring(0, 80)}${(lastEval.comments || '').length > 80 ? '…' : ''}` : ''}
+                <br/><span style="color: var(--text-secondary);">${lastEval.timestamp ? new Date(lastEval.timestamp).toLocaleString() : ''}</span>
+                ${(jobData.human_evaluations && jobData.human_evaluations.length > 1) ? `<br/><span style="font-size: 0.8rem;">Total evaluations: ${jobData.human_evaluations.length}</span>` : ''}
+            </div>
+            ` : ''}
+            <a href="${API_BASE}/static/human-eval.html?job_id=${jobData.job_id}" target="_blank" rel="noopener" class="btn btn-outline" style="display: inline-block; text-decoration: none;">
+                ${lastEval ? '✏️ Open Human Evaluation' : '👤 Open Human Evaluation'}
+            </a>
+        </div>
+    `;
+
+    const ctx = jobData.slm_training_context || {};
+    const ex = jobData.slm_explainability || {};
+    const slmExplainabilitySection = (jobData.algorithm === 'SLM') ? `
+        <div style="background: #f0f9ff; padding: 1rem; border-radius: 6px; margin-top: 1rem; border-left: 4px solid #0284c7;">
+            <h4 style="margin-bottom: 0.75rem; color: #0369a1;">🔍 SLM Explainability</h4>
+            ${(ctx.description || jobData.environment_name) ? `
+            <div style="margin-bottom: 1rem;">
+                <strong style="color: var(--text-primary);">What the model is training on</strong>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.35rem;">${ctx.description || 'The Jira SLM receives the current workflow state (step index, last tool used) as a short text prompt and predicts the next tool name. Actions: 0 = correct next tool (rewarded), 1..n = wrong tool index.'}</p>
+                ${ctx.observation_space ? `
+                <div style="margin-top: 0.5rem; font-size: 0.85rem;">
+                    <strong>Observation:</strong> ${ctx.observation_space.features ? ctx.observation_space.features.join('; ') : '—'}<br/>
+                    <strong>Tool order:</strong> ${(ctx.observation_space && ctx.observation_space.expected_tool_order) ? ctx.observation_space.expected_tool_order.join(' → ') : '—'}
+                </div>` : ''}
+                ${ctx.prompt_format ? `<div style="margin-top: 0.5rem; font-size: 0.85rem;"><strong>Prompt format:</strong> <code style="background: rgba(255,255,255,0.7); padding: 0.2rem 0.4rem; border-radius: 4px;">${ctx.prompt_format}</code></div>` : ''}
+                ${ctx.action_space ? `<div style="margin-top: 0.5rem; font-size: 0.85rem;"><strong>Actions:</strong> 0 = correct next tool; 1..n = wrong tool index</div>` : ''}
+                ${ctx.model_id ? `<div style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--text-secondary);">Model: ${ctx.model_id}${ctx.uses_slm ? ' (loaded)' : ' (rule-based fallback)'}</div>` : ''}
+            </div>` : ''}
+            ${ex.prompt ? `
+            <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(2,132,199,0.3);">
+                <strong style="color: var(--text-primary);">Example step (episode ${ex.episode || '?'}, step ${ex.step || '?'})</strong>
+                <div style="margin-top: 0.35rem; font-size: 0.85rem;"><strong>Prompt sent to model:</strong><br/><code style="display: block; background: rgba(255,255,255,0.8); padding: 0.5rem; border-radius: 4px; margin-top: 0.25rem; word-break: break-all;">${(ex.prompt || '').replace(/</g, '&lt;')}</code></div>
+                ${ex.raw_output != null ? `<div style="margin-top: 0.35rem; font-size: 0.85rem;"><strong>Model output:</strong> <code style="background: rgba(255,255,255,0.8); padding: 0.2rem 0.4rem;">${String(ex.raw_output).replace(/</g, '&lt;')}</code></div>` : ''}
+                <div style="margin-top: 0.35rem; font-size: 0.85rem;"><strong>Parsed tool:</strong> ${ex.parsed_tool || '—'} | <strong>Correct next:</strong> ${ex.correct_next || '—'} | <strong>Action:</strong> ${ex.action}</div>
+                ${ex.explanation ? `<div style="margin-top: 0.35rem; font-size: 0.85rem; color: var(--text-secondary);">${ex.explanation}</div>` : ''}
+            </div>` : ''}
+        </div>
+    ` : '';
+
     jobsList.innerHTML = `
         <div class="training-job-card" style="background: white; border: 2px solid ${statusColor}; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem;">
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
@@ -2532,8 +2708,11 @@ function displayTrainingJob(jobData) {
             </div>
             
             ${resultsSection}
+            ${slmExplainabilitySection}
             ${modelSection}
+            ${subtaskSection}
             ${errorSection}
+            ${humanEvalSection}
         </div>
     `;
 }

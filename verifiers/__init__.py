@@ -9,6 +9,7 @@ from .operational_verifier import OperationalVerifier
 from .financial_verifier import FinancialVerifier
 from .compliance_verifier import ComplianceVerifier
 from .ensemble_verifier import EnsembleVerifier
+from .jira_verifier import JiraWorkflowVerifier
 from .verifier_registry import VerifierRegistry, get_verifier, register_verifier
 
 __all__ = [
@@ -18,6 +19,7 @@ __all__ = [
     'FinancialVerifier',
     'ComplianceVerifier',
     'EnsembleVerifier',
+    'JiraWorkflowVerifier',
     'VerifierRegistry',
     'get_verifier',
     'register_verifier'

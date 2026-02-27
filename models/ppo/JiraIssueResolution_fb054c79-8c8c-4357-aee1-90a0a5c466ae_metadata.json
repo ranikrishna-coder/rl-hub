@@ -1,0 +1,12 @@
+{
+  "job_id": "fb054c79-8c8c-4357-aee1-90a0a5c466ae",
+  "environment_name": "JiraIssueResolution",
+  "algorithm": "PPO",
+  "num_episodes": 320,
+  "mean_reward": -0.0203125,
+  "max_reward": 0.2,
+  "min_reward": -0.1,
+  "total_episodes_completed": 320,
+  "training_completed": true,
+  "timestamp": "1772135742.3647797"
+}

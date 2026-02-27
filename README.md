@@ -10,9 +10,13 @@ This platform provides comprehensive reinforcement learning environments modelin
 
 ```
 rl-hub/
-├── environments/          # 50 RL environment implementations
-│   ├── clinical/        # 10 clinical environments
-│   ├── imaging/          # 5 imaging environments
+├── apps/                   # RL Env Studio + workflow definitions
+│   ├── RL-Env-Studio/    # Jira/Confluence UI (scenarios, verifiers)
+│   └── workflow_definitions/  # Jira workflows (jira_workflows.json)
+├── environments/          # RL environment implementations
+│   ├── clinical/        # Clinical environments
+│   ├── imaging/          # Imaging environments
+│   ├── jira/             # Jira workflow envs (follow apps/workflow_definitions)
 │   ├── population_health/ # 5 population health environments
 │   ├── revenue_cycle/    # 5 revenue cycle environments
 │   ├── clinical_trials/  # 5 clinical trial environments
@@ -51,6 +55,22 @@ rl-hub/
 - **Comprehensive KPI tracking** (clinical, operational, financial)
 - **Configurable reward functions** with weighted components
 
+## Testing
+
+The test suite validates Jira workflow definitions, Jira RL environments, registry integration, and coexistence with healthcare envs. Run before producing a deployable artifact:
+
+```bash
+pip install -r requirements.txt
+python -m pytest tests/ -v --tb=short
+```
+
+- **tests/test_jira_workflow_definition.py** – Validates `apps/workflow_definitions/jira_workflows.json` and tool orders.
+- **tests/test_jira_environments.py** – Jira env reset/step, rewards, workflow order.
+- **tests/test_environment_registry_jira.py** – Jira envs registered and loadable.
+- **tests/test_integration_jira_healthcare.py** – Jira and healthcare envs coexist.
+
+CI and Docker build run this suite before deploy.
+
 ## Installation
 
 ```bash
@@ -60,6 +80,9 @@ cd rl-hub
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Run test suite (recommended before deploy)
+python -m pytest tests/ -v --tb=short
 
 # Set up PostgreSQL database
 psql -U postgres -f database/schema.sql
@@ -79,6 +102,10 @@ python -m api.main
 Once the server is running, open your browser to:
 
 **🌐 http://localhost:8000**
+
+- **Catalog** — `/` — Interactive catalog of all environments
+- **Simulation Console** — `/test-console` — Run simulations for any environment
+- **RL-Env-Studio** — `/studio` — React SPA (Dashboard, Scenarios, Verifiers, Gym, Training). Build with `npm run build:studio` first.
 
 This displays a **beautiful interactive catalog** of all 50 environments with:
 - Visual environment cards
@@ -273,6 +300,7 @@ The platform is designed for extensibility to 200+ environments:
 
 ## Documentation
 
+- **Repository structure (for new AI engineers):** [REPO_STRUCTURE.md](REPO_STRUCTURE.md)
 - Environment registry: `portal/environment_registry.json`
 - API documentation: Available at `http://localhost:8000/docs` when server is running
 - Database schema: `database/schema.sql`

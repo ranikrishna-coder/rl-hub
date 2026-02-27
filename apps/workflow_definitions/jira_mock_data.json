@@ -1,0 +1,2448 @@
+{
+  "$schema": "https://rl-hub.dev/schemas/jira-mock-data-v1.json",
+  "version": "1.0",
+  "description": "Mock Jira data for sample use cases: issue resolution and comment management. 103 issues total.",
+  "issues": [
+    {
+      "key": "PROJ-101",
+      "summary": "Login page returns 500 when SSO is enabled",
+      "description": "When SSO is enabled and a user clicks Login, the server returns HTTP 500. Stack trace points to AuthService.validateSamlResponse().",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-102",
+      "summary": "Dashboard export to CSV includes PII columns",
+      "description": "Export to CSV includes columns that contain PII (email, name). These should be redacted or excluded by default for compliance.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-103",
+      "summary": "API rate limit not applied for internal service accounts",
+      "description": "Internal service accounts bypass rate limiting. Need to apply a higher but still bounded limit (e.g. 10k req/min) for audit and fairness.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-104",
+      "summary": "Support Excel export in notifications",
+      "description": "Support Excel export in notifications. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-105",
+      "summary": "Add keyboard shortcuts to dashboard",
+      "description": "Add keyboard shortcuts to dashboard. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-106",
+      "summary": "audit log returns 500 for special chars",
+      "description": "audit log returns 500 for special chars. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-107",
+      "summary": "Add audit log for dashboard",
+      "description": "Add audit log for dashboard. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-108",
+      "summary": "Support OAuth2 for file upload",
+      "description": "Support OAuth2 for file upload. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-109",
+      "summary": "Duplicate entries in login flow list",
+      "description": "Duplicate entries in login flow list. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-110",
+      "summary": "analytics returns 500 for unicode",
+      "description": "analytics returns 500 for unicode. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-111",
+      "summary": "Duplicate entries in login flow list",
+      "description": "Duplicate entries in login flow list. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-112",
+      "summary": "Implement pagination for billing table",
+      "description": "Implement pagination for billing table. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-113",
+      "summary": "Allow filtering admin panel by date range",
+      "description": "Allow filtering admin panel by date range. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-114",
+      "summary": "Timeout on search after 52 seconds",
+      "description": "Timeout on search after 52 seconds. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-115",
+      "summary": "Implement dark mode for notifications",
+      "description": "Implement dark mode for notifications. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-116",
+      "summary": "Incorrect timezone in user settings",
+      "description": "Incorrect timezone in user settings. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-117",
+      "summary": "Support OAuth2 for notifications",
+      "description": "Support OAuth2 for notifications. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-118",
+      "summary": "Race condition in notifications cache",
+      "description": "Race condition in notifications cache. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-119",
+      "summary": "audit log validation fails for edge case",
+      "description": "audit log validation fails for edge case. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-120",
+      "summary": "UI flicker on admin panel in Safari",
+      "description": "UI flicker on admin panel in Safari. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-121",
+      "summary": "Implement dark mode for billing",
+      "description": "Implement dark mode for billing. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-122",
+      "summary": "Support OAuth2 for search",
+      "description": "Support OAuth2 for search. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-123",
+      "summary": "Null pointer in login flow when long strings",
+      "description": "Null pointer in login flow when long strings. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-124",
+      "summary": "Support JSON export in login flow",
+      "description": "Support JSON export in login flow. Additional context: environment staging, priority medium.",
+      "status": "Done",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-125",
+      "summary": "file upload returns 500 for concurrent requests",
+      "description": "file upload returns 500 for concurrent requests. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-126",
+      "summary": "Add notification preferences for reports",
+      "description": "Add notification preferences for reports. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-127",
+      "summary": "Add notification preferences for admin panel",
+      "description": "Add notification preferences for admin panel. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-128",
+      "summary": "UI flicker on billing in Firefox",
+      "description": "UI flicker on billing in Firefox. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-129",
+      "summary": "Support OAuth2 for user settings",
+      "description": "Support OAuth2 for user settings. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-130",
+      "summary": "Implement pagination for search table",
+      "description": "Implement pagination for search table. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-131",
+      "summary": "Support OAuth2 for admin panel",
+      "description": "Support OAuth2 for admin panel. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-132",
+      "summary": "file upload validation fails for edge case",
+      "description": "file upload validation fails for edge case. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-133",
+      "summary": "Memory leak in audit log under load",
+      "description": "Memory leak in audit log under load. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-134",
+      "summary": "Support OAuth2 for API",
+      "description": "Support OAuth2 for API. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-135",
+      "summary": "Implement dark mode for file upload",
+      "description": "Implement dark mode for file upload. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-136",
+      "summary": "Incorrect timezone in billing",
+      "description": "Incorrect timezone in billing. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-137",
+      "summary": "Implement dark mode for dashboard",
+      "description": "Implement dark mode for dashboard. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-138",
+      "summary": "Add webhook for file upload events",
+      "description": "Add webhook for file upload events. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-139",
+      "summary": "UI flicker on admin panel in Firefox",
+      "description": "UI flicker on admin panel in Firefox. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-140",
+      "summary": "Memory leak in reports under load",
+      "description": "Memory leak in reports under load. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-141",
+      "summary": "user settings returns 500 for special chars",
+      "description": "user settings returns 500 for special chars. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-142",
+      "summary": "Add webhook for audit log events",
+      "description": "Add webhook for audit log events. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-143",
+      "summary": "Add keyboard shortcuts to dashboard",
+      "description": "Add keyboard shortcuts to dashboard. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-144",
+      "summary": "Timeout on billing after 20 seconds",
+      "description": "Timeout on billing after 20 seconds. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-145",
+      "summary": "Race condition in user settings cache",
+      "description": "Race condition in user settings cache. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-146",
+      "summary": "Timeout on login flow after 50 seconds",
+      "description": "Timeout on login flow after 50 seconds. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-147",
+      "summary": "UI flicker on login flow in Firefox",
+      "description": "UI flicker on login flow in Firefox. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-148",
+      "summary": "Wrong encoding in file upload export",
+      "description": "Wrong encoding in file upload export. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-149",
+      "summary": "Add audit log for user settings",
+      "description": "Add audit log for user settings. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-150",
+      "summary": "Null pointer in reports when unicode",
+      "description": "Null pointer in reports when unicode. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-151",
+      "summary": "Memory leak in API under load",
+      "description": "Memory leak in API under load. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-152",
+      "summary": "Support OAuth2 for admin panel",
+      "description": "Support OAuth2 for admin panel. Additional context: environment staging, priority medium.",
+      "status": "In Progress",
+      "statusId": "3",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "61",
+          "name": "Code Review"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-153",
+      "summary": "Null pointer in login flow when long strings",
+      "description": "Null pointer in login flow when long strings. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-154",
+      "summary": "Implement pagination for search table",
+      "description": "Implement pagination for search table. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-155",
+      "summary": "Duplicate entries in dashboard list",
+      "description": "Duplicate entries in dashboard list. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-156",
+      "summary": "Add audit log for notifications",
+      "description": "Add audit log for notifications. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-157",
+      "summary": "Add bulk edit for user settings",
+      "description": "Add bulk edit for user settings. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-158",
+      "summary": "Incorrect timezone in user settings",
+      "description": "Incorrect timezone in user settings. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-159",
+      "summary": "Add webhook for login flow events",
+      "description": "Add webhook for login flow events. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-160",
+      "summary": "Race condition in reports cache",
+      "description": "Race condition in reports cache. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-161",
+      "summary": "Allow filtering search by date range",
+      "description": "Allow filtering search by date range. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-162",
+      "summary": "UI flicker on user settings in Safari",
+      "description": "UI flicker on user settings in Safari. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-163",
+      "summary": "Add audit log for API",
+      "description": "Add audit log for API. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-164",
+      "summary": "Null pointer in notifications when expired token",
+      "description": "Null pointer in notifications when expired token. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-165",
+      "summary": "Add bulk edit for reports",
+      "description": "Add bulk edit for reports. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-166",
+      "summary": "Add keyboard shortcuts to dashboard",
+      "description": "Add keyboard shortcuts to dashboard. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-167",
+      "summary": "Add bulk edit for search",
+      "description": "Add bulk edit for search. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-168",
+      "summary": "Incorrect timezone in billing",
+      "description": "Incorrect timezone in billing. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-169",
+      "summary": "Wrong encoding in admin panel export",
+      "description": "Wrong encoding in admin panel export. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-170",
+      "summary": "audit log validation fails for edge case",
+      "description": "audit log validation fails for edge case. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-171",
+      "summary": "Null pointer in API when special chars",
+      "description": "Null pointer in API when special chars. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-172",
+      "summary": "Incorrect timezone in reports",
+      "description": "Incorrect timezone in reports. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-173",
+      "summary": "Duplicate entries in billing list",
+      "description": "Duplicate entries in billing list. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-174",
+      "summary": "Support OAuth2 for search",
+      "description": "Support OAuth2 for search. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-175",
+      "summary": "reports validation fails for edge case",
+      "description": "reports validation fails for edge case. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-176",
+      "summary": "Null pointer in user settings when concurrent requests",
+      "description": "Null pointer in user settings when concurrent requests. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-177",
+      "summary": "Timeout on billing after 41 seconds",
+      "description": "Timeout on billing after 41 seconds. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-178",
+      "summary": "Race condition in search cache",
+      "description": "Race condition in search cache. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-179",
+      "summary": "Duplicate entries in dashboard list",
+      "description": "Duplicate entries in dashboard list. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-180",
+      "summary": "Add audit log for file upload",
+      "description": "Add audit log for file upload. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-181",
+      "summary": "Incorrect timezone in analytics",
+      "description": "Incorrect timezone in analytics. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-182",
+      "summary": "Support OAuth2 for audit log",
+      "description": "Support OAuth2 for audit log. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-183",
+      "summary": "reports validation fails for edge case",
+      "description": "reports validation fails for edge case. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-184",
+      "summary": "Add audit log for API",
+      "description": "Add audit log for API. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-185",
+      "summary": "Add notification preferences for billing",
+      "description": "Add notification preferences for billing. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-186",
+      "summary": "Support OAuth2 for login flow",
+      "description": "Support OAuth2 for login flow. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-187",
+      "summary": "Null pointer in notifications when special chars",
+      "description": "Null pointer in notifications when special chars. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-188",
+      "summary": "Null pointer in file upload when expired token",
+      "description": "Null pointer in file upload when expired token. Additional context: environment staging, priority medium.",
+      "status": "Code Review",
+      "statusId": "4",
+      "valid_transitions": [
+        {
+          "id": "31",
+          "name": "Done"
+        },
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-189",
+      "summary": "Race condition in dashboard cache",
+      "description": "Race condition in dashboard cache. Additional context: environment staging, priority medium.",
+      "status": "To Do",
+      "statusId": "1",
+      "valid_transitions": [
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-190",
+      "summary": "UI flicker on reports in Chrome",
+      "description": "UI flicker on reports in Chrome. Additional context: environment staging, priority medium.",
+      "status": "To Do",
+      "statusId": "1",
+      "valid_transitions": [
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-191",
+      "summary": "Add bulk edit for dashboard",
+      "description": "Add bulk edit for dashboard. Additional context: environment staging, priority medium.",
+      "status": "To Do",
+      "statusId": "1",
+      "valid_transitions": [
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-192",
+      "summary": "Add webhook for audit log events",
+      "description": "Add webhook for audit log events. Additional context: environment staging, priority medium.",
+      "status": "To Do",
+      "statusId": "1",
+      "valid_transitions": [
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-193",
+      "summary": "Support PDF export in notifications",
+      "description": "Support PDF export in notifications. Additional context: environment staging, priority medium.",
+      "status": "To Do",
+      "statusId": "1",
+      "valid_transitions": [
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-194",
+      "summary": "Wrong encoding in user settings export",
+      "description": "Wrong encoding in user settings export. Additional context: environment staging, priority medium.",
+      "status": "To Do",
+      "statusId": "1",
+      "valid_transitions": [
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-195",
+      "summary": "Race condition in dashboard cache",
+      "description": "Race condition in dashboard cache. Additional context: environment staging, priority medium.",
+      "status": "To Do",
+      "statusId": "1",
+      "valid_transitions": [
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-196",
+      "summary": "Timeout on file upload after 26 seconds",
+      "description": "Timeout on file upload after 26 seconds. Additional context: environment staging, priority medium.",
+      "status": "To Do",
+      "statusId": "1",
+      "valid_transitions": [
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-197",
+      "summary": "Memory leak in audit log under load",
+      "description": "Memory leak in audit log under load. Additional context: environment staging, priority medium.",
+      "status": "To Do",
+      "statusId": "1",
+      "valid_transitions": [
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-198",
+      "summary": "Add webhook for notifications events",
+      "description": "Add webhook for notifications events. Additional context: environment staging, priority medium.",
+      "status": "To Do",
+      "statusId": "1",
+      "valid_transitions": [
+        {
+          "id": "21",
+          "name": "In Progress"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-199",
+      "summary": "Support Excel export in reports",
+      "description": "Support Excel export in reports. Additional context: environment staging, priority medium.",
+      "status": "Done",
+      "statusId": "5",
+      "valid_transitions": [
+        {
+          "id": "21",
+          "name": "To Do"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-200",
+      "summary": "UI flicker on API in Firefox",
+      "description": "UI flicker on API in Firefox. Additional context: environment staging, priority medium.",
+      "status": "Done",
+      "statusId": "5",
+      "valid_transitions": [
+        {
+          "id": "21",
+          "name": "To Do"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-201",
+      "summary": "Add bulk edit for file upload",
+      "description": "Add bulk edit for file upload. Additional context: environment staging, priority medium.",
+      "status": "Done",
+      "statusId": "5",
+      "valid_transitions": [
+        {
+          "id": "21",
+          "name": "To Do"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-202",
+      "summary": "Add bulk edit for notifications",
+      "description": "Add bulk edit for notifications. Additional context: environment staging, priority medium.",
+      "status": "Done",
+      "statusId": "5",
+      "valid_transitions": [
+        {
+          "id": "21",
+          "name": "To Do"
+        }
+      ]
+    },
+    {
+      "key": "PROJ-203",
+      "summary": "Add bulk edit for audit log",
+      "description": "Add bulk edit for audit log. Additional context: environment staging, priority medium.",
+      "status": "Done",
+      "statusId": "5",
+      "valid_transitions": [
+        {
+          "id": "21",
+          "name": "To Do"
+        }
+      ]
+    }
+  ],
+  "comment_threads": {
+    "PROJ-101": [
+      {
+        "id": "10101",
+        "author": "Alice",
+        "body": "Reproduced on staging. Okta SAML response has a different namespace.",
+        "created": "2025-02-24T10:00:00Z"
+      },
+      {
+        "id": "10102",
+        "author": "Bob",
+        "body": "Fixed in branch feature/PROJ-101-saml-namespace. Please review.",
+        "created": "2025-02-25T14:30:00Z"
+      }
+    ],
+    "PROJ-102": [
+      {
+        "id": "10201",
+        "author": "Carol",
+        "body": "Add checkbox: Exclude PII columns (recommended).",
+        "created": "2025-02-23T09:15:00Z"
+      }
+    ],
+    "PROJ-103": [],
+    "PROJ-104": [
+      {
+        "id": "PROJ1040",
+        "author": "Henry",
+        "body": "QA passed on staging.",
+        "created": "2025-02-20T12:00:00Z"
+      },
+      {
+        "id": "PROJ1041",
+        "author": "Frank",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-22T14:00:00Z"
+      },
+      {
+        "id": "PROJ1042",
+        "author": "Grace",
+        "body": "QA passed on staging.",
+        "created": "2025-02-22T15:00:00Z"
+      }
+    ],
+    "PROJ-107": [
+      {
+        "id": "PROJ1070",
+        "author": "Grace",
+        "body": "Needs design review before implementation.",
+        "created": "2025-02-22T09:00:00Z"
+      },
+      {
+        "id": "PROJ1071",
+        "author": "Eve",
+        "body": "Can we scope this down for MVP?",
+        "created": "2025-02-24T11:00:00Z"
+      }
+    ],
+    "PROJ-108": [
+      {
+        "id": "PROJ1080",
+        "author": "Grace",
+        "body": "QA passed on staging.",
+        "created": "2025-02-24T14:00:00Z"
+      },
+      {
+        "id": "PROJ1081",
+        "author": "Eve",
+        "body": "Can we scope this down for MVP?",
+        "created": "2025-02-22T16:00:00Z"
+      },
+      {
+        "id": "PROJ1082",
+        "author": "Eve",
+        "body": "QA passed on staging.",
+        "created": "2025-02-25T13:00:00Z"
+      },
+      {
+        "id": "PROJ1083",
+        "author": "Grace",
+        "body": "Fixed in staging.",
+        "created": "2025-02-20T09:00:00Z"
+      }
+    ],
+    "PROJ-112": [
+      {
+        "id": "PROJ1120",
+        "author": "Alice",
+        "body": "PR ready: branch feature/PROJ-112.",
+        "created": "2025-02-25T17:00:00Z"
+      },
+      {
+        "id": "PROJ1121",
+        "author": "Jack",
+        "body": "Depends on PROJ-154.",
+        "created": "2025-02-25T15:00:00Z"
+      }
+    ],
+    "PROJ-118": [
+      {
+        "id": "PROJ1180",
+        "author": "Grace",
+        "body": "Can we scope this down for MVP?",
+        "created": "2025-02-22T17:00:00Z"
+      },
+      {
+        "id": "PROJ1181",
+        "author": "Ivy",
+        "body": "Depends on PROJ-187.",
+        "created": "2025-02-21T17:00:00Z"
+      },
+      {
+        "id": "PROJ1182",
+        "author": "Carol",
+        "body": "QA passed on staging.",
+        "created": "2025-02-25T13:00:00Z"
+      }
+    ],
+    "PROJ-125": [
+      {
+        "id": "PROJ1250",
+        "author": "Henry",
+        "body": "PR ready: branch feature/PROJ-125.",
+        "created": "2025-02-23T09:00:00Z"
+      },
+      {
+        "id": "PROJ1251",
+        "author": "Frank",
+        "body": "Can we scope this down for MVP?",
+        "created": "2025-02-22T12:00:00Z"
+      },
+      {
+        "id": "PROJ1252",
+        "author": "Bob",
+        "body": "PR ready: branch feature/PROJ-125.",
+        "created": "2025-02-25T13:00:00Z"
+      },
+      {
+        "id": "PROJ1253",
+        "author": "Grace",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-22T16:00:00Z"
+      }
+    ],
+    "PROJ-130": [
+      {
+        "id": "PROJ1300",
+        "author": "Ivy",
+        "body": "Needs design review before implementation.",
+        "created": "2025-02-21T09:00:00Z"
+      },
+      {
+        "id": "PROJ1301",
+        "author": "Ivy",
+        "body": "Fixed in staging.",
+        "created": "2025-02-22T12:00:00Z"
+      }
+    ],
+    "PROJ-134": [
+      {
+        "id": "PROJ1340",
+        "author": "Dave",
+        "body": "Depends on PROJ-195.",
+        "created": "2025-02-22T16:00:00Z"
+      },
+      {
+        "id": "PROJ1341",
+        "author": "Carol",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-25T15:00:00Z"
+      },
+      {
+        "id": "PROJ1342",
+        "author": "Bob",
+        "body": "Reproduced. Root cause looks like permission check.",
+        "created": "2025-02-25T11:00:00Z"
+      }
+    ],
+    "PROJ-136": [
+      {
+        "id": "PROJ1360",
+        "author": "Henry",
+        "body": "Needs design review before implementation.",
+        "created": "2025-02-25T10:00:00Z"
+      },
+      {
+        "id": "PROJ1361",
+        "author": "Grace",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-23T09:00:00Z"
+      }
+    ],
+    "PROJ-137": [
+      {
+        "id": "PROJ1370",
+        "author": "Frank",
+        "body": "Fixed in staging.",
+        "created": "2025-02-24T11:00:00Z"
+      },
+      {
+        "id": "PROJ1371",
+        "author": "Jack",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-23T12:00:00Z"
+      }
+    ],
+    "PROJ-139": [
+      {
+        "id": "PROJ1390",
+        "author": "Jack",
+        "body": "Depends on PROJ-153.",
+        "created": "2025-02-21T09:00:00Z"
+      },
+      {
+        "id": "PROJ1391",
+        "author": "Dave",
+        "body": "Reproduced. Root cause looks like timeout config.",
+        "created": "2025-02-22T17:00:00Z"
+      }
+    ],
+    "PROJ-140": [
+      {
+        "id": "PROJ1400",
+        "author": "Bob",
+        "body": "Can we scope this down for MVP?",
+        "created": "2025-02-21T14:00:00Z"
+      }
+    ],
+    "PROJ-144": [
+      {
+        "id": "PROJ1440",
+        "author": "Alice",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-23T10:00:00Z"
+      }
+    ],
+    "PROJ-145": [
+      {
+        "id": "PROJ1450",
+        "author": "Eve",
+        "body": "Fixed in staging.",
+        "created": "2025-02-21T11:00:00Z"
+      },
+      {
+        "id": "PROJ1451",
+        "author": "Alice",
+        "body": "Reproduced. Root cause looks like timeout config.",
+        "created": "2025-02-25T16:00:00Z"
+      },
+      {
+        "id": "PROJ1452",
+        "author": "Bob",
+        "body": "QA passed on staging.",
+        "created": "2025-02-20T14:00:00Z"
+      }
+    ],
+    "PROJ-152": [
+      {
+        "id": "PROJ1520",
+        "author": "Alice",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-21T15:00:00Z"
+      },
+      {
+        "id": "PROJ1521",
+        "author": "Grace",
+        "body": "Can we scope this down for MVP?",
+        "created": "2025-02-20T09:00:00Z"
+      },
+      {
+        "id": "PROJ1522",
+        "author": "Bob",
+        "body": "PR ready: branch feature/PROJ-152.",
+        "created": "2025-02-24T17:00:00Z"
+      }
+    ],
+    "PROJ-153": [
+      {
+        "id": "PROJ1530",
+        "author": "Dave",
+        "body": "Fixed in staging.",
+        "created": "2025-02-25T11:00:00Z"
+      },
+      {
+        "id": "PROJ1531",
+        "author": "Henry",
+        "body": "PR ready: branch feature/PROJ-153.",
+        "created": "2025-02-21T15:00:00Z"
+      }
+    ],
+    "PROJ-154": [
+      {
+        "id": "PROJ1540",
+        "author": "Alice",
+        "body": "Needs design review before implementation.",
+        "created": "2025-02-22T12:00:00Z"
+      },
+      {
+        "id": "PROJ1541",
+        "author": "Ivy",
+        "body": "Fixed in staging.",
+        "created": "2025-02-22T16:00:00Z"
+      },
+      {
+        "id": "PROJ1542",
+        "author": "Alice",
+        "body": "PR ready: branch feature/PROJ-154.",
+        "created": "2025-02-24T09:00:00Z"
+      },
+      {
+        "id": "PROJ1543",
+        "author": "Dave",
+        "body": "Needs design review before implementation.",
+        "created": "2025-02-25T13:00:00Z"
+      }
+    ],
+    "PROJ-158": [
+      {
+        "id": "PROJ1580",
+        "author": "Carol",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-25T09:00:00Z"
+      }
+    ],
+    "PROJ-159": [
+      {
+        "id": "PROJ1590",
+        "author": "Alice",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-24T16:00:00Z"
+      },
+      {
+        "id": "PROJ1591",
+        "author": "Ivy",
+        "body": "Reproduced. Root cause looks like cache invalidation.",
+        "created": "2025-02-23T11:00:00Z"
+      },
+      {
+        "id": "PROJ1592",
+        "author": "Alice",
+        "body": "Depends on PROJ-148.",
+        "created": "2025-02-21T14:00:00Z"
+      }
+    ],
+    "PROJ-162": [
+      {
+        "id": "PROJ1620",
+        "author": "Alice",
+        "body": "Reproduced. Root cause looks like permission check.",
+        "created": "2025-02-20T10:00:00Z"
+      },
+      {
+        "id": "PROJ1621",
+        "author": "Carol",
+        "body": "PR ready: branch feature/PROJ-162.",
+        "created": "2025-02-21T10:00:00Z"
+      }
+    ],
+    "PROJ-165": [
+      {
+        "id": "PROJ1650",
+        "author": "Jack",
+        "body": "Can we scope this down for MVP?",
+        "created": "2025-02-20T16:00:00Z"
+      },
+      {
+        "id": "PROJ1651",
+        "author": "Jack",
+        "body": "PR ready: branch feature/PROJ-165.",
+        "created": "2025-02-23T16:00:00Z"
+      },
+      {
+        "id": "PROJ1652",
+        "author": "Dave",
+        "body": "Depends on PROJ-158.",
+        "created": "2025-02-21T15:00:00Z"
+      },
+      {
+        "id": "PROJ1653",
+        "author": "Henry",
+        "body": "Fixed in staging.",
+        "created": "2025-02-24T17:00:00Z"
+      }
+    ],
+    "PROJ-167": [
+      {
+        "id": "PROJ1670",
+        "author": "Jack",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-21T10:00:00Z"
+      },
+      {
+        "id": "PROJ1671",
+        "author": "Jack",
+        "body": "Needs design review before implementation.",
+        "created": "2025-02-25T11:00:00Z"
+      }
+    ],
+    "PROJ-172": [
+      {
+        "id": "PROJ1720",
+        "author": "Alice",
+        "body": "Needs design review before implementation.",
+        "created": "2025-02-24T13:00:00Z"
+      },
+      {
+        "id": "PROJ1721",
+        "author": "Jack",
+        "body": "PR ready: branch feature/PROJ-172.",
+        "created": "2025-02-25T16:00:00Z"
+      }
+    ],
+    "PROJ-173": [
+      {
+        "id": "PROJ1730",
+        "author": "Alice",
+        "body": "PR ready: branch feature/PROJ-173.",
+        "created": "2025-02-22T09:00:00Z"
+      },
+      {
+        "id": "PROJ1731",
+        "author": "Alice",
+        "body": "Can we scope this down for MVP?",
+        "created": "2025-02-23T10:00:00Z"
+      },
+      {
+        "id": "PROJ1732",
+        "author": "Bob",
+        "body": "Depends on PROJ-147.",
+        "created": "2025-02-20T13:00:00Z"
+      }
+    ],
+    "PROJ-175": [
+      {
+        "id": "PROJ1750",
+        "author": "Ivy",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-20T15:00:00Z"
+      }
+    ],
+    "PROJ-184": [
+      {
+        "id": "PROJ1840",
+        "author": "Bob",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-25T15:00:00Z"
+      },
+      {
+        "id": "PROJ1841",
+        "author": "Dave",
+        "body": "QA passed on staging.",
+        "created": "2025-02-23T10:00:00Z"
+      }
+    ],
+    "PROJ-185": [
+      {
+        "id": "PROJ1850",
+        "author": "Dave",
+        "body": "Can we scope this down for MVP?",
+        "created": "2025-02-25T16:00:00Z"
+      }
+    ],
+    "PROJ-188": [
+      {
+        "id": "PROJ1880",
+        "author": "Frank",
+        "body": "PR ready: branch feature/PROJ-188.",
+        "created": "2025-02-20T17:00:00Z"
+      },
+      {
+        "id": "PROJ1881",
+        "author": "Ivy",
+        "body": "Needs design review before implementation.",
+        "created": "2025-02-20T12:00:00Z"
+      },
+      {
+        "id": "PROJ1882",
+        "author": "Ivy",
+        "body": "Depends on PROJ-122.",
+        "created": "2025-02-22T10:00:00Z"
+      }
+    ],
+    "PROJ-189": [
+      {
+        "id": "PROJ1890",
+        "author": "Dave",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-20T17:00:00Z"
+      },
+      {
+        "id": "PROJ1891",
+        "author": "Ivy",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-24T09:00:00Z"
+      }
+    ],
+    "PROJ-190": [
+      {
+        "id": "PROJ1900",
+        "author": "Henry",
+        "body": "QA passed on staging.",
+        "created": "2025-02-24T11:00:00Z"
+      },
+      {
+        "id": "PROJ1901",
+        "author": "Grace",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-22T09:00:00Z"
+      },
+      {
+        "id": "PROJ1902",
+        "author": "Alice",
+        "body": "Can we scope this down for MVP?",
+        "created": "2025-02-21T13:00:00Z"
+      }
+    ],
+    "PROJ-193": [
+      {
+        "id": "PROJ1930",
+        "author": "Eve",
+        "body": "Fixed in staging.",
+        "created": "2025-02-20T10:00:00Z"
+      },
+      {
+        "id": "PROJ1931",
+        "author": "Bob",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-22T15:00:00Z"
+      },
+      {
+        "id": "PROJ1932",
+        "author": "Carol",
+        "body": "Addressing feedback from last review.",
+        "created": "2025-02-20T16:00:00Z"
+      }
+    ],
+    "PROJ-196": [
+      {
+        "id": "PROJ1960",
+        "author": "Frank",
+        "body": "Reproduced. Root cause looks like timeout config.",
+        "created": "2025-02-25T16:00:00Z"
+      },
+      {
+        "id": "PROJ1961",
+        "author": "Henry",
+        "body": "Fixed in staging.",
+        "created": "2025-02-22T15:00:00Z"
+      }
+    ],
+    "PROJ-197": [
+      {
+        "id": "PROJ1970",
+        "author": "Henry",
+        "body": "Depends on PROJ-138.",
+        "created": "2025-02-21T17:00:00Z"
+      },
+      {
+        "id": "PROJ1971",
+        "author": "Henry",
+        "body": "Reproduced. Root cause looks like permission check.",
+        "created": "2025-02-21T17:00:00Z"
+      },
+      {
+        "id": "PROJ1972",
+        "author": "Henry",
+        "body": "Reproduced. Root cause looks like timeout config.",
+        "created": "2025-02-21T15:00:00Z"
+      },
+      {
+        "id": "PROJ1973",
+        "author": "Alice",
+        "body": "Reproduced. Root cause looks like permission check.",
+        "created": "2025-02-24T15:00:00Z"
+      }
+    ],
+    "PROJ-198": [
+      {
+        "id": "PROJ1980",
+        "author": "Bob",
+        "body": "PR ready: branch feature/PROJ-198.",
+        "created": "2025-02-21T14:00:00Z"
+      },
+      {
+        "id": "PROJ1981",
+        "author": "Alice",
+        "body": "Needs design review before implementation.",
+        "created": "2025-02-21T17:00:00Z"
+      },
+      {
+        "id": "PROJ1982",
+        "author": "Ivy",
+        "body": "PR ready: branch feature/PROJ-198.",
+        "created": "2025-02-20T16:00:00Z"
+      }
+    ],
+    "PROJ-199": [
+      {
+        "id": "PROJ1990",
+        "author": "Frank",
+        "body": "QA passed on staging.",
+        "created": "2025-02-25T15:00:00Z"
+      },
+      {
+        "id": "PROJ1991",
+        "author": "Carol",
+        "body": "Needs design review before implementation.",
+        "created": "2025-02-20T11:00:00Z"
+      },
+      {
+        "id": "PROJ1992",
+        "author": "Bob",
+        "body": "Can we scope this down for MVP?",
+        "created": "2025-02-25T15:00:00Z"
+      }
+    ],
+    "PROJ-203": [
+      {
+        "id": "PROJ2030",
+        "author": "Bob",
+        "body": "PR ready: branch feature/PROJ-203.",
+        "created": "2025-02-24T15:00:00Z"
+      },
+      {
+        "id": "PROJ2031",
+        "author": "Eve",
+        "body": "QA passed on staging.",
+        "created": "2025-02-20T16:00:00Z"
+      },
+      {
+        "id": "PROJ2032",
+        "author": "Grace",
+        "body": "Fixed in staging.",
+        "created": "2025-02-23T10:00:00Z"
+      }
+    ]
+  },
+  "sample_workflows": {
+    "issue_resolution": {
+      "title": "Resolve PROJ-101 (Login 500 with SSO)",
+      "steps": [
+        {
+          "tool": "get_issue_summary_and_description",
+          "args": {
+            "issue_key": "PROJ-101"
+          },
+          "result": {
+            "summary": "Login page returns 500 when SSO is enabled",
+            "status": "In Progress"
+          }
+        },
+        {
+          "tool": "get_transitions",
+          "args": {
+            "issue_key": "PROJ-101"
+          },
+          "result": {
+            "valid_transition_ids": [
+              "31",
+              "21"
+            ],
+            "valid_transition_names": [
+              "Done",
+              "To Do"
+            ]
+          }
+        },
+        {
+          "tool": "transition_issue",
+          "args": {
+            "issue_key": "PROJ-101",
+            "transition_id": "31"
+          },
+          "result": {
+            "success": true,
+            "new_status": "Done"
+          }
+        }
+      ]
+    },
+    "status_update": {
+      "scenarios": [
+        {
+          "id": "in_progress_to_blocked",
+          "title": "Change from in-progress to blocked",
+          "description": "Transition an issue from In Progress to Blocked status",
+          "filter": { "status": "In Progress", "valid_transition_names": ["Blocked"] },
+          "target_status": "Blocked"
+        }
+      ],
+      "Change from in-progress to blocked": {
+        "title": "Change PROJ-101 from In Progress to Blocked",
+        "steps": [
+          {
+            "tool": "get_transitions",
+            "args": { "issue_key": "PROJ-101" },
+            "result": {
+              "valid_transition_ids": ["31", "61", "41"],
+              "valid_transition_names": ["Done", "Code Review", "Blocked"]
+            }
+          },
+          {
+            "tool": "transition_issue",
+            "args": { "issue_key": "PROJ-101", "transition_id": "41" },
+            "result": { "success": true, "new_status": "Blocked" }
+          }
+        ]
+      }
+    },
+    "comment_management": {
+      "title": "Add comment and verify thread on PROJ-102",
+      "steps": [
+        {
+          "tool": "add_comment",
+          "args": {
+            "issue_key": "PROJ-102",
+            "body": "Adding compliance note."
+          },
+          "result": {
+            "comment_id": "10202"
+          }
+        },
+        {
+          "tool": "get_comments",
+          "args": {
+            "issue_key": "PROJ-102"
+          },
+          "result": {
+            "comments": []
+          }
+        }
+      ]
+    }
+  },
+  "reward_config": {
+    "target_mean_reward": 0.50,
+    "per_step_base": {
+      "issue_resolution": 0.50,
+      "status_update": 0.50,
+      "comment_management": 0.50
+    },
+    "status_reward_weights": {
+      "In Progress": 0.50,
+      "Code Review": 0.50,
+      "To Do": 0.50,
+      "Done": 0.50,
+      "Blocked": 0.50
+    },
+    "description": "Per-step rewards set to 0.50 to achieve mean reward 0.50."
+  }
+}

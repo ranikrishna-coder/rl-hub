@@ -376,6 +376,7 @@ body {
 .category-telehealth { background: #cffafe; color: #164e63; }
 .category-interoperability { background: #fed7aa; color: #9a3412; }
 .category-cross_workflow { background: #fecdd3; color: #991b1b; }
+.category-jira { background: #e0f2fe; color: #0369a1; }
 
 .env-description {
     color: var(--text-secondary);
@@ -477,6 +478,211 @@ body {
     background: #fee2e2;
     border-radius: 8px;
     margin: 2rem 0;
+}
+
+/* Full-page environment detail view – compact layout, actions at top */
+.env-detail-page {
+    min-height: 100vh;
+    background: var(--bg-color);
+    padding: 1.25rem 1.5rem 2.5rem;
+}
+
+.env-detail-inner {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.btn-back-catalog {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: var(--primary-color);
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-back-catalog:hover {
+    background: rgba(37, 99, 235, 0.08);
+    border-color: var(--primary-color);
+}
+
+.detail-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.detail-hero-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.detail-page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.env-category {
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.detail-action-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.detail-action-bar .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+.detail-action-bar .btn-primary { order: 1; }
+.detail-action-bar .btn-secondary { order: 2; }
+.detail-action-bar .btn-outline { order: 3; }
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+    .detail-grid { grid-template-columns: 1fr; }
+    .detail-hero { flex-direction: column; align-items: flex-start; }
+}
+
+.detail-card {
+    background: var(--card-bg);
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    padding: 1.25rem;
+    box-shadow: var(--shadow);
+}
+
+.detail-card h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin: 0 0 0.75rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.detail-card p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.spec-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem 1rem;
+}
+
+.spec-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.spec-item label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.spec-item span {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.detail-section {
+    margin-bottom: 1.25rem;
+}
+
+.detail-section h3 {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.detail-section p,
+.detail-section ul {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.detail-section ul {
+    margin-left: 1.25rem;
+    padding-left: 0;
+}
+
+.detail-section .info-box {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-size: 0.9rem;
+}
+
+.detail-section .kpi-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.detail-section .kpi-item {
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-color);
+    border-radius: 6px;
+    font-size: 0.8rem;
+}
+
+.action-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.action-chip {
+    padding: 0.4rem 0.75rem;
+    background: #f0f9ff;
+    border: 1px solid var(--primary-color);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-family: monospace;
+    color: var(--text-primary);
 }
 
 /* Modal */

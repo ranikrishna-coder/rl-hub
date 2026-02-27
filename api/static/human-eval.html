@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RL Hub - HITL Evaluation Console</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-secondary: #f8fafc;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --accent: #0369a1;
+      --accent-bg: #e0f2fe;
+      --success: #16a34a;
+      --warning: #d97706;
+      --error: #dc2626;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-secondary);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      border-radius: 8px 8px 0 0;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .header-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      color: white;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+    .header-title { font-weight: 600; font-size: 1rem; color: var(--text); }
+    .header-subtitle { font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.1rem; }
+    .header-status {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    .header-status strong { color: var(--text); }
+    /* Two-column layout */
+    .eval-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    @media (max-width: 900px) { .eval-grid { grid-template-columns: 1fr; } }
+    .section {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .section-header {
+      padding: 0.6rem 1rem;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--text-secondary);
+    }
+    .section-body {
+      padding: 1rem;
+      font-size: 0.85rem;
+    }
+    .field { margin-bottom: 0.75rem; }
+    .field:last-child { margin-bottom: 0; }
+    .field-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.25rem;
+      display: block;
+    }
+    .field-value {
+      color: var(--text);
+      word-break: break-word;
+    }
+    pre, .code-block {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+      color: var(--text);
+    }
+    /* Reasoning steps */
+    .reasoning-step {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.75rem;
+      background: var(--bg);
+    }
+    .reasoning-step:last-child { margin-bottom: 0; }
+    .reasoning-step-title {
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+    }
+    .reasoning-step-desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+    .score-buttons {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .score-btn {
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .score-btn:hover { background: var(--bg-secondary); }
+    .score-btn.selected-correct { border-color: var(--success); background: #dcfce7; color: #166534; }
+    .score-btn.selected-flawed { border-color: var(--warning); background: #fef3c7; color: #92400e; }
+    .score-btn.selected-critical { border-color: var(--error); background: #fee2e2; color: #991b1b; }
+    /* Final output / evaluation */
+    .final-output {
+      background: var(--bg-secondary);
+      border-radius: 6px;
+      padding: 0.75rem;
+      font-size: 0.85rem;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+    .eval-actions {
+      margin-top: 1rem;
+    }
+    .radio-row {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .radio-row label { display: flex; align-items: center; gap: 0.35rem; cursor: pointer; }
+    textarea {
+      width: 100%;
+      min-height: 80px;
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-family: inherit;
+      resize: vertical;
+      margin-bottom: 0.75rem;
+      background: var(--bg);
+      color: var(--text);
+    }
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(3, 105, 161, 0.2);
+    }
+    .btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      border: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover:not(:disabled) { filter: brightness(1.05); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-secondary {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--bg-secondary); }
+    .status-pill {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+    }
+    .status-pill.saved { background: #dcfce7; color: #166534; }
+    .status-pill.error { background: #fee2e2; color: #991b1b; }
+    .eval-meta { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="header-left">
+        <div class="header-icon">✓</div>
+        <div>
+          <div class="header-title">HITL Evaluation Console</div>
+          <div class="header-subtitle">RL Model Output Review</div>
+        </div>
+      </div>
+      <div class="header-status" id="header-status">
+        <span id="steps-scored">0/0 steps scored</span>
+        <span style="margin-left: 1rem;">Evaluations: <strong id="eval-count">0</strong></span>
+      </div>
+    </header>
+
+    <div class="eval-grid">
+      <!-- Left column -->
+      <div class="left-col">
+        <div class="section">
+          <div class="section-header">Run context</div>
+          <div class="section-body" id="run-context">
+            <div class="field">
+              <span class="field-label">Job ID</span>
+              <div class="field-value" id="job-id">—</div>
+            </div>
+            <div class="field">
+              <span class="field-label">Environment</span>
+              <div class="field-value" id="env-name">—</div>
+            </div>
+            <div class="field">
+              <span class="field-label">Algorithm</span>
+              <div class="field-value" id="algorithm">—</div>
+            </div>
+            <div class="field">
+              <span class="field-label">Status</span>
+              <div class="field-value" id="job-status">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="section" style="margin-top: 1rem;">
+          <div class="section-header">Episode summary</div>
+          <div class="section-body">
+            <div id="episode-summary" class="field-value">
+              Loading…
+            </div>
+          </div>
+        </div>
+        <div class="section" style="margin-top: 1rem;">
+          <div class="section-header">Model metadata</div>
+          <div class="section-body" id="model-metadata">
+            <div class="field">
+              <span class="field-label">Episodes</span>
+              <div class="field-value" id="meta-episodes">—</div>
+            </div>
+            <div class="field">
+              <span class="field-label">Mean reward</span>
+              <div class="field-value" id="meta-mean-reward">—</div>
+            </div>
+            <div class="field">
+              <span class="field-label">Completed</span>
+              <div class="field-value" id="meta-completed">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column: Reasoning steps + Final output + Evaluation -->
+      <div class="right-col">
+        <div class="section">
+          <div class="section-header">Reasoning steps</div>
+          <div class="section-body" id="reasoning-steps">
+            <div class="field-value" style="color: var(--text-secondary);">No step data for this run. Overall approval/rejection below still applies.</div>
+          </div>
+        </div>
+        <div class="section" style="margin-top: 1rem;">
+          <div class="section-header">Final output</div>
+          <div class="section-body">
+            <div id="final-output" class="final-output">—</div>
+          </div>
+        </div>
+        <div class="section" style="margin-top: 1rem;">
+          <div class="section-header">Human evaluation</div>
+          <div class="section-body">
+            <div id="eval-status" class="status-pill">Idle</div>
+            <div class="eval-actions">
+              <span class="field-label">Does this run meet your success criteria?</span>
+              <div class="radio-row">
+                <label><input type="radio" name="decision" value="yes" /> Yes</label>
+                <label><input type="radio" name="decision" value="no" /> No</label>
+              </div>
+              <label class="field-label" for="comments">Comments (optional)</label>
+              <textarea id="comments" placeholder="Explain why this run is acceptable or not, what went well, and what failed."></textarea>
+              <div class="btn-row">
+                <button id="btn-submit" class="btn btn-primary">Submit evaluation</button>
+                <button id="btn-exit" class="btn btn-secondary">Exit</button>
+              </div>
+              <div id="eval-meta" class="eval-meta"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.API_BASE || (() => {
+      const hostname = window.location.hostname;
+      const protocol = window.location.protocol;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') return 'http://localhost:8000';
+      if (hostname.includes('onrender.com')) return protocol + '//' + hostname;
+      return 'https://rl-hub-api.onrender.com';
+    })();
+
+    const params = new URLSearchParams(window.location.search);
+    const jobId = params.get('job_id');
+
+    let jobData = null;
+    let stepScores = {}; // step_index -> "correct" | "flawed" | "critical_error"
+
+    function renderRunContext() {
+      if (!jobData) return;
+      document.getElementById('job-id').textContent = jobId || '—';
+      document.getElementById('env-name').textContent = jobData.environment_name || '—';
+      document.getElementById('algorithm').textContent = jobData.algorithm || '—';
+      document.getElementById('job-status').textContent = jobData.status || '—';
+    }
+
+    function renderEpisodeSummary() {
+      const el = document.getElementById('episode-summary');
+      if (!jobData) { el.textContent = 'No job data.'; return; }
+      const env = jobData.environment_name || 'Unknown';
+      const algo = jobData.algorithm || '—';
+      const results = jobData.results || {};
+      const episodes = results.total_episodes ?? jobData.num_episodes ?? '—';
+      const completed = results.episodes_completed ?? results.total_episodes_completed ?? '—';
+      el.textContent = `This run trained the ${env} environment using ${algo} over ${episodes} episodes (${completed} completed). Review the reasoning steps and final metrics below, then approve or reject the run.`;
+    }
+
+    function renderModelMetadata() {
+      if (!jobData) return;
+      const r = jobData.results || {};
+      document.getElementById('meta-episodes').textContent = jobData.num_episodes ?? r.total_episodes ?? '—';
+      document.getElementById('meta-mean-reward').textContent = (r.mean_reward != null) ? r.mean_reward.toFixed(3) : '—';
+      document.getElementById('meta-completed').textContent = (r.episodes_completed != null) ? `${r.episodes_completed} / ${r.total_episodes ?? jobData.num_episodes ?? '?'}` : '—';
+    }
+
+    function buildReasoningSteps() {
+      const container = document.getElementById('reasoning-steps');
+      const ex = jobData?.slm_explainability;
+      const steps = [];
+
+      if (ex && (ex.prompt || ex.parsed_tool || ex.action != null)) {
+        steps.push({
+          title: '1. Model prompt and tool choice',
+          desc: ex.prompt ? `Prompt: ${ex.prompt.substring(0, 200)}${ex.prompt.length > 200 ? '…' : ''}` : '',
+          detail: ex.parsed_tool ? `Parsed tool: ${ex.parsed_tool}. Correct next: ${ex.correct_next || '—'}. Action: ${ex.action}.` : `Action: ${ex.action}.`,
+          explanation: ex.explanation || ''
+        });
+      }
+      if (jobData?.results) {
+        const r = jobData.results;
+        steps.push({
+          title: (steps.length + 1) + '. Training outcome',
+          desc: `Episodes completed: ${r.episodes_completed ?? '—'} / ${r.total_episodes ?? '—'}. Mean reward: ${(r.mean_reward != null) ? r.mean_reward.toFixed(3) : '—'}.`,
+          detail: '',
+          explanation: 'Overall training run result.'
+        });
+      }
+      if (steps.length === 0) {
+        container.innerHTML = '<div class="field-value" style="color: var(--text-secondary);">No step-by-step reasoning data for this job. Use the overall Yes/No evaluation below.</div>';
+        document.getElementById('steps-scored').textContent = '0/0 steps scored';
+        return;
+      }
+
+      container.innerHTML = steps.map((s, i) => {
+        const idx = i;
+        const score = stepScores[idx] || '';
+        const scoreClass = score === 'critical_error' ? 'selected-critical' : (score ? 'selected-' + score : '');
+        return `
+          <div class="reasoning-step" data-step-index="${idx}">
+            <div class="reasoning-step-title">${s.title}</div>
+            ${s.desc ? `<div class="reasoning-step-desc">${s.desc}</div>` : ''}
+            ${s.detail ? `<div class="reasoning-step-desc">${s.detail}</div>` : ''}
+            ${s.explanation ? `<div class="reasoning-step-desc" style="font-style: italic;">${s.explanation}</div>` : ''}
+            <div class="score-buttons">
+              <button type="button" class="score-btn ${score === 'correct' ? 'selected-correct' : ''}" data-step="${idx}" data-score="correct">Correct</button>
+              <button type="button" class="score-btn ${score === 'flawed' ? 'selected-flawed' : ''}" data-step="${idx}" data-score="flawed">Flawed</button>
+              <button type="button" class="score-btn ${score === 'critical_error' ? 'selected-critical' : ''}" data-step="${idx}" data-score="critical_error">Critical Error</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.querySelectorAll('.score-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const step = parseInt(btn.dataset.step, 10);
+          const score = btn.dataset.score;
+          stepScores[step] = score;
+          const scoreClass = score === 'critical_error' ? 'selected-critical' : 'selected-' + score;
+          btn.parentElement.querySelectorAll('.score-btn').forEach(b => {
+            b.classList.remove('selected-correct', 'selected-flawed', 'selected-critical');
+            if (b.dataset.score === score) b.classList.add(scoreClass);
+          });
+          updateStepsScoredLabel();
+        });
+      });
+      updateStepsScoredLabel();
+    }
+
+    function updateStepsScoredLabel() {
+      const total = document.querySelectorAll('.reasoning-step').length;
+      const scored = Object.keys(stepScores).length;
+      const el = document.getElementById('steps-scored');
+      if (el) el.textContent = `${scored}/${total} steps scored`;
+    }
+
+    function renderFinalOutput() {
+      const el = document.getElementById('final-output');
+      if (!jobData) { el.textContent = '—'; return; }
+      const r = jobData.results || {};
+      const lines = [];
+      if (r.mean_reward != null) lines.push('Mean reward: ' + r.mean_reward.toFixed(3));
+      if (r.episodes_completed != null && r.total_episodes != null) lines.push('Episodes: ' + r.episodes_completed + ' / ' + r.total_episodes);
+      if (jobData.algorithm) lines.push('Algorithm: ' + jobData.algorithm);
+      el.textContent = lines.length ? lines.join('\n') : (jobData.status || '—');
+    }
+
+    async function loadJob() {
+      if (!jobId) {
+        document.getElementById('episode-summary').textContent = 'Missing job_id in URL (e.g. ?job_id=...).';
+        return;
+      }
+      try {
+        const resp = await fetch(`${API_BASE}/training/${jobId}`);
+        if (!resp.ok) {
+          document.getElementById('episode-summary').textContent = 'Failed to load job: HTTP ' + resp.status;
+          return;
+        }
+        jobData = await resp.json();
+        renderRunContext();
+        renderEpisodeSummary();
+        renderModelMetadata();
+        buildReasoningSteps();
+        renderFinalOutput();
+
+        const evals = jobData.human_evaluations || [];
+        document.getElementById('eval-count').textContent = evals.length;
+        if (jobData.last_human_evaluation) {
+          const last = jobData.last_human_evaluation;
+          let meta = 'Last: ' + last.decision.toUpperCase() + ' at ' + (last.timestamp ? new Date(last.timestamp).toLocaleString() : '');
+          if (last.step_scores && last.step_scores.length) {
+            const counts = { correct: 0, flawed: 0, critical_error: 0 };
+            last.step_scores.forEach(s => { counts[s.score] = (counts[s.score] || 0) + 1; });
+            const parts = [];
+            if (counts.correct) parts.push(counts.correct + ' Correct');
+            if (counts.flawed) parts.push(counts.flawed + ' Flawed');
+            if (counts.critical_error) parts.push(counts.critical_error + ' Critical Error');
+            meta += '. Step scores: ' + parts.join(', ');
+          }
+          document.getElementById('eval-meta').textContent = meta;
+        }
+      } catch (e) {
+        document.getElementById('episode-summary').textContent = 'Error: ' + String(e);
+      }
+    }
+
+    async function submitEval() {
+      if (!jobId) return;
+      const decision = Array.from(document.querySelectorAll('input[name="decision"]')).find(r => r.checked)?.value;
+      if (!decision) {
+        alert('Please select Yes or No.');
+        return;
+      }
+      const comments = document.getElementById('comments').value || '';
+      const step_scores = Object.entries(stepScores).map(([step_index, score]) => ({ step_index: parseInt(step_index, 10), score }));
+
+      const statusEl = document.getElementById('eval-status');
+      statusEl.textContent = 'Submitting…';
+      statusEl.className = 'status-pill';
+      document.getElementById('btn-submit').disabled = true;
+
+      try {
+        const body = { decision, comments };
+        if (step_scores.length) body.step_scores = step_scores;
+        const resp = await fetch(`${API_BASE}/human-eval/${jobId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error((data && data.detail) || 'HTTP ' + resp.status);
+
+        statusEl.textContent = 'Saved';
+        statusEl.classList.add('saved');
+        let metaText = 'Last evaluation: ' + decision.toUpperCase() + ' at ' + (data.evaluation && data.evaluation.timestamp ? new Date(data.evaluation.timestamp).toLocaleString() : '');
+        if (data.evaluation && data.evaluation.step_scores && data.evaluation.step_scores.length) {
+          const counts = { correct: 0, flawed: 0, critical_error: 0 };
+          data.evaluation.step_scores.forEach(s => { counts[s.score] = (counts[s.score] || 0) + 1; });
+          const parts = [];
+          if (counts.correct) parts.push(counts.correct + ' Correct');
+          if (counts.flawed) parts.push(counts.flawed + ' Flawed');
+          if (counts.critical_error) parts.push(counts.critical_error + ' Critical Error');
+          metaText += '. Step scores: ' + parts.join(', ') + '.';
+        }
+        document.getElementById('eval-meta').textContent = metaText;
+        document.getElementById('eval-count').textContent = String(data.total_evaluations ?? (jobData.human_evaluations?.length ?? 0) + 1);
+      } catch (e) {
+        statusEl.textContent = 'Error';
+        statusEl.classList.add('error');
+        document.getElementById('eval-meta').textContent = 'Failed: ' + String(e);
+      } finally {
+        document.getElementById('btn-submit').disabled = false;
+      }
+    }
+
+    document.getElementById('btn-submit').addEventListener('click', submitEval);
+    document.getElementById('btn-exit').addEventListener('click', () => { window.close(); });
+
+    loadJob();
+  </script>
+</body>
+</html>

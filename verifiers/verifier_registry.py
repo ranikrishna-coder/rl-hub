@@ -10,6 +10,7 @@ from .operational_verifier import OperationalVerifier
 from .financial_verifier import FinancialVerifier
 from .compliance_verifier import ComplianceVerifier
 from .ensemble_verifier import EnsembleVerifier
+from .jira_verifier import JiraWorkflowVerifier
 
 
 class VerifierRegistry:
@@ -27,7 +28,8 @@ class VerifierRegistry:
         'operational': OperationalVerifier,
         'financial': FinancialVerifier,
         'compliance': ComplianceVerifier,
-        'ensemble': EnsembleVerifier
+        'ensemble': EnsembleVerifier,
+        'jira_workflow': JiraWorkflowVerifier,
     }
     
     _instances: Dict[str, BaseVerifier] = {}

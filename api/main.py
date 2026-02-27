@@ -17,6 +17,48 @@ import sys
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
+def _load_local_env_file() -> None:
+    """
+    Lightweight .env loader so Jira credentials can be configured
+    in a file instead of shell exports.
+
+    - Looks for a .env file in the project root (same level as api/, apps/, etc.)
+    - Does NOT override environment variables that are already set
+    - Ignores comments and blank lines
+    """
+    try:
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        env_path = os.path.join(project_root, ".env")
+        if not os.path.exists(env_path):
+            return
+
+        with open(env_path, "r") as f:
+            for raw_line in f:
+                line = raw_line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                # Strip optional surrounding quotes
+                value = value.strip().strip('"').strip("'")
+                if not key:
+                    continue
+                # For Jira-related settings, always prefer the .env value
+                if key.startswith("JIRA_"):
+                    os.environ[key] = value
+                # For everything else, don't override existing env vars
+                elif key not in os.environ:
+                    os.environ[key] = value
+    except Exception:
+        # Never break app startup because of .env parsing problems
+        pass
+
+
+# Load .env if present so Jira config can live in the app repo
+_load_local_env_file()
+
+
 from environments import HealthcareRLEnvironment
 from portal.environment_registry import get_environment_class, list_all_environments
 
@@ -99,6 +141,36 @@ class TrainingResponse(BaseModel):
     message: str
 
 
+# RL-Env-Studio SPA: serve built React app at /studio
+_studio_dir = os.path.join(static_dir, "studio")
+_studio_index = os.path.join(_studio_dir, "index.html")
+
+
+@app.get("/studio")
+async def studio_root():
+    """Serve RL-Env-Studio SPA (Dashboard, Scenarios, Verifiers, Gym, Training, etc.)"""
+    if os.path.isfile(_studio_index):
+        return FileResponse(_studio_index)
+    raise HTTPException(
+        status_code=404,
+        detail="RL-Env-Studio not built. Run: npm run build:studio",
+    )
+
+
+@app.get("/studio/{full_path:path}")
+async def studio_spa(full_path: str):
+    """Serve RL-Env-Studio static assets or SPA fallback for client-side routes"""
+    file_path = os.path.join(_studio_dir, full_path)
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
+    if os.path.isfile(_studio_index):
+        return FileResponse(_studio_index)  # SPA fallback for /studio/verifiers etc.
+    raise HTTPException(
+        status_code=404,
+        detail="RL-Env-Studio not built. Run: npm run build:studio",
+    )
+
+
 @app.get("/")
 async def root():
     """Root endpoint - serves the catalog UI"""
@@ -112,7 +184,9 @@ async def root():
         "endpoints": {
             "catalog": "/ (this page)",
             "simulation_console": "/test-console",
+            "studio": "/studio",
             "environments": "/environments",
+            "jira_mock_data": "/jira-mock-data",
             "train": "/train/{environment_name}",
             "kpis": "/kpis/{environment_name}",
             "training_status": "/training/{job_id}",
@@ -120,6 +194,360 @@ async def root():
             "validate_all": "/validate-all",
             "download_model": "/models/{algorithm}/{model_filename}"
         }
+    }
+
+
+def _load_jira_mock_data() -> Dict[str, Any]:
+    """Load Jira mock data from apps/workflow_definitions/jira_mock_data.json."""
+    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path = os.path.join(base, "apps", "workflow_definitions", "jira_mock_data.json")
+    if not os.path.exists(path):
+        return {"issues": [], "comment_threads": {}, "sample_workflows": {}}
+    with open(path, "r") as f:
+        return json.load(f)
+
+
+def _build_live_jira_snapshot(max_issues: int = 50) -> Dict[str, Any]:
+    """
+    Build a Jira mock-data-like snapshot from a live Jira project for training.
+    - Reads JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN, JIRA_PROJECT_KEY
+    - Fetches issues via /rest/api/3/search
+    - For each issue, fetches valid transitions via /rest/api/3/issue/{key}/transitions
+    - Returns a dict shaped like jira_mock_data.json (issues + reward_config passthrough)
+    """
+    base_url = os.getenv("JIRA_BASE_URL")
+    email = os.getenv("JIRA_EMAIL")
+    api_token = os.getenv("JIRA_API_TOKEN")
+    project_key = os.getenv("JIRA_PROJECT_KEY")
+
+    if not (base_url and email and api_token and project_key):
+        raise RuntimeError("JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN, and JIRA_PROJECT_KEY must be set to use live Jira for training.")
+
+    try:
+        import requests
+    except ImportError as e:
+        raise RuntimeError("requests library is required for live Jira training. Install with: pip install requests") from e
+
+    # Base search to pull recent issues for the project
+    search_url = base_url.rstrip("/") + "/rest/api/3/search"
+    jql = f"project = {project_key} ORDER BY created DESC"
+    params = {
+        "jql": jql,
+        "maxResults": max_issues,
+        "fields": "summary,description,status",
+    }
+    resp = requests.get(search_url, params=params, auth=(email, api_token), timeout=15)
+    if resp.status_code != 200:
+        raise RuntimeError(f"Jira search failed ({resp.status_code}): {resp.text}")
+
+    data = resp.json()
+    issues = data.get("issues", [])
+
+    # Load existing mock data once so we can reuse reward_config
+    existing_mock = _load_jira_mock_data()
+    reward_config = existing_mock.get("reward_config", {})
+
+    # Build issues list compatible with jira_mock_data.json
+    snapshot_issues = []
+    for issue in issues:
+        key = issue.get("key")
+        fields = issue.get("fields") or {}
+        status = (fields.get("status") or {}).get("name") or "To Do"
+        status_id = (fields.get("status") or {}).get("id") or ""
+        summary = fields.get("summary") or ""
+        description = fields.get("description") or ""
+
+        # Fetch transitions for this issue
+        transitions_url = base_url.rstrip("/") + f"/rest/api/3/issue/{key}/transitions"
+        t_resp = requests.get(transitions_url, auth=(email, api_token), timeout=10)
+        valid_transitions = []
+        if t_resp.status_code == 200:
+            t_data = t_resp.json()
+            for t in t_data.get("transitions", []) or []:
+                valid_transitions.append({"id": t.get("id"), "name": t.get("name")})
+
+        snapshot_issues.append(
+            {
+                "key": key,
+                "summary": summary,
+                "description": description,
+                "status": status,
+                "statusId": status_id,
+                "valid_transitions": valid_transitions,
+            }
+        )
+
+    return {
+        "issues": snapshot_issues,
+        "comment_threads": existing_mock.get("comment_threads", {}),
+        "sample_workflows": existing_mock.get("sample_workflows", {}),
+        "reward_config": reward_config,
+    }
+
+
+@app.get("/jira-mock-data")
+async def get_jira_mock_data():
+    """Return mock Jira issues and comment threads for sample use cases (issue resolution, comment management)."""
+    return _load_jira_mock_data()
+
+
+class JiraSubtaskRequest(BaseModel):
+    """Request model for creating a live Jira sub-task under a parent issue (e.g. epic)."""
+    parent_key: str
+    summary: str
+    description: Optional[str] = None
+    project_key: Optional[str] = None
+    issue_type_name: Optional[str] = None  # Override for non-standard sub-task type names
+
+
+@app.post("/jira/subtasks")
+async def create_jira_subtask(req: JiraSubtaskRequest):
+    """
+    Create a real Jira sub-task under a parent issue when JIRA_* env vars are configured.
+    This is optional and does not affect mock-based Jira workflows.
+    """
+    base_url = os.getenv("JIRA_BASE_URL")
+    email = os.getenv("JIRA_EMAIL")
+    api_token = os.getenv("JIRA_API_TOKEN")
+    default_project = os.getenv("JIRA_PROJECT_KEY")
+    # Allow sites/projects where the sub-task issue type has a custom name
+    default_issue_type_name = os.getenv("JIRA_SUBTASK_ISSUE_TYPE_NAME", "Sub-task")
+
+    if not (base_url and email and api_token):
+        raise HTTPException(
+            status_code=400,
+            detail="JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN must be set on the server to use live Jira."
+        )
+
+    # Build Jira Cloud / Server REST API request
+    url = base_url.rstrip("/") + "/rest/api/3/issue"
+
+    # Build list of candidate issue type names, allowing multiple values like "subtask,task,story"
+    raw_names = (req.issue_type_name or default_issue_type_name or "Sub-task")
+    candidate_names = [
+        n.strip() for n in str(raw_names).split(",") if str(n).strip()
+    ]
+    if not candidate_names:
+        candidate_names = ["Sub-task"]
+
+    # Prefer "subtask-like" names but allow task/story as fallbacks
+    preferred_order = ["sub-task", "subtask", "Sub-task", "Subtask", "task", "Task", "story", "Story"]
+    # Reorder candidate_names to follow preferred_order where possible
+    ordered_candidates: list[str] = []
+    seen = set()
+    for name in preferred_order:
+        for c in candidate_names:
+            if c.lower() == name.lower() and c.lower() not in seen:
+                ordered_candidates.append(c)
+                seen.add(c.lower())
+    for c in candidate_names:
+        if c.lower() not in seen:
+            ordered_candidates.append(c)
+
+    # By default, use the first candidate name; this will be overridden with an ID
+    # if we successfully discover a matching issue type via Jira's API.
+    effective_issue_type_name = ordered_candidates[0]
+
+    fields: Dict[str, Any] = {
+        "parent": {"key": req.parent_key},
+        "summary": req.summary,
+        "issuetype": {"name": effective_issue_type_name},
+    }
+    if req.description:
+        # Jira Cloud v3 API expects description in Atlassian Document Format (ADF)
+        fields["description"] = {
+            "type": "doc",
+            "version": 1,
+            "content": [
+                {
+                    "type": "paragraph",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": req.description,
+                        }
+                    ],
+                }
+            ],
+        }
+    # Jira requires a valid project for issue creation, even for sub-tasks.
+    # Prefer an explicit project_key from the request; otherwise fall back to JIRA_PROJECT_KEY.
+    effective_project_key = req.project_key or default_project
+    if effective_project_key:
+        fields["project"] = {"key": effective_project_key}
+
+    payload = {"fields": fields}
+
+    try:
+        import requests  # Local import to avoid hard dependency during non-Jira usage
+        headers = {"Accept": "application/json", "Content-Type": "application/json"}
+        resp = requests.post(
+            url,
+            json=payload,
+            auth=(email, api_token),
+            headers=headers,
+            timeout=10,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to contact Jira: {e}")
+
+    if resp.status_code not in (200, 201):
+        msg = f"Jira API error {resp.status_code}"
+        jira_body: Any = None
+        try:
+            jira_body = resp.json()
+            # Prefer concise error details without leaking sensitive data
+            err = jira_body.get("errorMessages") or jira_body.get("errors") or jira_body.get("message")
+            if err:
+                msg += f": {err}"
+        except Exception:
+            jira_body = resp.text
+        # Return structured detail so the client can see exactly what Jira said
+        raise HTTPException(
+            status_code=resp.status_code,
+            detail={
+                "message": msg,
+                "jira_response": jira_body,
+                "jira_url": url,
+            },
+        )
+
+    data = resp.json()
+    return {
+        "key": data.get("key"),
+        "id": data.get("id"),
+        "self": data.get("self"),
+    }
+
+
+@app.delete("/jira/issues/{issue_key}")
+async def delete_jira_issue(issue_key: str):
+    """
+    Delete a Jira issue (including sub-tasks) by key in a live Jira instance.
+    This is used by the simulation console's JiraSubtaskManagement delete scenario.
+    """
+    base_url = os.getenv("JIRA_BASE_URL")
+    email = os.getenv("JIRA_EMAIL")
+    api_token = os.getenv("JIRA_API_TOKEN")
+
+    if not (base_url and email and api_token):
+        raise HTTPException(
+            status_code=400,
+            detail="JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN must be set on the server to use live Jira."
+        )
+
+    url = base_url.rstrip("/") + f"/rest/api/3/issue/{issue_key}"
+
+    try:
+        import requests
+        resp = requests.delete(
+            url,
+            auth=(email, api_token),
+            timeout=10,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to contact Jira: {e}")
+
+    if resp.status_code not in (200, 204):
+        msg = f"Jira API error {resp.status_code}"
+        jira_body: Any = None
+        try:
+            jira_body = resp.json()
+            err = jira_body.get("errorMessages") or jira_body.get("errors") or jira_body.get("message")
+            if err:
+                msg += f": {err}"
+        except Exception:
+            jira_body = resp.text
+        raise HTTPException(
+            status_code=resp.status_code,
+            detail={
+                "message": msg,
+                "jira_response": jira_body,
+                "jira_url": url,
+            },
+        )
+
+    return {"status": "deleted", "issue_key": issue_key}
+
+
+@app.delete("/jira/issues/{issue_key}/subtasks")
+async def delete_jira_subtasks(issue_key: str):
+    """
+    Delete all subtasks under a given parent issue key in a live Jira instance.
+    Used by the JiraSubtaskManagement delete_subtask scenario when a task key is provided.
+    """
+    base_url = os.getenv("JIRA_BASE_URL")
+    email = os.getenv("JIRA_EMAIL")
+    api_token = os.getenv("JIRA_API_TOKEN")
+
+    if not (base_url and email and api_token):
+        raise HTTPException(
+            status_code=400,
+            detail="JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN must be set on the server to use live Jira."
+        )
+
+    try:
+        import requests
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail="requests library is required for Jira operations.") from e
+
+    issue_url = base_url.rstrip("/") + f"/rest/api/3/issue/{issue_key}"
+
+    try:
+        resp = requests.get(issue_url, params={"fields": "subtasks"}, auth=(email, api_token), timeout=10)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to contact Jira: {e}")
+
+    if resp.status_code != 200:
+        msg = f"Jira API error {resp.status_code}"
+        jira_body: Any = None
+        try:
+            jira_body = resp.json()
+            err = jira_body.get("errorMessages") or jira_body.get("errors") or jira_body.get("message")
+            if err:
+                msg += f": {err}"
+        except Exception:
+            jira_body = resp.text
+        raise HTTPException(
+            status_code=resp.status_code,
+            detail={
+                "message": msg,
+                "jira_response": jira_body,
+                "jira_url": issue_url,
+            },
+        )
+
+    data = resp.json()
+    subtasks = (data.get("fields") or {}).get("subtasks") or []
+    if not subtasks:
+        return {"status": "no_subtasks", "parent_issue_key": issue_key, "deleted": [], "errors": []}
+
+    deleted: list[str] = []
+    errors: list[Dict[str, Any]] = []
+    for st in subtasks:
+        st_key = st.get("key")
+        if not st_key:
+            continue
+        del_url = base_url.rstrip("/") + f"/rest/api/3/issue/{st_key}"
+        try:
+            del_resp = requests.delete(del_url, auth=(email, api_token), timeout=10)
+        except Exception as e:
+            errors.append({"subtask": st_key, "error": str(e)})
+            continue
+        if del_resp.status_code in (200, 204):
+            deleted.append(st_key)
+        else:
+            try:
+                body = del_resp.json()
+            except Exception:
+                body = del_resp.text
+            errors.append({"subtask": st_key, "status": del_resp.status_code, "response": body})
+
+    return {
+        "status": "ok",
+        "parent_issue_key": issue_key,
+        "deleted": deleted,
+        "errors": errors,
     }
 
 
@@ -275,12 +703,20 @@ async def start_training(
                     detail=f"Failed to load environment class for '{final_env_name}'. Class path: {class_path}. Check that the environment file exists and the class name is correct."
                 )
         
+        # Jira envs: apply training flow from apps folder (Training.tsx - 320 episodes, short max_steps)
+        req = request
+        if final_env_name in ("JiraIssueResolution", "JiraStatusUpdate", "JiraCommentManagement", "JiraSubtaskManagement"):
+            if req.num_episodes == 100:
+                req = req.model_copy(update={"num_episodes": 320})
+            if req.max_steps == 1000:
+                req = req.model_copy(update={"max_steps": 50})
+        
         # Create job ID
         import uuid
         job_id = str(uuid.uuid4())
         
         # Create models directory if it doesn't exist
-        models_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", request.algorithm.lower())
+        models_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", req.algorithm.lower())
         os.makedirs(models_dir, exist_ok=True)
         
         # Model path
@@ -292,13 +728,13 @@ async def start_training(
             "job_id": job_id,
             "environment_name": final_env_name,
             "status": "running",
-            "algorithm": request.algorithm,
-            "num_episodes": request.num_episodes,
+            "algorithm": req.algorithm,
+            "num_episodes": req.num_episodes,
             "progress": 0,
             "results": None,
             "model_path": model_path,
-            "model_url": f"/models/{request.algorithm.lower()}/{model_filename}",
-            "dataset_url": request.dataset_url
+            "model_url": f"/models/{req.algorithm.lower()}/{model_filename}",
+            "dataset_url": req.dataset_url
         }
         
         # Start training in background
@@ -307,13 +743,13 @@ async def start_training(
             job_id,
             env_class,
             final_env_name,
-            request.config,
-            request.algorithm,
-            request.num_episodes,
-            request.max_steps,
-            request.dataset_url,
+            req.config,
+            req.algorithm,
+            req.num_episodes,
+            req.max_steps,
+            req.dataset_url,
             model_path,
-            request.verifier_config  # Pass verifier config
+            req.verifier_config  # Pass verifier config
         )
         
         return TrainingResponse(
@@ -360,10 +796,68 @@ def run_training(
         # Validate environment class
         if env_class is None:
             raise ValueError(f"Environment class for {environment_name} is None - check registry")
+
+        # Jira envs: reset mock data to original file before training (restore from backup if it exists),
+        # or optionally build a live Jira snapshot when enabled.
+        JIRA_ENV_NAMES = ("JiraIssueResolution", "JiraStatusUpdate", "JiraCommentManagement", "JiraSubtaskManagement")
+        jira_live_snapshot: Optional[Dict[str, Any]] = None
+        if environment_name in JIRA_ENV_NAMES:
+            use_live_flag = os.getenv("JIRA_USE_LIVE_FOR_TRAINING", "").lower() in ("1", "true", "yes")
+            if use_live_flag:
+                try:
+                    jira_live_snapshot = _build_live_jira_snapshot()
+                    training_jobs[job_id]["jira_live_training"] = {
+                        "enabled": True,
+                        "issue_count": len(jira_live_snapshot.get("issues", [])),
+                    }
+                except Exception as e:
+                    # Fall back to file-based mock data if live snapshot fails
+                    training_jobs[job_id]["jira_live_training_error"] = str(e)
+                    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    mock_path = os.path.join(base, "apps", "workflow_definitions", "jira_mock_data.json")
+                    orig_path = os.path.join(base, "apps", "workflow_definitions", "jira_mock_data.original.json")
+                    if os.path.exists(orig_path) and os.path.exists(mock_path):
+                        import shutil
+                        shutil.copy2(orig_path, mock_path)
+            else:
+                base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                mock_path = os.path.join(base, "apps", "workflow_definitions", "jira_mock_data.json")
+                orig_path = os.path.join(base, "apps", "workflow_definitions", "jira_mock_data.original.json")
+                if os.path.exists(orig_path) and os.path.exists(mock_path):
+                    import shutil
+                    shutil.copy2(orig_path, mock_path)
         
-        # Create verifier if config provided
+        # Create verifier if config provided, or for Jira envs use app-defined Jira verifier
         verifier = None
-        if verifier_config:
+        jira_envs_workflow_map = {
+            "JiraIssueResolution": "issue_resolution",
+            "JiraStatusUpdate": "status_update",
+            "JiraCommentManagement": "comment_management",
+            "JiraSubtaskManagement": "subtask_management",
+        }
+        # Allow UI to choose Jira verifier via verifier_config.metadata.workflow_id
+        if (verifier_config or {}).get("type") == "jira_workflow" and (verifier_config or {}).get("metadata", {}).get("workflow_id"):
+            jira_env_workflow = verifier_config["metadata"]["workflow_id"]
+        else:
+            jira_env_workflow = jira_envs_workflow_map.get(environment_name)
+
+        if jira_env_workflow and environment_name in jira_envs_workflow_map:
+            # Jira environments: use Jira verifier from apps folder (Verifiers.tsx / workflow_definitions)
+            try:
+                verifier_config_obj = VerifierConfig(
+                    weights=((verifier_config or {}).get("weights")) or {},
+                    thresholds=((verifier_config or {}).get("thresholds")) or {},
+                    enabled=((verifier_config or {}).get("enabled", True)),
+                    metadata={"workflow_id": jira_env_workflow}
+                )
+                verifier = VerifierRegistry.create_verifier(
+                    "jira_workflow", verifier_config_obj,
+                    instance_id=f"jira_{environment_name}_{id(verifier_config_obj)}"
+                )
+            except Exception as e:
+                print(f"Warning: Failed to create Jira verifier: {e}, using env built-in")
+                verifier = None
+        elif verifier_config:
             try:
                 verifier_type = verifier_config.get("type", "ensemble")
                 if verifier_type == "ensemble" or verifier_type is None:
@@ -388,18 +882,23 @@ def run_training(
             import inspect
             sig = inspect.signature(env_class.__init__)
             has_verifier_param = 'verifier' in sig.parameters
-            
+
+            # Merge in Jira live snapshot if available
+            effective_config = (config or {}).copy() if config is not None else {}
+            if jira_live_snapshot is not None and environment_name in JIRA_ENV_NAMES:
+                effective_config["mock_data_override"] = jira_live_snapshot
+
             # Try with config, max_steps, and verifier
             if verifier is not None and has_verifier_param:
-                if config is not None:
-                    env = env_class(config=config, max_steps=max_steps, verifier=verifier)
+                if effective_config:
+                    env = env_class(config=effective_config, max_steps=max_steps, verifier=verifier)
                 else:
                     env = env_class(max_steps=max_steps, verifier=verifier)
-            elif config is not None:
+            elif effective_config:
                 try:
-                    env = env_class(config=config, max_steps=max_steps)
+                    env = env_class(config=effective_config, max_steps=max_steps)
                 except TypeError:
-                    env = env_class(config=config)
+                    env = env_class(config=effective_config)
             else:
                 try:
                     env = env_class(max_steps=max_steps)
@@ -411,16 +910,31 @@ def run_training(
         # Validate environment has required methods
         if not hasattr(env, 'reset') or not hasattr(env, 'step') or not hasattr(env, 'action_space'):
             raise ValueError(f"Environment {environment_name} does not have required Gymnasium interface")
-        
+
+        # Jira SLM policy: use Small Language Model for Jira envs when algorithm is SLM
+        jira_slm_policy = None
+        JIRA_ENVS_FOR_SLM = ("JiraIssueResolution", "JiraStatusUpdate", "JiraCommentManagement", "JiraSubtaskManagement")
+        if algorithm.upper() == "SLM" and environment_name in JIRA_ENVS_FOR_SLM and hasattr(env, "_expected_order"):
+            try:
+                from policies.jira_slm_policy import JiraSLMPolicy
+                jira_slm_policy = JiraSLMPolicy(env._expected_order, use_slm=True)
+            except Exception as e:
+                print(f"Warning: Jira SLM policy creation failed: {e}. Using random actions. Install: pip install transformers accelerate")
+
         # Simple training loop (in production, use stable-baselines3 or similar)
         total_rewards = []
         consecutive_errors = 0
         # Allow up to 20% of episodes to fail (min 10, max 50); also stop on 10+ consecutive failures
         max_total_errors = min(50, max(10, int(0.20 * num_episodes)))
+        # For Jira Subtask Management, capture episodes where a subtask is created
+        subtask_episodes: list[Dict[str, Any]] = []
         for episode in range(num_episodes):
             try:
-                # Reset environment
-                reset_result = env.reset()
+                # Reset environment (pass episode_index so Jira env cycles through all mock issues)
+                if environment_name in JIRA_ENVS_FOR_SLM:
+                    reset_result = env.reset(seed=episode, options={"episode_index": episode})
+                else:
+                    reset_result = env.reset(seed=episode)
                 if isinstance(reset_result, tuple):
                     state, info = reset_result
                 else:
@@ -431,9 +945,27 @@ def run_training(
                 episode_steps = 0
                 
                 for step in range(max_steps):
-                    # Sample action from action space
+                    # Get action: SLM policy for Jira when algorithm=SLM, else random
                     try:
-                        action = env.action_space.sample()
+                        if jira_slm_policy is not None:
+                            action, step_info = jira_slm_policy.predict(
+                                state, deterministic=False, return_explanation=True
+                            )
+                            action = int(action)
+                            # Keep one explainability sample (last step of first episode, or every 50th step)
+                            if step_info and (episode == 0 and step == 0 or (episode * max_steps + step) % 50 == 0):
+                                training_jobs[job_id]["slm_explainability"] = {
+                                    "episode": episode + 1,
+                                    "step": step + 1,
+                                    "prompt": step_info.get("prompt"),
+                                    "raw_output": step_info.get("raw_output"),
+                                    "parsed_tool": step_info.get("parsed_tool"),
+                                    "correct_next": step_info.get("correct_next"),
+                                    "action": action,
+                                    "explanation": step_info.get("explanation"),
+                                }
+                        else:
+                            action = env.action_space.sample()
                     except Exception as e:
                         raise ValueError(f"Failed to sample action from action space: {str(e)}")
                     
@@ -454,6 +986,22 @@ def run_training(
                     
                     episode_reward += float(reward)
                     episode_steps += 1
+
+                    # JiraSubtaskManagement: log when create_subtask is used
+                    if environment_name == "JiraSubtaskManagement":
+                        try:
+                            ti = (info.get("transition_info") or info) if isinstance(info, dict) else {}
+                            if ti.get("tool_used") == "create_subtask" and ti.get("valid_step"):
+                                subtask_episodes.append({
+                                    "episode": episode + 1,
+                                    "step": step + 1,
+                                    "issue_key": ti.get("current_issue_key"),
+                                    "tool_sequence": ti.get("tool_sequence_after") or [],
+                                    "workflow_id": ti.get("workflow_id")
+                                })
+                        except Exception:
+                            # Logging is best-effort; don't break training
+                            pass
                     
                     if terminated or truncated:
                         break
@@ -487,6 +1035,13 @@ def run_training(
                 if len(training_jobs[job_id]["episode_errors"]) > max_total_errors:
                     raise ValueError(f"Too many total episode errors (>{max_total_errors}). Last error: {error_msg}")
         
+        # Attach SLM explainability: what the model is training on
+        if jira_slm_policy is not None:
+            try:
+                training_jobs[job_id]["slm_training_context"] = jira_slm_policy.get_training_context()
+            except Exception as e:
+                training_jobs[job_id]["slm_training_context_error"] = str(e)
+
         # Calculate final statistics
         if len(total_rewards) > 0:
             mean_reward = sum(total_rewards) / len(total_rewards)
@@ -517,6 +1072,26 @@ def run_training(
         metadata_path = model_path.replace(".zip", "_metadata.json")
         with open(metadata_path, "w") as f:
             json.dump(model_metadata, f, indent=2)
+
+        # For JiraSubtaskManagement, save a subtask action log alongside the model
+        if environment_name == "JiraSubtaskManagement" and subtask_episodes:
+            subtask_log = {
+                "job_id": job_id,
+                "environment_name": environment_name,
+                "algorithm": algorithm,
+                "num_episodes": num_episodes,
+                "subtask_episodes": subtask_episodes,
+            }
+            subtask_log_path = model_path.replace(".zip", "_subtasks.json")
+            try:
+                with open(subtask_log_path, "w") as f:
+                    json.dump(subtask_log, f, indent=2)
+                # Expose download URL in training job payload
+                rel_url = f"/models/{algorithm.lower()}/" + os.path.basename(subtask_log_path)
+                training_jobs[job_id]["subtask_log_path"] = subtask_log_path
+                training_jobs[job_id]["subtask_log_url"] = rel_url
+            except Exception as e:
+                training_jobs[job_id]["subtask_log_error"] = str(e)
         
         # Store results
         training_jobs[job_id]["status"] = "completed"
@@ -546,6 +1121,59 @@ async def get_training_status(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
     
     return training_jobs[job_id]
+
+
+class StepScore(BaseModel):
+    """Per-step score for reasoning step evaluation."""
+    step_index: int
+    score: str  # "correct" | "flawed" | "critical_error"
+
+
+class HumanEvalRequest(BaseModel):
+    """Request model for human evaluation of a training job."""
+    decision: str  # "yes" (approved) or "no" (rejected)
+    comments: Optional[str] = None
+    step_scores: Optional[List[StepScore]] = None  # per-step scores for reasoning steps
+
+
+@app.post("/human-eval/{job_id}")
+async def submit_human_eval(job_id: str, req: HumanEvalRequest):
+    """
+    Persist a human evaluation for a training job.
+    Used after verifier step to capture human judgment (for RLHF / model selection).
+    Supports optional per-step scores for reasoning steps.
+    """
+    job = training_jobs.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    decision_normalized = (req.decision or "").strip().lower()
+    if decision_normalized not in ("yes", "no"):
+        raise HTTPException(status_code=400, detail="decision must be 'yes' or 'no'")
+
+    from datetime import datetime
+
+    entry = {
+        "decision": decision_normalized,
+        "comments": req.comments or "",
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+    }
+    if req.step_scores:
+        entry["step_scores"] = [{"step_index": s.step_index, "score": s.score} for s in req.step_scores]
+
+    # Append to per-job human evaluations list
+    evals = job.get("human_evaluations") or []
+    evals.append(entry)
+    job["human_evaluations"] = evals
+    # Store latest for quick access
+    job["last_human_evaluation"] = entry
+
+    return {
+        "success": True,
+        "job_id": job_id,
+        "evaluation": entry,
+        "total_evaluations": len(evals),
+    }
 
 
 @app.get("/kpis/{environment_name}")

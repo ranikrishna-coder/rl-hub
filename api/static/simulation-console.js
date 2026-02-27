@@ -24,6 +24,9 @@ let simulationInterval = null;
 let stepCount = 0;
 let metricsHistory = [];
 let allEnvironments = [];
+let jiraMockData = null;
+let jiraIssueIndex = 0;  // Cycles through all issues on each Initialize (agent runs across all)
+let jiraSubtaskLog = []; // Collects all subtasks created in simulation for download
 
 // Environment-specific configurations
 const environmentConfigs = {
@@ -85,31 +88,135 @@ const environmentConfigs = {
         ],
         generateState: (config) => generateScheduleState(config),
         processStep: (state, action) => processScheduleStep(state, action)
+    },
+    // Jira sample use cases (mock data from /jira-mock-data)
+    'JiraIssueResolution': {
+        configFields: [],
+        generateState: (config) => generateJiraIssueResolutionState(config),
+        processStep: (state, action) => processJiraIssueResolutionStep(state, action)
+    },
+    'JiraStatusUpdate': {
+        configFields: [
+            { id: 'jira-scenario-status', label: 'Scenario:', type: 'select', options: ['in_progress_to_blocked', 'in_progress_to_done'], value: 'in_progress_to_blocked', scenarioLabels: { 'in_progress_to_blocked': 'Change from in-progress to blocked', 'in_progress_to_done': 'Change from in-progress to done' } }
+        ],
+        generateState: (config) => generateJiraStatusUpdateState(config),
+        processStep: (state, action) => processJiraStatusUpdateStep(state, action)
+    },
+    'JiraCommentManagement': {
+        configFields: [],
+        generateState: (config) => generateJiraCommentManagementState(config),
+        processStep: (state, action) => processJiraCommentManagementStep(state, action)
+    },
+    'JiraSubtaskManagement': {
+        configFields: [
+            { id: 'jira-subtask-summary', label: 'Subtask summary:', type: 'text', value: '', placeholder: 'e.g. Reproduce SSO 500 error' },
+            { id: 'jira-subtask-description', label: 'Subtask description (optional):', type: 'text', value: '', placeholder: 'Additional context for the subtask' },
+            { id: 'jira-subtask-scenario', label: 'Scenario:', type: 'select', options: ['create_subtask', 'delete_subtask'], value: 'create_subtask', scenarioLabels: { 'create_subtask': 'Create sub-task', 'delete_subtask': 'Delete sub task' } },
+            { id: 'jira-subtask-use-live', label: 'Use live Jira (server configured)', type: 'checkbox', value: false },
+            { id: 'jira-subtask-parent-key', label: 'Live Jira parent issue key (task):', type: 'text', value: '', placeholder: 'e.g. PROJ-123' }
+        ],
+        generateState: (config) => generateJiraSubtaskManagementState(config),
+        processStep: (state, action) => processJiraSubtaskManagementStep(state, action)
     }
     // Generic config will be used for environments not in this list
 };
 
+// Load Jira mock data for sample use cases
+async function loadJiraMockData() {
+    try {
+        const response = await fetch(`${API_BASE}/jira-mock-data`);
+        if (response.ok) jiraMockData = await response.json();
+    } catch (e) {
+        console.warn('Jira mock data not loaded, using fallback:', e);
+    }
+    if (!jiraMockData || !jiraMockData.issues) {
+        jiraMockData = {
+            issues: [
+                // Fallback sample issues across multiple projects; when API is available,
+                // full jira_mock_data.json is loaded instead.
+                { key: 'PROJ-101', summary: 'Login 500 with SSO', description: 'Server returns 500 when SSO is enabled.', status: 'In Progress', valid_transitions: [{ id: '31', name: 'Done' }] },
+                { key: 'PROJ-102', summary: 'Dashboard export PII', description: 'CSV export includes PII columns; should be redacted.', status: 'To Do', valid_transitions: [{ id: '21', name: 'In Progress' }] },
+                { key: 'PROJ-103', summary: 'API rate limit not applied', description: 'Internal service accounts bypass rate limiting.', status: 'In Progress', valid_transitions: [{ id: '31', name: 'Done' }] },
+                { key: 'PROJ-104', summary: 'Support Excel export', description: 'Support Excel export in notifications.', status: 'To Do', valid_transitions: [{ id: '21', name: 'In Progress' }] },
+                { key: 'PROJ-201', summary: 'Add multi-project dashboard', description: 'New dashboard aggregating multiple Jira projects.', status: 'In Progress', valid_transitions: [{ id: '31', name: 'Done' }] },
+                { key: 'OPS-301', summary: 'Server maintenance task', description: 'Planned maintenance for Jira infrastructure.', status: 'To Do', valid_transitions: [{ id: '21', name: 'In Progress' }] }
+            ],
+            comment_threads: {
+                'PROJ-101': [{ id: '1', author: 'Alice', body: 'Reproduced on staging.' }],
+                'PROJ-102': [],
+                'PROJ-103': [],
+                'PROJ-104': [],
+                'PROJ-201': [],
+                'OPS-301': []
+            }
+        };
+        console.warn(`Using fallback Jira mock data with ${jiraMockData.issues.length} issues. To use full mock data, ensure ${API_BASE}/jira-mock-data is reachable.`);
+    }
+}
+
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadJiraMockData();
     loadEnvironments();
     setupEventListeners();
     setupRangeInputs();
     setupVerifierControls();
 });
 
-// Recommended verifier by software system (aligned with catalog/training)
+// Jira verifier options for dropdown (value used in API: jira_workflow:workflow_id)
+const JIRA_VERIFIER_OPTIONS = [
+    { value: 'jira_workflow:issue_resolution', label: 'Jira Issue Resolution' },
+    { value: 'jira_workflow:status_update', label: 'Jira Status Update' },
+    { value: 'jira_workflow:comment_management', label: 'Jira Comment Management' },
+    { value: 'jira_workflow:subtask_management', label: 'Jira Task Management' }
+];
+const JIRA_ENV_TO_WORKFLOW = { JiraIssueResolution: 'issue_resolution', JiraStatusUpdate: 'status_update', JiraCommentManagement: 'comment_management', JiraSubtaskManagement: 'subtask_management' };
+
+// Jira verifiers from app (Verifiers.tsx): per-environment verifier name and expected tool order
+const JIRA_VERIFIERS_BY_ENV = {
+    'JiraIssueResolution': {
+        name: 'Jira Issue Resolution',
+        description: 'Validates tool sequence and argument validity for Jira issue resolution.',
+        expected_order: ['get_issue_summary_and_description', 'get_transitions', 'transition_issue'],
+        usedInScenarios: ['Issue Resolution Flow', 'Status Update Workflow']
+    },
+    'JiraStatusUpdate': {
+        name: 'Jira Issue Resolution',
+        description: 'Validates valid transitions and status updates (same validator as Issue Resolution).',
+        expected_order: ['get_transitions', 'transition_issue'],
+        usedInScenarios: ['Status Update Workflow']
+    },
+    'JiraCommentManagement': {
+        name: 'Jira Comment Management',
+        description: 'Validates tool sequence and content for Jira comment workflows.',
+        expected_order: ['add_comment', 'get_comments'],
+        usedInScenarios: ['Comment Thread Management']
+    },
+    'JiraSubtaskManagement': {
+        name: 'Jira Subtask Management',
+        description: 'Validates tool sequence for adding subtasks to Jira issues.',
+        expected_order: ['get_issue_summary_and_description', 'create_subtask'],
+        usedInScenarios: ['Subtask Management']
+    }
+};
+
+// Recommended verifier by software system (aligned with catalog/training and app Verifiers.tsx)
 function getVerifierRecommendationForSystem(system) {
     if (!system || system === 'all') {
         return { type: 'ensemble', weights: { clinical: 0.35, operational: 0.3, financial: 0.2, compliance: 0.15 } };
     }
     const s = system.toLowerCase();
+    // Jira: use environment built-in verifier (workflow order); app verifiers in Verifiers.tsx
+    if (s.includes('jira') || s.includes('atlassian')) {
+        return { type: 'default' };
+    }
     if (s.includes('epic') || s.includes('cerner') || s.includes('allscripts') || s.includes('meditech')) {
         return { type: 'ensemble', weights: { clinical: 0.45, operational: 0.25, financial: 0.15, compliance: 0.15 } };
     }
-    if (s.includes('philips') || s.includes('ge healthcare')) {
+    if (s.includes('philips') || s.includes('ge ')) {
         return { type: 'ensemble', weights: { clinical: 0.3, operational: 0.45, financial: 0.15, compliance: 0.1 } };
     }
-    if (s.includes('change healthcare')) {
+    if (s.includes('change ')) {
         return { type: 'ensemble', weights: { clinical: 0.15, operational: 0.2, financial: 0.45, compliance: 0.2 } };
     }
     if (s.includes('veeva') || s.includes('iqvia')) {
@@ -134,10 +241,24 @@ function updateSimulationVerifierForSystem() {
     if (!systemSelect || !verifierTypeSelect) return;
     const rec = getVerifierRecommendationForSystem(systemSelect.value);
     verifierTypeSelect.value = rec.type;
-    if (verifierWeightsInput) verifierWeightsInput.value = JSON.stringify(rec.weights, null, 2);
-    if (verifierTypeSelect.value === 'ensemble') {
-        const g = document.getElementById('verifier-weights-group');
-        if (g) g.style.display = 'block';
+    if (verifierWeightsInput && rec.weights) verifierWeightsInput.value = JSON.stringify(rec.weights, null, 2);
+    const g = document.getElementById('verifier-weights-group');
+    if (g) g.style.display = (verifierTypeSelect.value === 'ensemble') ? 'block' : 'none';
+    updateJiraVerifierDisplay();
+}
+
+function updateJiraVerifierDisplay() {
+    const envName = currentEnvironment;
+    const verifierInfo = document.getElementById('jira-verifier-info');
+    if (!verifierInfo) return;
+    const v = JIRA_VERIFIERS_BY_ENV[envName];
+    if (v) {
+        verifierInfo.style.display = 'block';
+        verifierInfo.innerHTML = '<strong>Active verifier (from app):</strong> ' + v.name + '<br>' +
+            '<span class="verifier-desc">' + v.description + '</span><br>' +
+            '<span class="verifier-order">Tool order: ' + v.expected_order.join(' → ') + '</span>';
+    } else {
+        verifierInfo.style.display = 'none';
     }
 }
 
@@ -162,7 +283,12 @@ function getFilteredEnvironmentsForSystem() {
     if (system === 'all') return allEnvironments;
     return allEnvironments.filter(env => {
         const envSystems = (env.system || '').split(',').map(s => s.trim()).filter(Boolean);
-        return envSystems.includes(system);
+        const matchesSystem = envSystems.includes(system);
+        // When Jira is selected, only show RL Jira environments (category === 'jira')
+        if (matchesSystem && (system.includes('Jira') || system.includes('jira'))) {
+            return (env.category || '') === 'jira';
+        }
+        return matchesSystem;
     });
 }
 
@@ -253,8 +379,50 @@ function selectEnvironment(envName) {
     const displayName = formatEnvironmentName(envName);
     document.getElementById('console-title').textContent = `🩻 ${displayName} - Simulation Console`;
     
+    // For Jira envs, show Jira verifier options and set default to matching workflow
+    updateVerifierSelectForEnvironment(envName);
+
+    // Limit system selector to relevant system(s) for this environment
+    const systemSelect = document.getElementById('system-select');
+    if (systemSelect && env && env.system) {
+        const systems = (env.system || '').split(',').map(s => s.trim()).filter(Boolean);
+        if (systems.length === 1) {
+            systemSelect.innerHTML = `<option value="${systems[0].replace(/"/g, '&quot;')}">${systems[0]}</option>`;
+            systemSelect.value = systems[0];
+        } else if (systems.length > 1) {
+            systemSelect.innerHTML = systems.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('');
+            systemSelect.value = systems[0];
+        }
+    }
+
     // Load environment-specific configuration
     loadEnvironmentConfig(envName);
+    // Show correct Jira verifier (from app) for Jira envs
+    updateJiraVerifierDisplay();
+}
+
+function updateVerifierSelectForEnvironment(envName) {
+    const verifierTypeSelect = document.getElementById('verifier-type');
+    const verifierWeightsGroup = document.getElementById('verifier-weights-group');
+    if (!verifierTypeSelect) return;
+    const isJiraEnv = JIRA_VERIFIERS_BY_ENV[envName];
+    if (isJiraEnv) {
+        const defaultWorkflow = JIRA_ENV_TO_WORKFLOW[envName] || 'issue_resolution';
+        const hasMatchingVerifier = JIRA_VERIFIER_OPTIONS.some(o => o.value === 'jira_workflow:' + defaultWorkflow);
+        verifierTypeSelect.innerHTML = JIRA_VERIFIER_OPTIONS.map(o =>
+            `<option value="${o.value}"${o.value === 'jira_workflow:' + defaultWorkflow ? ' selected' : ''}>${o.label}</option>`
+        ).join('') + `<option value="default"${!hasMatchingVerifier ? ' selected' : ''}>Default (Environment Built-in)</option>`;
+        if (verifierWeightsGroup) verifierWeightsGroup.style.display = 'none';
+    } else {
+        verifierTypeSelect.innerHTML = `
+            <option value="ensemble" selected>Ensemble (Default - All Verifiers)</option>
+            <option value="clinical">Clinical Verifier</option>
+            <option value="operational">Operational Verifier</option>
+            <option value="financial">Financial Verifier</option>
+            <option value="compliance">Compliance Verifier</option>
+            <option value="default">Default (Environment Built-in)</option>`;
+        if (verifierWeightsGroup) verifierWeightsGroup.style.display = 'none';
+    }
 }
 
 function loadEnvironmentConfig(envName) {
@@ -289,19 +457,38 @@ function loadEnvironmentConfig(envName) {
                 </div>
             `;
         } else if (field.type === 'select') {
+            // Jira scenario: use scenarioLabels for display
+            if ((field.id === 'jira-scenario-status' || field.id === 'jira-subtask-scenario') && field.scenarioLabels) {
+                const options = field.options || [];
+                const defaultVal = options.includes(field.value) ? field.value : (options[0] || '');
+                return `
+                    <div class="form-group">
+                        <label>${field.label} <span class="tooltip-icon" title="${tooltip}">ℹ️</span></label>
+                        <select id="${field.id}" title="${tooltip}">
+                            ${options.map(opt => `<option value="${opt}" ${opt === defaultVal ? 'selected' : ''}>${field.scenarioLabels[opt] || opt}</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+            }
+            // Jira: use issues filtered by scenario for status_update; otherwise all issues
+            let options = (field.id && field.id.includes('jira-issue-key') && jiraMockData && jiraMockData.issues)
+                ? jiraMockData.issues.map(i => i.key)
+                : (field.options || []);
+            const defaultVal = options.includes(field.value) ? field.value : (options[0] || '');
             return `
                 <div class="form-group">
                     <label>${field.label} <span class="tooltip-icon" title="${tooltip}">ℹ️</span></label>
                     <select id="${field.id}" title="${tooltip}">
-                        ${field.options.map(opt => `<option value="${opt}" ${opt === field.value ? 'selected' : ''}>${opt.charAt(0).toUpperCase() + opt.slice(1)}</option>`).join('')}
+                        ${options.map(opt => `<option value="${opt}" ${opt === defaultVal ? 'selected' : ''}>${opt}</option>`).join('')}
                     </select>
                 </div>
             `;
         } else {
+            const placeholder = field.placeholder || '';
             return `
                 <div class="form-group">
                     <label>${field.label} <span class="tooltip-icon" title="${tooltip}">ℹ️</span></label>
-                    <input type="${field.type}" id="${field.id}" value="${field.value}" min="${field.min || ''}" max="${field.max || ''}" title="${tooltip}" />
+                    <input type="${field.type}" id="${field.id}" value="${(field.value || '').replace(/"/g, '&quot;')}" min="${field.min || ''}" max="${field.max || ''}" placeholder="${placeholder.replace(/"/g, '&quot;')}" title="${tooltip}" />
                 </div>
             `;
         }
@@ -313,7 +500,7 @@ function loadEnvironmentConfig(envName) {
 
 function getDefaultTooltip(fieldId, label) {
     const tooltips = {
-        'queue-size': 'Number of items (orders, patients, appointments) currently in the queue waiting to be processed. Larger queues represent busier healthcare settings and test the RL agent\'s ability to prioritize effectively.',
+        'queue-size': 'Number of items (orders, tickets, or tasks) currently in the queue waiting to be processed. Larger queues represent busier operational settings and test the RL agent\'s ability to prioritize effectively.',
         'high-urgency-pct': 'Percentage of items in the queue that are high urgency or critical (0-100%). Higher values mean more urgent cases requiring immediate attention. This tests the agent\'s ability to handle time-sensitive situations.',
         'avg-order-value': 'Average monetary value of each order or item in dollars. Used to calculate financial impact and revenue metrics. Higher values make financial optimization more important in the reward function.',
         'ct-availability': 'Percentage availability of CT scanners (0-100%). Lower values indicate more constrained resources, testing the agent\'s ability to optimize resource allocation when capacity is limited.',
@@ -342,10 +529,13 @@ function getDefaultTooltip(fieldId, label) {
         'or-rooms': 'Number of operating rooms available (2-20). Limited rooms require optimal scheduling to maximize utilization.',
         'appointments': 'Number of appointments to schedule (5-50). Tests scheduling optimization and patient satisfaction.',
         'morning-slots': 'Number of morning appointment slots available (5-20). Tests time-based scheduling optimization.',
-        'afternoon-slots': 'Number of afternoon appointment slots available (5-20). Tests preference matching and capacity management.'
+        'afternoon-slots': 'Number of afternoon appointment slots available (5-20). Tests preference matching and capacity management.',
+        'jira-scenario-status': 'Select the status update scenario. Agent runs across all Jira issues in mock data. No live Jira required.',
+        'jira-subtask-summary': 'The summary/title of the subtask you want to add under the parent Jira issue. Enter what the subtask should be about.',
+        'jira-subtask-description': 'Optional description or additional context for the subtask. Leave empty if not needed.'
     };
     
-    return tooltips[fieldId] || `Configure ${label.toLowerCase()}. Adjust this parameter to simulate different healthcare scenarios and test the RL agent's decision-making capabilities.`;
+    return tooltips[fieldId] || `Configure ${label.toLowerCase()}. Adjust this parameter to simulate different workflow scenarios and test the RL agent's decision-making capabilities.`;
 }
 
 function setupRangeInputs() {
@@ -366,6 +556,35 @@ function setupEventListeners() {
     document.getElementById('btn-step').addEventListener('click', runStep);
     document.getElementById('btn-auto').addEventListener('click', startAutoRun);
     document.getElementById('btn-stop').addEventListener('click', stopAutoRun);
+    const downloadBtn = document.getElementById('btn-download-jira-subtasks');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadJiraSubtaskLog);
+    }
+    // Human evaluation (simulation run – local only; for training jobs use Training Monitor)
+    const humanEvalYes = document.getElementById('human-eval-yes');
+    const humanEvalNo = document.getElementById('human-eval-no');
+    const humanEvalStatus = document.getElementById('human-eval-status');
+    const humanEvalComment = document.getElementById('human-eval-comment');
+    if (humanEvalYes) {
+        humanEvalYes.addEventListener('click', () => recordHumanEval('yes'));
+    }
+    if (humanEvalNo) {
+        humanEvalNo.addEventListener('click', () => recordHumanEval('no'));
+    }
+
+    function recordHumanEval(decision) {
+        const comment = (humanEvalComment && humanEvalComment.value) ? humanEvalComment.value.trim() : '';
+        const entry = { decision, comment, timestamp: new Date().toISOString(), stepCount, totalReward: (simulationState && simulationState.metrics && simulationState.metrics.totalReward != null) ? simulationState.metrics.totalReward : null };
+        try {
+            const key = 'rl_hub_sim_human_eval';
+            const stored = JSON.parse(sessionStorage.getItem(key) || '[]');
+            stored.push(entry);
+            sessionStorage.setItem(key, JSON.stringify(stored));
+        } catch (e) { /* ignore */ }
+        if (humanEvalStatus) {
+            humanEvalStatus.textContent = `Recorded: ${decision === 'yes' ? 'Yes' : 'No'}${comment ? ' — ' + comment.substring(0, 50) + (comment.length > 50 ? '…' : '') : ''}`;
+        }
+    }
 }
 
 async function initializeEnvironment() {
@@ -383,11 +602,11 @@ async function initializeEnvironment() {
         
         if (config.verifier_config) {
             params.append('verifier_type', config.verifier_config.type);
-            if (config.verifier_config.verifiers) {
-                params.append('verifier_config', JSON.stringify({
-                    verifiers: config.verifier_config.verifiers
-                }));
-            }
+            params.append('verifier_config', JSON.stringify({
+                type: config.verifier_config.type,
+                verifiers: config.verifier_config.verifiers,
+                metadata: config.verifier_config.metadata
+            }));
         }
         
         if (params.toString()) {
@@ -401,6 +620,9 @@ async function initializeEnvironment() {
         const envConfig = environmentConfigs[currentEnvironment];
         if (envConfig && envConfig.generateState) {
             simulationState = envConfig.generateState(config);
+            if (currentEnvironment && currentEnvironment.startsWith('Jira')) {
+                jiraIssueIndex++;
+            }
         } else {
             simulationState = generateGenericState(config);
         }
@@ -425,10 +647,11 @@ async function initializeEnvironment() {
         
         updateDisplay();
         updateMetrics();
-        showRecommendations();
         
         document.getElementById('btn-step').disabled = false;
         document.getElementById('btn-auto').disabled = false;
+        const humanEvalStatusEl = document.getElementById('human-eval-status');
+        if (humanEvalStatusEl) humanEvalStatusEl.textContent = '';
         
     } catch (error) {
         alert(`Error initializing: ${error.message}`);
@@ -443,8 +666,13 @@ function getConfiguration() {
         envConfig.configFields.forEach(field => {
             const element = document.getElementById(field.id);
             if (element) {
-                config[field.id] = field.type === 'number' || field.type === 'range' ? 
-                    parseFloat(element.value) : element.value;
+                if (field.type === 'number' || field.type === 'range') {
+                    config[field.id] = parseFloat(element.value);
+                } else if (field.type === 'checkbox') {
+                    config[field.id] = element.checked;
+                } else {
+                    config[field.id] = element.value;
+                }
             }
         });
     } else {
@@ -456,28 +684,37 @@ function getConfiguration() {
     }
     
     config.agentStrategy = document.getElementById('agent-strategy').value;
+    const agentModelEl = document.getElementById('agent-model');
+    if (agentModelEl) {
+        config.agentModel = agentModelEl.value;
+    }
     
     // Add verifier configuration
     const verifierType = document.getElementById('verifier-type');
     if (verifierType && verifierType.value !== 'default') {
-        config.verifier_config = {
-            type: verifierType.value
-        };
-        
-        // Add weights if ensemble and weights are provided
-        if (verifierType.value === 'ensemble') {
-            const verifierWeights = document.getElementById('verifier-weights');
-            if (verifierWeights && verifierWeights.value.trim()) {
-                try {
-                    const weights = JSON.parse(verifierWeights.value);
-                    config.verifier_config.verifiers = weights;
-                } catch (e) {
-                    console.warn('Invalid verifier weights JSON, using defaults:', e);
+        if (verifierType.value.startsWith('jira_workflow:')) {
+            config.verifier_config = {
+                type: 'jira_workflow',
+                metadata: { workflow_id: verifierType.value.split(':')[1] }
+            };
+        } else {
+            config.verifier_config = {
+                type: verifierType.value
+            };
+            if (verifierType.value === 'ensemble') {
+                const verifierWeights = document.getElementById('verifier-weights');
+                if (verifierWeights && verifierWeights.value.trim()) {
+                    try {
+                        const weights = JSON.parse(verifierWeights.value);
+                        config.verifier_config.verifiers = weights;
+                    } catch (e) {
+                        console.warn('Invalid verifier weights JSON, using defaults:', e);
+                    }
                 }
             }
         }
     }
-    
+
     return config;
 }
 
@@ -599,6 +836,358 @@ function generateGenericState(config) {
     };
 }
 
+// Jira Issue Resolution: get_issue_summary_and_description → get_transitions → transition_issue
+// Agent runs across all issues (cycles through on each Initialize)
+const JIRA_ISSUE_RESOLUTION_ORDER = ['get_issue_summary_and_description', 'get_transitions', 'transition_issue'];
+function generateJiraIssueResolutionState(config) {
+    const issues = (jiraMockData && jiraMockData.issues) || [];
+    const idx = issues.length ? (jiraIssueIndex % issues.length) : 0;
+    const issue = issues[idx] || { key: 'PROJ-101', summary: 'Sample issue', description: 'No description', status: 'To Do', valid_transitions: [{ id: '31', name: 'Done' }] };
+    return {
+        jiraIssue: true,
+        issue_key: issue.key,
+        issue: { summary: issue.summary, description: issue.description, status: issue.status, valid_transitions: issue.valid_transitions || [] },
+        workflow_step: 0,
+        tool_sequence: [],
+        expected_order: JIRA_ISSUE_RESOLUTION_ORDER,
+        metrics: initializeMetrics()
+    };
+}
+function processJiraIssueResolutionStep(state, action) {
+    if (!state.jiraIssue || state.workflow_step >= state.expected_order.length) return state;
+    const tool = state.expected_order[state.workflow_step];
+    state.tool_sequence = [...(state.tool_sequence || []), tool];
+    state.workflow_step = state.workflow_step + 1;
+    if (tool === 'transition_issue') state.issue = { ...state.issue, status: 'Done' };
+    const m = state.metrics || initializeMetrics();
+    m.steps = state.workflow_step;
+    const rcfg = jiraMockData && jiraMockData.reward_config;
+    const stepReward = (rcfg && rcfg.status_reward_weights && state.issue && state.issue.status)
+        ? (rcfg.status_reward_weights[state.issue.status] ?? rcfg.per_step_base?.issue_resolution ?? 0.50)
+        : (rcfg?.per_step_base?.issue_resolution ?? 0.50);
+    m.totalReward = (m.totalReward || 0) + stepReward;
+    m.processed = state.workflow_step;
+    state.metrics = m;
+    return state;
+}
+
+// Jira Status Update: get_transitions → transition_issue
+// Agent runs across all issues (cycles through on each Initialize)
+const JIRA_STATUS_UPDATE_ORDER = ['get_transitions', 'transition_issue'];
+const JIRA_STATUS_SCENARIO_TARGET = { in_progress_to_blocked: 'Blocked', in_progress_to_done: 'Done' };
+function generateJiraStatusUpdateState(config) {
+    const scenario = config['jira-scenario-status'] || 'in_progress_to_blocked';
+    const targetStatus = JIRA_STATUS_SCENARIO_TARGET[scenario] || 'Blocked';
+    let issues = (jiraMockData && jiraMockData.issues) || [];
+    if (scenario === 'in_progress_to_blocked') {
+        issues = issues.filter(i => (i.valid_transitions || []).some(t => t.name === 'Blocked'));
+        if (issues.length === 0) issues = (jiraMockData && jiraMockData.issues) || [];
+    }
+    const idx = issues.length ? (jiraIssueIndex % issues.length) : 0;
+    const issue = issues[idx] || { key: 'PROJ-101', summary: 'Sample issue', status: 'In Progress', valid_transitions: [{ id: '41', name: 'Blocked' }, { id: '31', name: 'Done' }] };
+    return {
+        jiraIssue: true,
+        issue_key: issue.key,
+        issue: { summary: issue.summary, status: issue.status, valid_transitions: issue.valid_transitions || [] },
+        scenario,
+        target_status: targetStatus,
+        workflow_step: 0,
+        tool_sequence: [],
+        expected_order: JIRA_STATUS_UPDATE_ORDER,
+        metrics: initializeMetrics()
+    };
+}
+function processJiraStatusUpdateStep(state, action) {
+    if (!state.jiraIssue || state.workflow_step >= state.expected_order.length) return state;
+    const tool = state.expected_order[state.workflow_step];
+    state.tool_sequence = [...(state.tool_sequence || []), tool];
+    state.workflow_step = state.workflow_step + 1;
+    if (tool === 'transition_issue') {
+        const targetStatus = state.target_status || 'Done';
+        state.issue = { ...state.issue, status: targetStatus };
+    }
+    const m = state.metrics || initializeMetrics();
+    m.steps = state.workflow_step;
+    const rcfg = jiraMockData && jiraMockData.reward_config;
+    const stepReward = (rcfg && rcfg.status_reward_weights && state.issue && state.issue.status)
+        ? (rcfg.status_reward_weights[state.issue.status] ?? rcfg.per_step_base?.status_update ?? 0.50)
+        : (rcfg?.per_step_base?.status_update ?? 0.50);
+    m.totalReward = (m.totalReward || 0) + stepReward;
+    m.processed = state.workflow_step;
+    state.metrics = m;
+    return state;
+}
+
+// Jira Comment Management: add_comment → get_comments
+// Agent runs across all issues (cycles through on each Initialize)
+const JIRA_COMMENT_ORDER = ['add_comment', 'get_comments'];
+function generateJiraCommentManagementState(config) {
+    const issues = (jiraMockData && jiraMockData.issues) || [];
+    const threads = (jiraMockData && jiraMockData.comment_threads) || {};
+    const idx = issues.length ? (jiraIssueIndex % issues.length) : 0;
+    const issue = issues[idx] || { key: 'PROJ-102', summary: 'Sample issue', status: 'In Progress' };
+    const comments = threads[key] || [];
+    return {
+        jiraComment: true,
+        issue_key: issue.key,
+        issue_summary: issue.summary,
+        issue: { status: issue.status },
+        comments: [...comments],
+        workflow_step: 0,
+        tool_sequence: [],
+        expected_order: JIRA_COMMENT_ORDER,
+        metrics: initializeMetrics()
+    };
+}
+function processJiraCommentManagementStep(state, action) {
+    if (!state.jiraComment || state.workflow_step >= state.expected_order.length) return state;
+    const tool = state.expected_order[state.workflow_step];
+    state.tool_sequence = [...(state.tool_sequence || []), tool];
+    if (tool === 'add_comment') {
+        state.comments = [...(state.comments || []), { id: 'new', author: 'Agent', body: 'Compliance note added via workflow.' }];
+    }
+    state.workflow_step = state.workflow_step + 1;
+    const m = state.metrics || initializeMetrics();
+    m.steps = state.workflow_step;
+    const rcfg = jiraMockData && jiraMockData.reward_config;
+    const stepReward = (rcfg && rcfg.status_reward_weights && state.issue && state.issue.status)
+        ? (rcfg.status_reward_weights[state.issue.status] ?? rcfg.per_step_base?.comment_management ?? 0.50)
+        : (rcfg?.per_step_base?.comment_management ?? 0.50);
+    m.totalReward = (m.totalReward || 0) + stepReward;
+    m.processed = state.workflow_step;
+    state.metrics = m;
+    return state;
+}
+
+// Jira Subtask Management: scenarios for create / delete sub-tasks
+const JIRA_SUBTASK_ORDER_CREATE = ['get_issue_summary_and_description', 'create_subtask'];
+const JIRA_SUBTASK_ORDER_DELETE = ['get_subtasks', 'delete_subtask'];
+function generateJiraSubtaskManagementState(config) {
+    const issues = (jiraMockData && jiraMockData.issues) || [];
+    const subtasksMap = (jiraMockData && jiraMockData.subtasks) || {};
+    const useLive = !!config['jira-subtask-use-live'];
+    const liveParentKey = (config['jira-subtask-parent-key'] || '').trim();
+
+    // When using live Jira, anchor the simulation view on the live parent key
+    let idx = issues.length ? (jiraIssueIndex % issues.length) : 0;
+    let issue;
+    if (useLive && liveParentKey) {
+        issue = { key: liveParentKey, summary: `Live parent: ${liveParentKey}`, status: 'Unknown' };
+    } else {
+        issue = issues[idx] || { key: 'PROJ-101', summary: 'Sample issue', status: 'In Progress' };
+    }
+
+    const parentKey = issue.key;
+    const existingSubtasks = subtasksMap[parentKey] ? [...subtasksMap[parentKey]] : [];
+    const scenario = config['jira-subtask-scenario'] || 'create_subtask';
+    let subtasks = existingSubtasks;
+    // For delete scenario, ensure at least one subtask exists to delete
+    if (scenario === 'delete_subtask' && subtasks.length === 0) {
+        subtasks = [{ key: `${parentKey}-1`, summary: 'Existing subtask', description: '', parent_key: parentKey, status: 'To Do' }];
+    }
+    const expectedOrder = scenario === 'delete_subtask' ? JIRA_SUBTASK_ORDER_DELETE : JIRA_SUBTASK_ORDER_CREATE;
+    return {
+        jiraSubtask: true,
+        scenario,
+        issue_index: idx,
+        issue_key: parentKey,
+        issue_summary: issue.summary,
+        issue: { status: issue.status },
+        subtasks,
+        workflow_step: 0,
+        tool_sequence: [],
+        expected_order: expectedOrder,
+        metrics: initializeMetrics()
+    };
+}
+function processJiraSubtaskManagementStep(state, action) {
+    if (!state.jiraSubtask || state.workflow_step >= state.expected_order.length) return state;
+    const tool = state.expected_order[state.workflow_step];
+    state.tool_sequence = [...(state.tool_sequence || []), tool];
+    const scenario = state.scenario || 'create_subtask';
+    if (scenario === 'create_subtask' && tool === 'create_subtask') {
+        const cfg = state.config || {};
+        const summary = (cfg['jira-subtask-summary'] || '').trim() || 'New subtask';
+        const description = (cfg['jira-subtask-description'] || '').trim() || '';
+        const newSubtask = { key: `${state.issue_key}-${(state.subtasks?.length || 0) + 1}`, summary, description, parent_key: state.issue_key, status: 'To Do' };
+        state.subtasks = [...(state.subtasks || []), newSubtask];
+        // Log for download: capture all subtasks created across simulation runs
+        const entry = {
+            environment: 'JiraSubtaskManagement',
+            action: 'create_subtask',
+            parent_issue_key: state.issue_key,
+            subtask_key: newSubtask.key,
+            summary,
+            description,
+            status: newSubtask.status,
+            created_at: new Date().toISOString()
+        };
+        jiraSubtaskLog.push(entry);
+        updateJiraSubtaskConsole(entry);
+
+        // Optional: call live Jira instance when configured
+        const useLive = !!cfg['jira-subtask-use-live'];
+        const liveParentKey = (cfg['jira-subtask-parent-key'] || '').trim();
+        if (useLive) {
+            if (!liveParentKey) {
+                const warnEntry = {
+                    ...entry,
+                    live_created: false,
+                    error: 'Live Jira enabled, but Live Jira parent issue key is empty.'
+                };
+                updateJiraSubtaskConsole(warnEntry);
+                jiraSubtaskLog[jiraSubtaskLog.length - 1] = warnEntry;
+                // Do not attempt live call without an explicit parent key
+                return state;
+            }
+            const parent_key = liveParentKey;
+            const body = {
+                parent_key,
+                summary,
+                description
+            };
+            try {
+                fetch(`${API_BASE}/jira/subtasks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                })
+                    .then(async (resp) => {
+                        let data = null;
+                        try {
+                            data = await resp.json();
+                        } catch (_) {
+                            // ignore JSON errors
+                        }
+                        if (resp.ok && data && data.key) {
+                            const enriched = { ...entry, live_created: true, jira_key: data.key };
+                            updateJiraSubtaskConsole(enriched);
+                            jiraSubtaskLog[jiraSubtaskLog.length - 1] = enriched;
+                        } else {
+                            const errMsg = (data && data.detail) || `HTTP ${resp.status}`;
+                            const enriched = { ...entry, live_created: false, error: errMsg };
+                            updateJiraSubtaskConsole(enriched);
+                            jiraSubtaskLog[jiraSubtaskLog.length - 1] = enriched;
+                        }
+                    })
+                    .catch((err) => {
+                        const enriched = { ...entry, live_created: false, error: String(err) };
+                        updateJiraSubtaskConsole(enriched);
+                        jiraSubtaskLog[jiraSubtaskLog.length - 1] = enriched;
+                    });
+            } catch (err) {
+                const enriched = { ...entry, live_created: false, error: String(err) };
+                updateJiraSubtaskConsole(enriched);
+                jiraSubtaskLog[jiraSubtaskLog.length - 1] = enriched;
+            }
+        }
+    } else if (scenario === 'delete_subtask') {
+        const cfg = state.config || {};
+        if (tool === 'get_subtasks') {
+            // No-op for now: state.subtasks already contains current subtasks
+        } else if (tool === 'delete_subtask' && (state.subtasks || []).length > 0) {
+            const subtasks = [...(state.subtasks || [])];
+            const deleted = subtasks.pop();
+            state.subtasks = subtasks;
+            const entry = {
+                environment: 'JiraSubtaskManagement',
+                action: 'delete_subtask',
+                parent_issue_key: state.issue_key,
+                subtask_key: deleted.key,
+                summary: deleted.summary,
+                description: deleted.description || '',
+                status: deleted.status,
+                created_at: new Date().toISOString()
+            };
+            jiraSubtaskLog.push(entry);
+            updateJiraSubtaskConsole(entry);
+
+            // Optional: call live Jira to delete real sub-tasks when configured.
+            // The "Live Jira parent issue key" field should contain the parent task key;
+            // all of its subtasks will be deleted (parent is kept).
+            const useLive = !!cfg['jira-subtask-use-live'];
+            const parentKey = (cfg['jira-subtask-parent-key'] || '').trim();
+            if (useLive) {
+                if (!parentKey) {
+                    const warnEntry = {
+                        ...entry,
+                        live_deleted: false,
+                        error: 'Live Jira enabled, but Live Jira parent issue key is empty.'
+                    };
+                    updateJiraSubtaskConsole(warnEntry);
+                    jiraSubtaskLog[jiraSubtaskLog.length - 1] = warnEntry;
+                } else {
+                    try {
+                        fetch(`${API_BASE}/jira/issues/${encodeURIComponent(parentKey)}/subtasks`, {
+                            method: 'DELETE'
+                        })
+                            .then(async (resp) => {
+                                let data = null;
+                                try {
+                                    data = await resp.json();
+                                } catch (_) {
+                                    // ignore JSON errors (204 No Content etc.)
+                                }
+                                if (resp.ok) {
+                                    const enriched = { ...entry, live_deleted: true, parent_issue_key: parentKey };
+                                    updateJiraSubtaskConsole(enriched);
+                                    jiraSubtaskLog[jiraSubtaskLog.length - 1] = enriched;
+                                } else {
+                                    const errMsg = (data && data.detail) || `HTTP ${resp.status}`;
+                                    const enriched = { ...entry, live_deleted: false, error: errMsg };
+                                    updateJiraSubtaskConsole(enriched);
+                                    jiraSubtaskLog[jiraSubtaskLog.length - 1] = enriched;
+                                }
+                            })
+                            .catch((err) => {
+                                const enriched = { ...entry, live_deleted: false, error: String(err) };
+                                updateJiraSubtaskConsole(enriched);
+                                jiraSubtaskLog[jiraSubtaskLog.length - 1] = enriched;
+                            });
+                    } catch (err) {
+                        const enriched = { ...entry, live_deleted: false, error: String(err) };
+                        updateJiraSubtaskConsole(enriched);
+                        jiraSubtaskLog[jiraSubtaskLog.length - 1] = enriched;
+                    }
+                }
+            }
+        }
+    }
+    state.workflow_step = state.workflow_step + 1;
+    const m = state.metrics || initializeMetrics();
+    m.steps = state.workflow_step;
+    const rcfg = jiraMockData && jiraMockData.reward_config;
+    const stepReward = (rcfg && rcfg.per_step_base && rcfg.per_step_base.subtask_management) ?? 0.50;
+    m.totalReward = (m.totalReward || 0) + stepReward;
+    m.processed = state.workflow_step;
+    state.metrics = m;
+
+    // Auto-cycle to next Jira issue once current workflow sequence is finished (within a single Initialize)
+    if (state.workflow_step >= state.expected_order.length) {
+        const issues = (jiraMockData && jiraMockData.issues) || [];
+        if (issues.length) {
+            const currentIdx = typeof state.issue_index === 'number' ? state.issue_index : 0;
+            const nextIdx = (currentIdx + 1) % issues.length;
+            const nextIssue = issues[nextIdx] || issues[0];
+            const parentKey = nextIssue.key;
+            const subtasksMap = (jiraMockData && jiraMockData.subtasks) || {};
+            let subtasks = subtasksMap[parentKey] ? [...subtasksMap[parentKey]] : [];
+            if (scenario === 'delete_subtask' && subtasks.length === 0) {
+                subtasks = [{ key: `${parentKey}-1`, summary: 'Existing subtask', description: '', parent_key: parentKey, status: 'To Do' }];
+            }
+            state.issue_index = nextIdx;
+            state.issue_key = parentKey;
+            state.issue_summary = nextIssue.summary;
+            state.issue = { status: nextIssue.status };
+            state.subtasks = subtasks;
+            state.workflow_step = 0;
+            state.tool_sequence = [];
+        }
+    }
+
+    return state;
+}
+
 function initializeMetrics() {
     return {
         queueLength: 0,
@@ -632,7 +1221,6 @@ function runStep() {
     
     updateDisplay();
     updateMetrics();
-    showRecommendations();
     
     // Check if done
     const isDone = checkIfDone();
@@ -679,7 +1267,12 @@ function updateMetricsAfterStep() {
 function checkIfDone() {
     if (!simulationState) return false;
     
-    // Check various completion conditions
+    // Jira workflows: done when all expected steps completed
+    if (simulationState.jiraIssue || simulationState.jiraComment || simulationState.jiraSubtask) {
+        const expected = simulationState.expected_order || [];
+        if (expected.length && simulationState.workflow_step >= expected.length) return true;
+    }
+    // Queue-based completion
     if (simulationState.queue && simulationState.queue.length === 0 && simulationState.processed?.length > 0) return true;
     if (simulationState.patientQueue && simulationState.patientQueue.length === 0 && simulationState.processed?.length > 0) return true;
     if (simulationState.appointments && simulationState.appointments.length === 0 && simulationState.scheduled?.length > 0) return true;
@@ -798,8 +1391,14 @@ function processGenericStep(state) {
 function updateDisplay() {
     if (!simulationState) return;
     
-    // Check if environment has queue-based display
-    if (simulationState.queue && Array.isArray(simulationState.queue)) {
+    // Jira sample use cases: issue resolution or comment management
+    if (simulationState.jiraIssue) {
+        updateJiraIssueDisplay();
+    } else if (simulationState.jiraComment) {
+        updateJiraCommentDisplay();
+    } else if (simulationState.jiraSubtask) {
+        updateJiraSubtaskDisplay();
+    } else if (simulationState.queue && Array.isArray(simulationState.queue)) {
         updateQueueBasedDisplay();
     } else if (simulationState.patientQueue && Array.isArray(simulationState.patientQueue)) {
         updateQueueBasedDisplay('patientQueue');
@@ -811,6 +1410,59 @@ function updateDisplay() {
     
     // Update action display
     updateActionDisplayGeneric();
+}
+
+function updateJiraIssueDisplay() {
+    const stateDiv = document.getElementById('state-display');
+    const historyDiv = document.getElementById('action-history');
+    const issue = simulationState.issue || {};
+    const seq = simulationState.tool_sequence || [];
+    const expected = simulationState.expected_order || [];
+    stateDiv.innerHTML = `
+        <div class="jira-issue-card" style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem;">
+            <div style="font-weight: 600; color: #0369a1;">${simulationState.issue_key || 'PROJ-XXX'}</div>
+            <div style="font-size: 0.9rem; margin-top: 0.25rem;">${issue.summary || '—'}</div>
+            <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.25rem;">Status: <strong>${issue.status || '—'}</strong></div>
+            ${(issue.valid_transitions && issue.valid_transitions.length) ? `<div style="font-size: 0.75rem; margin-top: 0.25rem;">Transitions: ${issue.valid_transitions.map(t => t.name).join(', ')}</div>` : ''}
+        </div>
+        <div style="font-size: 0.85rem;"><strong>Workflow steps:</strong> ${expected.map((t, i) => seq.includes(t) ? `<span style="color: #16a34a;">✓ ${t}</span>` : `<span style="color: #94a3b8;">${t}</span>`).join(' → ')}</div>
+    `;
+    historyDiv.innerHTML = seq.length ? seq.map((t, i) => `<div class="order-item"><div class="order-id">Step ${i + 1}</div><div class="order-details">${t}</div></div>`).join('') : '<div class="empty-state">No steps yet. Click Step to run workflow.</div>';
+}
+
+function updateJiraCommentDisplay() {
+    const stateDiv = document.getElementById('state-display');
+    const historyDiv = document.getElementById('action-history');
+    const comments = simulationState.comments || [];
+    const seq = simulationState.tool_sequence || [];
+    stateDiv.innerHTML = `
+        <div class="jira-issue-card" style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem;">
+            <div style="font-weight: 600; color: #15803d;">${simulationState.issue_key || 'PROJ-XXX'}</div>
+            <div style="font-size: 0.9rem; margin-top: 0.25rem;">${simulationState.issue_summary || '—'}</div>
+        </div>
+        <div style="font-size: 0.85rem; margin-top: 0.5rem;"><strong>Comment thread (${comments.length}):</strong></div>
+        ${comments.length ? comments.map(c => `<div style="font-size: 0.8rem; margin-top: 0.35rem; padding: 0.35rem; background: #f8fafc; border-radius: 4px;"><strong>${c.author}</strong>: ${(c.body || '').substring(0, 120)}${(c.body && c.body.length > 120) ? '…' : ''}</div>`).join('') : '<div class="empty-state">No comments yet.</div>'}
+        <div style="font-size: 0.85rem; margin-top: 0.5rem;"><strong>Steps:</strong> ${seq.join(' → ') || '—'}</div>
+    `;
+    historyDiv.innerHTML = seq.length ? seq.map((t, i) => `<div class="order-item"><div class="order-id">Step ${i + 1}</div><div class="order-details">${t}</div></div>`).join('') : '<div class="empty-state">No steps yet. Click Step to add comment and get thread.</div>';
+}
+
+function updateJiraSubtaskDisplay() {
+    const stateDiv = document.getElementById('state-display');
+    const historyDiv = document.getElementById('action-history');
+    const subtasks = simulationState.subtasks || [];
+    const seq = simulationState.tool_sequence || [];
+    const expected = simulationState.expected_order || [];
+    stateDiv.innerHTML = `
+        <div class="jira-issue-card" style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem;">
+            <div style="font-weight: 600; color: #b45309;">${simulationState.issue_key || 'PROJ-XXX'} (parent)</div>
+            <div style="font-size: 0.9rem; margin-top: 0.25rem;">${simulationState.issue_summary || '—'}</div>
+        </div>
+        <div style="font-size: 0.85rem; margin-top: 0.5rem;"><strong>Subtasks (${subtasks.length}):</strong></div>
+        ${subtasks.length ? subtasks.map(s => `<div style="font-size: 0.8rem; margin-top: 0.35rem; padding: 0.35rem; background: #fffbeb; border-radius: 4px;"><strong>${s.key || '—'}</strong>: ${(s.summary || '').substring(0, 80)}</div>`).join('') : '<div class="empty-state">No subtasks yet.</div>'}
+        <div style="font-size: 0.85rem; margin-top: 0.5rem;"><strong>Steps:</strong> ${expected.map((t, i) => seq.includes(t) ? `<span style="color: #16a34a;">✓ ${t}</span>` : `<span style="color: #94a3b8;">${t}</span>`).join(' → ')}</div>
+    `;
+    historyDiv.innerHTML = seq.length ? seq.map((t, i) => `<div class="order-item"><div class="order-id">Step ${i + 1}</div><div class="order-details">${t}</div></div>`).join('') : '<div class="empty-state">No steps yet. Click Step to add subtask under parent issue.</div>';
 }
 
 function updateQueueBasedDisplay(queueKey = 'queue') {
@@ -914,9 +1566,6 @@ function updateMetrics() {
     
     // Update dynamic metrics based on environment type
     updateDynamicMetrics(m);
-    
-    // Update KPI display
-    updateKPIDisplay();
 }
 
 function updateDynamicMetrics(m) {
@@ -929,25 +1578,7 @@ function updateDynamicMetrics(m) {
         if (idx >= 2) card.remove(); // Keep first two (steps and reward)
     });
     
-    // Add environment-specific metrics
-    if (m.queueLength !== undefined) {
-        addMetricCard('Queue Length', m.queueLength, 'trend-queue');
-    }
-    if (m.urgentWaiting !== undefined) {
-        addMetricCard('Urgent Waiting', m.urgentWaiting, 'trend-urgent');
-    }
-    if (m.utilization !== undefined) {
-        addMetricCard('Utilization', `${m.utilization.toFixed(0)}%`, 'trend-utilization');
-    }
-    if (m.processed !== undefined) {
-        addMetricCard('Processed', m.processed, 'trend-processed');
-    }
-    if (m.waitTime !== undefined) {
-        addMetricCard('Wait Time', `${m.waitTime} min`, 'trend-wait');
-    }
-    if (m.revenue !== undefined) {
-        addMetricCard('Revenue', `$${Math.round(m.revenue)}`, 'trend-revenue');
-    }
+    // RL-focused metrics only: Step Count and Total Reward are in the grid; no extra cards for queue/revenue/utilization
 }
 
 function addMetricCard(label, value, trendId) {
@@ -960,53 +1591,6 @@ function addMetricCard(label, value, trendId) {
         <div class="metric-trend" id="${trendId}">-</div>
     `;
     metricsGrid.appendChild(card);
-}
-
-async function updateKPIDisplay() {
-    try {
-        const response = await fetch(`${API_BASE}/kpis/${currentEnvironment}`);
-        if (response.ok) {
-            const data = await response.json();
-            const kpis = data.kpis || {};
-            
-            const kpiDiv = document.getElementById('kpi-display');
-            kpiDiv.innerHTML = `
-                <div class="kpi-item"><strong>Clinical:</strong> ${JSON.stringify(kpis.clinical_outcomes || {})}</div>
-                <div class="kpi-item"><strong>Efficiency:</strong> ${JSON.stringify(kpis.operational_efficiency || {})}</div>
-                <div class="kpi-item"><strong>Financial:</strong> ${JSON.stringify(kpis.financial_metrics || {})}</div>
-            `;
-        }
-    } catch (error) {
-        console.error('Error fetching KPIs:', error);
-    }
-}
-
-function showRecommendations() {
-    if (!simulationState) return;
-    
-    const recommendations = [];
-    const m = simulationState.metrics || {};
-    
-    if (m.urgentWaiting > 3) {
-        recommendations.push('⚠️ High number of urgent items waiting. Consider prioritizing immediately.');
-    }
-    
-    if (m.utilization < 50) {
-        recommendations.push('💡 Resource utilization is low. You can process more items.');
-    }
-    
-    if (m.waitTime > 30) {
-        recommendations.push('⏱️ Average wait time is high. Consider increasing capacity.');
-    }
-    
-    const recDiv = document.getElementById('recommendations-list');
-    if (recommendations.length === 0) {
-        recDiv.innerHTML = '<div class="empty-state">System operating optimally</div>';
-    } else {
-        recDiv.innerHTML = recommendations.map(rec => 
-            `<div class="recommendation-item">${rec}</div>`
-        ).join('');
-    }
 }
 
 function startAutoRun() {
@@ -1035,103 +1619,86 @@ function resetSimulation() {
     simulationState = null;
     stepCount = 0;
     metricsHistory = [];
-    
+
     document.getElementById('state-display').innerHTML = '<div class="empty-state">Click "Initialize Environment" to start</div>';
     document.getElementById('action-history').innerHTML = '<div class="empty-state">No actions taken yet</div>';
     document.getElementById('action-display').innerHTML = '<div class="empty-state">Waiting for initialization...</div>';
-    
+
     updateMetrics();
-    showRecommendations();
     showFinalResults();
+    const humanEvalStatusEl = document.getElementById('human-eval-status');
+    if (humanEvalStatusEl) humanEvalStatusEl.textContent = '';
+    // Do not clear jiraSubtaskLog here; it should track the full session across resets
 }
 
-function getMetricReasoning(m, stepCount, isComplete) {
-    const utilization = m.utilization || 0;
-    const processed = m.processed || 0;
-    const totalReward = m.totalReward || 0;
-    const urgentWaiting = m.urgentWaiting ?? 0;
-    
-    return {
-        clinical: (stepCount === 0) ? 'Run the simulation to see clinical outcomes.' :
-            `Higher steps completed (${stepCount}) means the agent advanced further in the pathway. ` +
-            (urgentWaiting > 0 ? `Urgent waiting: ${urgentWaiting} — indicates cases needing prioritization. ` : '') +
-            (isComplete ? 'Status Complete means all items were processed.' : 'In Progress means more steps can be taken.'),
-        efficiency: (stepCount === 0) ? 'Run the simulation to see efficiency metrics.' :
-            `Items processed (${processed}) shows throughput. ` +
-            (m.utilization !== undefined ? `Utilization ${utilization.toFixed(0)}% indicates resource use — higher is better if quality is maintained. ` : '') +
-            'More steps with fewer items remaining suggests better operational flow.',
-        financial: (stepCount === 0) ? 'Run the simulation to see financial impact.' :
-            `Total reward (${totalReward.toFixed(2)}) aggregates per-step rewards — higher means the agent made more valuable decisions. ` +
-            (m.revenue !== undefined ? `Revenue reflects value captured (e.g., billed items). ` : '') +
-            'Revenue per hour normalizes output by time for comparison.',
-        roi: (stepCount === 0) ? 'Run the simulation to see ROI assessment.' :
-            `Strategy and efficiency together determine value. ` +
-            (utilization > 70 ? 'High utilization with completion suggests strong ROI.' : utilization > 50 ? 'Medium efficiency — consider tuning strategy.' : 'Low utilization — the agent may need more steps or a different strategy.') +
-            (isComplete ? ' Completion indicates the run finished successfully.' : '')
+function downloadJiraSubtaskLog() {
+    if (!jiraSubtaskLog.length) {
+        alert('No Jira subtasks have been created in this simulation session yet.');
+        return;
+    }
+    const payload = {
+        generated_at: new Date().toISOString(),
+        environment: 'JiraSubtaskManagement',
+        total_subtasks: jiraSubtaskLog.length,
+        subtasks: jiraSubtaskLog
     };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    a.href = url;
+    a.download = `jira_subtask_log_${ts}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function updateJiraSubtaskConsole(entry) {
+    try {
+        const el = document.getElementById('jira-subtask-console-output');
+        if (!el) return;
+        const line = `[${entry.created_at}] ${entry.action} | parent=${entry.parent_issue_key} | subtask=${entry.subtask_key} | ${entry.summary}`;
+        const existing = el.textContent ? el.textContent.split('\n') : [];
+        existing.push(line);
+        // Keep last 50 lines for readability
+        const trimmed = existing.slice(-50);
+        el.textContent = trimmed.join('\n');
+    } catch (e) {
+        console.warn('Failed to update Jira subtask console output:', e);
+    }
 }
 
 function showFinalResults() {
+    const runSummaryEl = document.getElementById('results-run-summary');
+    const laggingEl = document.getElementById('results-lagging');
+    if (!runSummaryEl || !laggingEl) return;
+
     if (!simulationState) {
-        ['results-clinical', 'results-efficiency', 'results-financial', 'results-roi'].forEach(id => {
-            document.getElementById(id).textContent = '-';
-        });
+        runSummaryEl.textContent = '-';
+        laggingEl.textContent = '-';
         return;
     }
     
     const m = simulationState.metrics || {};
-    const env = allEnvironments.find(e => e.name === currentEnvironment);
     const isComplete = (simulationState.queue?.length === 0 || 
                         simulationState.patientQueue?.length === 0 ||
                         simulationState.appointments?.length === 0) && 
                        (simulationState.processed?.length > 0 || simulationState.scheduled?.length > 0);
+    const totalReward = m.totalReward ?? 0;
+    const avgRewardPerStep = stepCount > 0 ? (totalReward / stepCount).toFixed(3) : '—';
     
-    const reasoning = getMetricReasoning(m, stepCount, isComplete);
-    
-    // Clinical Outcomes
-    const clinicalHtml = `
-        <strong>Steps Completed:</strong> ${stepCount}<br>
-        <strong>Status:</strong> ${isComplete ? 'Complete' : 'In Progress'}<br>
-        ${m.urgentWaiting !== undefined ? `<strong>Urgent Waiting:</strong> ${m.urgentWaiting}` : ''}
+    runSummaryEl.innerHTML = `
+        <strong>Steps completed:</strong> ${stepCount}<br>
+        <strong>Total reward:</strong> ${totalReward.toFixed(2)}<br>
+        <strong>Episode completed:</strong> ${isComplete ? 'Yes' : 'No'}
+    `;
+    laggingEl.innerHTML = `
+        <strong>Average reward per step:</strong> ${avgRewardPerStep}<br>
+        <strong>Steps to complete:</strong> ${isComplete ? stepCount : '—'}
         <div class="metric-reasoning" style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(37,99,235,0.06); border-radius: 6px; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45;">
-            <strong style="color: var(--text-primary);">Why:</strong> ${reasoning.clinical}
+            Lagging indicators help compare strategies and assess convergence over multiple runs.
         </div>
     `;
-    document.getElementById('results-clinical').innerHTML = clinicalHtml;
-    
-    // Operational Efficiency
-    const efficiencyHtml = `
-        <strong>Total Steps:</strong> ${stepCount}<br>
-        <strong>Items Processed:</strong> ${m.processed || 0}<br>
-        ${m.utilization !== undefined ? `<strong>Utilization:</strong> ${m.utilization.toFixed(1)}%` : ''}
-        <div class="metric-reasoning" style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(37,99,235,0.06); border-radius: 6px; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45;">
-            <strong style="color: var(--text-primary);">Why:</strong> ${reasoning.efficiency}
-        </div>
-    `;
-    document.getElementById('results-efficiency').innerHTML = efficiencyHtml;
-    
-    // Financial Impact
-    const financialHtml = `
-        <strong>Total Reward:</strong> ${(m.totalReward || 0).toFixed(2)}<br>
-        ${m.revenue !== undefined ? `<strong>Revenue:</strong> $${Math.round(m.revenue)}` : ''}
-        ${m.revenue && stepCount > 0 ? `<strong>Revenue/Hour:</strong> $${Math.round(m.revenue / (stepCount / 60)) || 0}` : ''}
-        <div class="metric-reasoning" style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(37,99,235,0.06); border-radius: 6px; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45;">
-            <strong style="color: var(--text-primary);">Why:</strong> ${reasoning.financial}
-        </div>
-    `;
-    document.getElementById('results-financial').innerHTML = financialHtml;
-    
-    // ROI Assessment
-    const strategy = simulationState.config?.agentStrategy || 'N/A';
-    const efficiencyLevel = m.utilization > 70 ? 'High' : m.utilization > 50 ? 'Medium' : 'Low';
-    const roiHtml = `
-        <strong>Strategy:</strong> ${strategy}<br>
-        <strong>Efficiency:</strong> ${efficiencyLevel}<br>
-        <strong>Assessment:</strong> ${stepCount > 0 ? (isComplete ? '✅ Simulation completed successfully' : '🔄 Simulation in progress') : '⏸️ Not started'}
-        <div class="metric-reasoning" style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(37,99,235,0.06); border-radius: 6px; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45;">
-            <strong style="color: var(--text-primary);">Why:</strong> ${reasoning.roi}
-        </div>
-    `;
-    document.getElementById('results-roi').innerHTML = roiHtml;
 }
 

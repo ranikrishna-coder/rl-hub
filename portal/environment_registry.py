@@ -475,6 +475,35 @@ ENVIRONMENT_REGISTRY: Dict[str, Dict[str, Any]] = {
         "category": "clinical_trials",
         "multi_agent": False
     },
+    # Jira workflow environments (follow apps/workflow_definitions/jira_workflows.json)
+    "JiraIssueResolution": {
+        "class_path": "environments.jira.jira_workflow_env.JiraIssueResolutionEnv",
+        "system": "Jira (Atlassian)",
+        "workflow": "Jira",
+        "category": "jira",
+        "multi_agent": False
+    },
+    "JiraStatusUpdate": {
+        "class_path": "environments.jira.jira_workflow_env.JiraStatusUpdateEnv",
+        "system": "Jira (Atlassian)",
+        "workflow": "Jira",
+        "category": "jira",
+        "multi_agent": False
+    },
+    "JiraCommentManagement": {
+        "class_path": "environments.jira.jira_workflow_env.JiraCommentManagementEnv",
+        "system": "Jira (Atlassian)",
+        "workflow": "Jira",
+        "category": "jira",
+        "multi_agent": False
+    },
+    "JiraSubtaskManagement": {
+        "class_path": "environments.jira.jira_workflow_env.JiraSubtaskManagementEnv",
+        "system": "Jira (Atlassian)",
+        "workflow": "Jira",
+        "category": "jira",
+        "multi_agent": False
+    },
 }
 
 # Helper function to convert CamelCase to snake_case
