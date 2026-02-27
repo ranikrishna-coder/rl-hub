@@ -1,10 +1,14 @@
-# Stage 1: Build RL-Env-Studio (React SPA)
+# Stage 1: Build RL-Env-Studio (React SPA) if present; otherwise skip
 FROM node:20-slim AS studio-builder
 WORKDIR /app
-COPY package.json ./
-COPY apps/RL-Env-Studio/package.json apps/RL-Env-Studio/
-COPY apps/RL-Env-Studio apps/RL-Env-Studio
-RUN cd apps/RL-Env-Studio && npm install && npm run build
+# Copy full context so we can conditionally build Studio (deploy works even if apps/ not in repo)
+COPY . .
+RUN mkdir -p api/static/studio && \
+    if [ -f apps/RL-Env-Studio/package.json ]; then \
+      cd apps/RL-Env-Studio && npm install && npm run build; \
+    else \
+      echo "apps/RL-Env-Studio/package.json not found: skipping Studio build (API-only deploy)."; \
+    fi
 
 # Stage 2: Python API + serve built Studio
 FROM python:3.11-slim
