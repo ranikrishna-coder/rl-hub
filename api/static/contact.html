@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact us – Centific AgentWork Simulator</title>
+    <link rel="stylesheet" href="/static/landing.css">
+    <link rel="stylesheet" href="/static/global-nav.css">
+    <link rel="stylesheet" href="/static/toast.css">
+    <script>
+        (function() {
+            var h = window.location.hostname, p = window.location.protocol;
+            if (h === 'localhost' || h === '127.0.0.1') window.API_BASE = 'http://localhost:8000';
+            else if (h.includes('onrender.com')) window.API_BASE = p + '//' + h;
+            else window.API_BASE = 'https://agentwork-simulator-api.onrender.com';
+            document.documentElement.setAttribute('data-theme', 'light');
+        })();
+    </script>
+</head>
+<body data-page="contact">
+    <header class="landing-header">
+        <div class="landing-nav-wrap">
+            <a href="/" class="landing-logo">
+                <img src="/static/logo.svg" alt="" class="logo-icon" width="40" height="40">
+                <span class="logo-text"><span class="logo-brand">Centific</span><span class="logo-product">AgentWork Simulator</span></span>
+            </a>
+            <nav class="landing-nav">
+                <a href="/catalog" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.125em"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Catalog</a>
+                <a href="/test-console" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.125em"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Simulation</a>
+                <a href="/dashboard" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.125em"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="14" y="6" width="3" height="12"/></svg> Dashboard</a>
+                <div class="nav-dropdown">
+                    <button type="button" class="nav-link nav-trigger" aria-expanded="false" aria-haspopup="true" id="nav-rl-trigger">Industries</button>
+                    <div class="nav-dropdown-menu" id="nav-rl-menu" aria-hidden="true">
+                        <a href="/catalog?industry=finance">Finance</a>
+                        <a href="/catalog?industry=healthcare">Healthcare</a>
+                        <a href="/catalog?industry=enterprise">Enterprise apps</a>
+                        <a href="/catalog?industry=human_resources">Human Resources</a>
+                        <a href="/catalog" class="nav-dropdown-more">More — View full catalog</a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="landing-main">
+        <section class="landing-section landing-section-alt">
+            <h2 class="landing-section-title">Contact us</h2>
+            <p class="landing-section-desc">Let's unlock the full potential of AgentWork Simulator for your enterprise. Request a tailored demo, collaborate on custom-built environments, or speak with our team about enterprise-grade access and deployment options. We're here to partner with you every step of the way.</p>
+            <form class="contact-form" id="contact-form" action="#" method="post">
+                <div class="contact-row">
+                    <label class="contact-label" for="contact-name">Name</label>
+                    <input type="text" id="contact-name" name="name" class="contact-input" placeholder="Your name" required autocomplete="name">
+                </div>
+                <div class="contact-row">
+                    <label class="contact-label" for="contact-email">Email</label>
+                    <input type="email" id="contact-email" name="email" class="contact-input" placeholder="you@company.com" required autocomplete="email">
+                </div>
+                <div class="contact-row">
+                    <label class="contact-label" for="contact-organization">Organization</label>
+                    <input type="text" id="contact-organization" name="organization" class="contact-input" placeholder="Your company or organization" required autocomplete="organization">
+                </div>
+                <div class="contact-row">
+                    <label class="contact-label" for="contact-subject">Subject</label>
+                    <input type="text" id="contact-subject" name="subject" class="contact-input" placeholder="Demos, enterprise access, or custom environments">
+                </div>
+                <div class="contact-row">
+                    <label class="contact-label" for="contact-usecase">Describe your use case</label>
+                    <textarea id="contact-usecase" name="use_case" class="contact-textarea" rows="4" placeholder="Describe your use case and how you plan to use AgentWork Simulator." required></textarea>
+                </div>
+                <div class="contact-row contact-actions">
+                    <button type="submit" class="contact-submit">Send message</button>
+                    <p class="contact-note">Or explore the <a href="/catalog">catalog</a> to try AgentWork Simulator now.</p>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <footer class="landing-footer">
+        <div class="landing-footer-inner">
+            <a href="/">Home</a>
+            <a href="/catalog">Catalog</a>
+            <a href="/dashboard">Dashboard</a>
+            <a href="/test-console">Simulation</a>
+        </div>
+    </footer>
+
+    <script src="/static/toast.js"></script>
+    <script>
+        (function() {
+            var trigger = document.getElementById('nav-rl-trigger');
+            var menu = document.getElementById('nav-rl-menu');
+            if (trigger && menu) {
+                trigger.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var open = menu.getAttribute('aria-hidden') !== 'true';
+                    menu.setAttribute('aria-hidden', open ? 'true' : 'false');
+                    trigger.setAttribute('aria-expanded', open ? 'false' : 'true');
+                });
+                document.addEventListener('click', function(e) {
+                    if (!trigger.contains(e.target) && !menu.contains(e.target)) {
+                        menu.setAttribute('aria-hidden', 'true');
+                        trigger.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+
+            function clearFieldErrors() {
+                document.querySelectorAll('.contact-row.field-error').forEach(function(row) {
+                    row.classList.remove('field-error');
+                    var msg = row.querySelector('.field-error-msg');
+                    if (msg) msg.remove();
+                });
+            }
+
+            function showFieldError(inputId, message) {
+                var el = document.getElementById(inputId);
+                if (!el) return;
+                var row = el.closest('.contact-row');
+                if (!row) return;
+                row.classList.add('field-error');
+                var msg = document.createElement('span');
+                msg.className = 'field-error-msg';
+                msg.textContent = message;
+                row.appendChild(msg);
+            }
+
+            // Clear errors on input
+            document.querySelectorAll('.contact-input, .contact-textarea').forEach(function(el) {
+                el.addEventListener('input', function() {
+                    var row = el.closest('.contact-row');
+                    if (row) {
+                        row.classList.remove('field-error');
+                        var msg = row.querySelector('.field-error-msg');
+                        if (msg) msg.remove();
+                    }
+                });
+            });
+
+            var contactForm = document.getElementById('contact-form');
+            if (contactForm) {
+                contactForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    clearFieldErrors();
+                    var name = (document.getElementById('contact-name') || {}).value.trim();
+                    var email = (document.getElementById('contact-email') || {}).value.trim();
+                    var org = (document.getElementById('contact-organization') || {}).value.trim();
+                    var useCase = (document.getElementById('contact-usecase') || {}).value.trim();
+                    var hasError = false;
+                    if (!name) { showFieldError('contact-name', 'Name is required'); hasError = true; }
+                    if (!email) { showFieldError('contact-email', 'Email is required'); hasError = true; }
+                    if (!org) { showFieldError('contact-organization', 'Organization is required'); hasError = true; }
+                    if (!useCase) { showFieldError('contact-usecase', 'Use case description is required'); hasError = true; }
+                    if (hasError) {
+                        showToast('Please fill in all required fields.', 'warning');
+                        return;
+                    }
+                    var apiBase = window.API_BASE || '';
+                    if (apiBase) {
+                        fetch(apiBase + '/api/contact', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                name: name,
+                                email: email,
+                                organization: org,
+                                subject: (document.getElementById('contact-subject') || {}).value.trim() || null,
+                                use_case: useCase
+                            })
+                        }).then(function(r) {
+                            if (r.ok) {
+                                showToast('Thank you. Your message has been submitted.', 'success');
+                                contactForm.reset();
+                            } else { return r.json().then(function(d) { showToast(d.detail || 'Submission failed.', 'error'); }); }
+                        }).catch(function() { showToast('Submission failed. Please try again.', 'error'); });
+                    } else {
+                        var body = 'Use case: ' + useCase + '\n\nOrganization: ' + org + '\n\n-- ' + name + ' (' + email + ')';
+                        window.location.href = 'mailto:kausalyarani.k@centific.com?subject=' + encodeURIComponent('AgentWork Simulator: ' + name) + '&body=' + encodeURIComponent(body);
+                    }
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

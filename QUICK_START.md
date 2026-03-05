@@ -4,13 +4,13 @@
 
 ### Using the start script:
 ```bash
-cd rl-hub
+cd agentwork-simulator
 ./start_server.sh
 ```
 
 ### Or manually:
 ```bash
-cd rl-hub
+cd agentwork-simulator
 
 # Create virtual environment (first time only)
 python3 -m venv venv
@@ -33,7 +33,7 @@ The API will be available at:
 ```python
 # Example: Using an environment directly
 import sys
-sys.path.append('rl-hub')
+sys.path.append('agentwork-simulator')
 
 from environments.clinical.treatment_pathway_optimization import TreatmentPathwayOptimizationEnv
 

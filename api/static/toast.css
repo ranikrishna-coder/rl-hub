@@ -1,0 +1,102 @@
+/* Toast notification system */
+.toast-container {
+    position: fixed;
+    top: 60px;
+    right: 1rem;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 420px;
+    width: 100%;
+    pointer-events: none;
+}
+
+.toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #64748b;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: #1e293b;
+    pointer-events: auto;
+    animation: toast-slide-in 0.3s ease forwards;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.toast.toast-dismissing {
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+.toast-icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+}
+
+.toast-message {
+    flex: 1;
+    word-break: break-word;
+}
+
+.toast-close {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0;
+    line-height: 0;
+    margin-top: 1px;
+    transition: color 0.15s;
+}
+.toast-close:hover { color: #475569; }
+.toast-close svg { width: 14px; height: 14px; }
+
+/* Types */
+.toast-success { border-left-color: #16a34a; }
+.toast-success .toast-icon { color: #16a34a; }
+
+.toast-error { border-left-color: #dc2626; }
+.toast-error .toast-icon { color: #dc2626; }
+
+.toast-warning { border-left-color: #d97706; }
+.toast-warning .toast-icon { color: #d97706; }
+
+.toast-info { border-left-color: #0369a1; }
+.toast-info .toast-icon { color: #0369a1; }
+
+@keyframes toast-slide-in {
+    from { opacity: 0; transform: translateX(80px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Dark mode */
+[data-theme="dark"] .toast {
+    background: #1e1b2e;
+    border-color: #3e3a52;
+    color: #f3f0f9;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+}
+[data-theme="dark"] .toast-close { color: #a8a2b8; }
+[data-theme="dark"] .toast-close:hover { color: #f3f0f9; }
+
+/* Inline field validation errors */
+.field-error .contact-input,
+.field-error .contact-textarea {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15) !important;
+}
+.field-error-msg {
+    color: #dc2626;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    display: block;
+}

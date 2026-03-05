@@ -1,4 +1,4 @@
-# Hosting RL Hub with GitHub Integration
+# Hosting AgentWork Simulator with GitHub Integration
 
 GitHub itself doesn't host dynamic applications like FastAPI, but we can use **GitHub Actions** to automatically deploy to free hosting platforms. Here are your options:
 
@@ -14,11 +14,11 @@ Render provides **free hosting** with automatic deployments from GitHub.
 
 2. **Create New Web Service:**
    - Click "New +" → "Web Service"
-   - Connect your GitHub repository: `ranikrishna-coder/rl-hub`
+   - Connect your GitHub repository: `ranikrishna-coder/agentwork-simulator`
    - Render will auto-detect the `render.yaml` configuration
 
 3. **Configure Service:**
-   - **Name**: `rl-hub`
+   - **Name**: `agentwork-simulator`
    - **Region**: Choose closest to you
    - **Branch**: `main`
    - **Build Command**: `pip install -r requirements.txt`
@@ -34,12 +34,12 @@ Render provides **free hosting** with automatic deployments from GitHub.
 5. **Deploy:**
    - Render will automatically deploy on first setup
    - Future pushes to `main` will auto-deploy
-   - Your app will be at: **https://rl-hub-api.onrender.com**
+   - Your app will be at: **https://agentwork-simulator-api.onrender.com**
 
 ### Access Your App:
-- **URL**: `https://rl-hub-api.onrender.com` (or your custom domain)
-- **API Docs**: `https://rl-hub-api.onrender.com/docs`
-- **Catalog**: `https://rl-hub-api.onrender.com`
+- **URL**: `https://agentwork-simulator-api.onrender.com` (or your custom domain)
+- **API Docs**: `https://agentwork-simulator-api.onrender.com/docs`
+- **Catalog**: `https://agentwork-simulator-api.onrender.com`
 
 ---
 
@@ -56,7 +56,7 @@ Railway provides free hosting with GitHub integration.
 2. **Create New Project:**
    - Click "New Project"
    - Select "Deploy from GitHub repo"
-   - Choose `ranikrishna-coder/rl-hub`
+   - Choose `ranikrishna-coder/agentwork-simulator`
 
 3. **Configure:**
    - Railway auto-detects Python
@@ -69,7 +69,7 @@ Railway provides free hosting with GitHub integration.
 
 5. **Deploy:**
    - Railway auto-deploys on push
-   - Your app will be at: **https://rl-hub-production.railway.app**
+   - Your app will be at: **https://agentwork-simulator-production.railway.app**
 
 ### Access Your App:
 - **URL**: Check Railway dashboard for your unique URL
@@ -85,20 +85,20 @@ Build Docker image and push to GitHub Container Registry, then deploy anywhere.
 
 1. **The workflow is already set up** (`deploy-docker.yml`)
 2. **Push to GitHub** - it will automatically build and push Docker image
-3. **Access image**: `ghcr.io/ranikrishna-coder/rl-hub:latest`
+3. **Access image**: `ghcr.io/ranikrishna-coder/agentwork-simulator:latest`
 
 ### Deploy the Image:
 
 **To any Docker host:**
 ```bash
-docker pull ghcr.io/ranikrishna-coder/rl-hub:latest
-docker run -p 8000:8000 ghcr.io/ranikrishna-coder/rl-hub:latest
+docker pull ghcr.io/ranikrishna-coder/agentwork-simulator:latest
+docker run -p 8000:8000 ghcr.io/ranikrishna-coder/agentwork-simulator:latest
 ```
 
 **To Google Cloud Run:**
 ```bash
-gcloud run deploy rl-hub \
-  --image ghcr.io/ranikrishna-coder/rl-hub:latest \
+gcloud run deploy agentwork-simulator \
+  --image ghcr.io/ranikrishna-coder/agentwork-simulator:latest \
   --platform managed \
   --region us-central1
 ```
@@ -111,7 +111,7 @@ gcloud run deploy rl-hub \
 
 1. Go to [render.com](https://render.com) and sign up
 2. Click "New +" → "Web Service"
-3. Connect GitHub repo: `ranikrishna-coder/rl-hub`
+3. Connect GitHub repo: `ranikrishna-coder/agentwork-simulator`
 4. Render will auto-detect settings from `render.yaml`
 5. Click "Create Web Service"
 6. Wait for first deployment (5-10 minutes)
@@ -119,7 +119,7 @@ gcloud run deploy rl-hub \
 ### Step 2: Get Your Public URL
 
 After deployment, Render shows your URL:
-- Example: `https://rl-hub-api.onrender.com`
+- Example: `https://agentwork-simulator-api.onrender.com`
 - This is your **public URL** - share it with anyone!
 
 ### Step 3: Enable Auto-Deploy (Optional)
@@ -147,9 +147,9 @@ Now every push to `main` will trigger a deployment!
 
 ### On Render:
 1. Go to your service → Settings → Custom Domain
-2. Add your domain (e.g., `rl-hub.yourdomain.com`)
+2. Add your domain (e.g., `agentwork-simulator.yourdomain.com`)
 3. Follow DNS instructions
-4. Access via: `https://rl-hub.yourdomain.com`
+4. Access via: `https://agentwork-simulator.yourdomain.com`
 
 ### On Railway:
 1. Go to your service → Settings → Domains
@@ -191,7 +191,7 @@ git push origin main
 # 2. Go to render.com and create service
 # 3. Connect your GitHub repo
 # 4. Render auto-deploys
-# 5. Get your URL: https://rl-hub-api.onrender.com
+# 5. Get your URL: https://agentwork-simulator-api.onrender.com
 ```
 
 **That's it!** Your app is now live and accessible worldwide.
@@ -204,13 +204,13 @@ After deployment, test your app:
 
 ```bash
 # Check if it's live
-curl https://rl-hub-api.onrender.com/
+curl https://agentwork-simulator-api.onrender.com/
 
 # Test API
-curl https://rl-hub-api.onrender.com/environments
+curl https://agentwork-simulator-api.onrender.com/environments
 
 # Open in browser
-open https://rl-hub-api.onrender.com
+open https://agentwork-simulator-api.onrender.com
 ```
 
 ---
@@ -241,5 +241,5 @@ open https://rl-hub-api.onrender.com
 3. **Get your public URL**
 4. **Share it!** 🎉
 
-Your RL Hub will be accessible at a public URL that anyone can use!
+Your AgentWork Simulator will be accessible at a public URL that anyone can use!
 

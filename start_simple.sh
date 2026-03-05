@@ -1,13 +1,13 @@
 #!/bin/bash
 # Simple server start script
 
-echo "RL Hub - Simple Start"
+echo "AgentWork Simulator - Simple Start"
 echo "====================================="
 echo ""
 
 # Check if we're in the right directory
 if [ ! -f "api/main.py" ]; then
-    echo "Error: Please run this from the rl-hub directory"
+    echo "Error: Please run this from the agentwork-simulator directory"
     exit 1
 fi
 

@@ -3,7 +3,7 @@
 ## 🚀 3-Step Setup
 
 ### Step 1: Enable GitHub Pages
-1. Go to your repo: `ranikrishna-coder/rl-hub`
+1. Go to your repo: `ranikrishna-coder/agentwork-simulator`
 2. **Settings** → **Pages**
 3. Under **Source**, select: **GitHub Actions**
 4. Save
@@ -13,9 +13,9 @@ The frontend needs an API backend. Deploy it to Render:
 
 1. Go to [render.com](https://render.com)
 2. **New +** → **Web Service**
-3. Connect GitHub repo: `ranikrishna-coder/rl-hub`
+3. Connect GitHub repo: `ranikrishna-coder/agentwork-simulator`
 4. Render auto-detects settings
-5. Your API will be at: `https://rl-hub.onrender.com`
+5. Your API will be at: `https://agentwork-simulator-api.onrender.com`
 
 ### Step 3: Configure API URL (Optional)
 If your API URL is different:
@@ -27,8 +27,8 @@ If your API URL is different:
 ## ✅ Done!
 
 After pushing to `main`, your app will be at:
-- **Frontend**: `https://ranikrishna-coder.github.io/rl-hub/`
-- **API**: `https://rl-hub.onrender.com` (or your API URL)
+- **Frontend**: `https://ranikrishna-coder.github.io/agentwork-simulator/`
+- **API**: `https://agentwork-simulator-api.onrender.com` (or your API URL)
 
 The workflow automatically:
 - ✅ Builds static files
@@ -44,7 +44,7 @@ The workflow automatically:
 - Verify GitHub Pages is enabled in Settings
 
 **API not connecting?**
-- Check API is running: `curl https://rl-hub.onrender.com/`
+- Check API is running: `curl https://agentwork-simulator-api.onrender.com/`
 - Verify CORS is configured in API
 - Check browser console for errors
 

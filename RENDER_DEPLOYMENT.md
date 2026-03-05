@@ -1,4 +1,4 @@
-# Deploy RL Hub API to Render
+# Deploy AgentWork Simulator API to Render
 
 Complete step-by-step guide to deploy your FastAPI backend to Render.
 
@@ -18,7 +18,7 @@ Complete step-by-step guide to deploy your FastAPI backend to Render.
 ### Step 3: Connect Your GitHub Repository
 
 1. Render will show your GitHub repositories
-2. Find and select: **`ranikrishna-coder/rl-hub`**
+2. Find and select: **`ranikrishna-coder/agentwork-simulator`**
 3. Click **"Connect"**
 
 ### Step 4: Configure the Service
@@ -26,7 +26,7 @@ Complete step-by-step guide to deploy your FastAPI backend to Render.
 Render will auto-detect settings from `render.yaml`, but verify these:
 
 **Basic Settings:**
-- **Name**: `rl-hub` (or `rl-hub-api`)
+- **Name**: `agentwork-simulator` (or `agentwork-simulator-api`)
 - **Region**: Choose closest to you (e.g., `Oregon (US West)`)
 - **Branch**: `main`
 - **Root Directory**: Leave empty (or `./` if needed)
@@ -60,8 +60,8 @@ PORT=8000
 ### Step 7: Get Your API URL
 
 After deployment completes:
-- Your API will be at: **`https://rl-hub-api.onrender.com`**
-- (Or `https://rl-hub-XXXX.onrender.com` if name was taken)
+- Your API will be at: **`https://agentwork-simulator-api.onrender.com`**
+- (Or `https://agentwork-simulator-XXXX.onrender.com` if name was taken)
 
 **Save this URL** - you'll need it for GitHub Pages!
 
@@ -71,20 +71,20 @@ After deployment completes:
 
 ```bash
 # Test root endpoint
-curl https://rl-hub-api.onrender.com/
+curl https://agentwork-simulator-api.onrender.com/
 
 # Test environments list
-curl https://rl-hub-api.onrender.com/environments
+curl https://agentwork-simulator-api.onrender.com/environments
 
 # Test API docs
-open https://rl-hub-api.onrender.com/docs
+open https://agentwork-simulator-api.onrender.com/docs
 ```
 
 ### Expected Response:
 
 ```json
 {
-  "message": "RL Hub API",
+  "message": "AgentWork Simulator API",
   "version": "1.0.0",
   "endpoints": { ... }
 }
@@ -111,7 +111,7 @@ Your repo already has `render.yaml` with these settings:
 ```yaml
 services:
   - type: web
-    name: rl-hub
+    name: agentwork-simulator
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: python -m api.main
@@ -203,7 +203,7 @@ If your GitHub Pages frontend can't connect:
 
 1. Verify CORS is configured in `api/main.py`
 2. Check that your API URL is correct in GitHub Pages `config.js`
-3. Test API directly: `curl https://rl-hub-api.onrender.com/`
+3. Test API directly: `curl https://agentwork-simulator-api.onrender.com/`
 
 ## 🔐 Environment Variables
 
@@ -256,10 +256,10 @@ Render auto-deploys in 5-10 minutes.
 
 ## 📝 Next Steps After Deployment
 
-1. **Get your API URL**: `https://rl-hub-api.onrender.com`
+1. **Get your API URL**: `https://agentwork-simulator-api.onrender.com`
 2. **Update GitHub Pages**:
    - Go to GitHub repo → Settings → Secrets → Actions
-   - Add secret: `API_URL` = `https://rl-hub-api.onrender.com`
+   - Add secret: `API_URL` = `https://agentwork-simulator-api.onrender.com`
 3. **Test the connection**:
    - Visit your GitHub Pages site
    - Check browser console for API calls
@@ -294,5 +294,5 @@ Render auto-deploys in 5-10 minutes.
 
 ---
 
-**Your API will be live at:** `https://rl-hub-api.onrender.com` 🚀
+**Your API will be live at:** `https://agentwork-simulator-api.onrender.com` 🚀
 

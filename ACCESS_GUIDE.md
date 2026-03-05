@@ -1,6 +1,6 @@
-# How to Access RL Hub
+# How to Access AgentWork Simulator
 
-The RL Hub application runs on **port 8000** and is accessible through different URLs depending on your deployment method.
+The AgentWork Simulator application runs on **port 8000** and is accessible through different URLs depending on your deployment method.
 
 ## 🌐 Access URLs by Deployment Method
 
@@ -26,7 +26,7 @@ python -m api.main
 
 #### Local Docker:
 ```bash
-docker run -p 8000:8000 rl-hub
+docker run -p 8000:8000 agentwork-simulator
 # or
 docker-compose up
 ```
@@ -38,7 +38,7 @@ docker-compose up
 If deployed on a server with public IP:
 
 ```bash
-docker run -p 8000:8000 rl-hub
+docker run -p 8000:8000 agentwork-simulator
 ```
 
 **Access URLs:**
@@ -58,7 +58,7 @@ Railway automatically provides a public URL:
 
 **Access URLs:**
 - **https://YOUR_APP_NAME.railway.app**
-- Example: `https://rl-hub-production.railway.app`
+- Example: `https://agentwork-simulator-production.railway.app`
 
 **How to get your URL:**
 1. Go to your Railway dashboard
@@ -79,7 +79,7 @@ Render provides a public URL automatically:
 
 **Access URLs:**
 - **https://YOUR_APP_NAME.onrender.com**
-- Example: `https://rl-hub-api.onrender.com`
+- Example: `https://agentwork-simulator-api.onrender.com`
 
 **How to get your URL:**
 1. Go to Render dashboard
@@ -99,7 +99,7 @@ Fly.io provides a public URL:
 
 **Access URLs:**
 - **https://YOUR_APP_NAME.fly.dev**
-- Example: `https://rl-hub.fly.dev`
+- Example: `https://agentwork-simulator.fly.dev`
 
 **How to get your URL:**
 ```bash
@@ -229,7 +229,7 @@ curl http://YOUR_URL/
 ### Expected Response:
 ```json
 {
-  "message": "RL Hub API",
+  "message": "AgentWork Simulator API",
   "version": "1.0.0",
   "endpoints": { ... }
 }

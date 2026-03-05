@@ -1,0 +1,19 @@
+{
+  "job_id": "0b36f3c9-edb5-4170-b8de-04f731a2bbbb",
+  "environment_name": "JiraSubtaskManagement",
+  "algorithm": "SLM",
+  "num_episodes": 1,
+  "subtask_episodes": [
+    {
+      "episode": 1,
+      "step": 3,
+      "issue_key": "PROJ-101",
+      "tool_sequence": [
+        "get_issue_summary_and_description",
+        "get_issue_summary_and_description",
+        "create_subtask"
+      ],
+      "workflow_id": "subtask_management"
+    }
+  ]
+}

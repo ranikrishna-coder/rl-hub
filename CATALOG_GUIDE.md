@@ -2,14 +2,14 @@
 
 ## 🎨 Beautiful Web Catalog Interface
 
-RL Hub now includes a **stunning web-based catalog** that displays all 50 environments with detailed information and interactive features.
+AgentWork Simulator now includes a **stunning web-based catalog** that displays all 50 environments with detailed information and interactive features.
 
 ## 🚀 Accessing the Catalog
 
 ### Step 1: Start the Server
 
 ```bash
-cd /Users/kausalyarani.k/Documents/rl-hub
+cd agentwork-simulator
 
 # Activate virtual environment
 source venv/bin/activate

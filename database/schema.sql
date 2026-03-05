@@ -1,4 +1,4 @@
--- PostgreSQL Database Schema for RL Hub
+-- PostgreSQL Database Schema for AgentWork Simulator
 
 -- Training Jobs Table
 CREATE TABLE IF NOT EXISTS training_jobs (

@@ -6,7 +6,7 @@
 - Go to [render.com](https://render.com)
 - Sign up with GitHub
 - Click **"New +"** → **"Web Service"**
-- Select repo: **`ranikrishna-coder/rl-hub`**
+- Select repo: **`ranikrishna-coder/agentwork-simulator`**
 
 ### 2️⃣ Configure (Auto-detected)
 Render auto-detects from `render.yaml`:
@@ -18,8 +18,8 @@ Render auto-detects from `render.yaml`:
 
 ### 3️⃣ Wait & Get URL
 - Wait 5-10 minutes
-- Your API: **`https://rl-hub-api.onrender.com`**
-- Test: `curl https://rl-hub-api.onrender.com/`
+- Your API: **`https://agentwork-simulator-api.onrender.com`**
+- Test: `curl https://agentwork-simulator-api.onrender.com/`
 
 ## ✅ Done!
 

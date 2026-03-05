@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RL Hub - Environment Catalog</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Centific AgentWork Simulator - Catalog</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/global-nav.css">
+    <link rel="stylesheet" href="/static/toast.css">
     <!-- API Configuration - auto-detects API URL -->
     <script>
         // Auto-detect API URL based on current hostname
@@ -22,32 +24,108 @@
             }
             // If we're on GitHub Pages, use the Render API
             else if (hostname.includes('github.io')) {
-                window.API_BASE = window.API_BASE || 'https://rl-hub-api.onrender.com';
+                window.API_BASE = window.API_BASE || 'https://agentwork-simulator-api.onrender.com';
             }
             // Default fallback
             else {
-                window.API_BASE = window.API_BASE || 'https://rl-hub-api.onrender.com';
+                window.API_BASE = window.API_BASE || 'https://agentwork-simulator-api.onrender.com';
             }
             
-            console.log('🚀 RL Hub - Detected API Base URL:', window.API_BASE);
+            console.log('🚀 AgentWork Simulator - Detected API Base URL:', window.API_BASE);
         })();
     </script>
     <!-- Load config.js if it exists (can override auto-detection) -->
-    <script src="config.js" onerror="console.log('config.js not found, using auto-detected URL')"></script>
+    <script src="/config.js" onerror="console.log('config.js not found, using auto-detected URL')"></script>
+    <script>
+        (function() {
+            var saved = null;
+            // Dark mode disabled for now - keep code to re-enable later
+            // try { saved = localStorage.getItem('landing-theme'); } catch (e) {}
+            // var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            // if (saved === 'dark' || (saved !== 'light' && prefersDark)) document.documentElement.setAttribute('data-theme', 'dark');
+            // else document.documentElement.setAttribute('data-theme', 'light');
+            document.documentElement.setAttribute('data-theme', 'light');
+        })();
+    </script>
 </head>
-<body>
-    <div class="container">
+<body data-page="catalog">
+    <nav class="gn-bar">
+        <a href="/" class="gn-logo">
+            <img src="/static/logo.svg" alt="" width="28" height="28">
+            <span class="gn-logo-text">Centific <span class="gn-logo-sub">AgentWork Simulator</span></span>
+        </a>
+        <button type="button" class="gn-toggle" aria-label="Toggle menu" onclick="document.querySelector('.gn-links').classList.toggle('gn-open')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <ul class="gn-links">
+            <li><a href="/catalog" class="gn-link gn-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Catalog</a></li>
+            <li><a href="/test-console" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Simulation</a></li>
+            <li><a href="/dashboard" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="14" y="6" width="3" height="12"/></svg> Dashboard</a></li>
+        </ul>
+    </nav>
+
+    <!-- Full-page environment detail view (replaces catalog when "View details" is clicked) -->
+    <div id="env-detail-page" class="env-detail-page" style="display: none;">
+        <div class="env-detail-inner">
+            <button type="button" class="btn-back-catalog" id="btn-back-catalog" aria-label="Back to catalog">← Back to Catalog</button>
+            <div id="env-detail-body"></div>
+        </div>
+    </div>
+
+    <div class="container" id="catalog-container">
+        <!-- User journey: Step 1 - Choose industry -->
+        <div id="journey-step-1" class="journey-step" style="display: none;">
+            <header class="header">
+                <h1>Choose your industry</h1>
+                <p class="subtitle">Select an industry to discover relevant AgentWork Simulators.</p>
+            </header>
+            <div class="journey-cards" id="journey-industry-cards">
+                <a href="/catalog?industry=finance" class="journey-card">
+                    <span class="journey-card-icon">💰</span>
+                    <h2>Finance</h2>
+                    <p>Revenue cycle, claims, billing, and payment workflows.</p>
+                </a>
+                <a href="/catalog?industry=healthcare" class="journey-card">
+                    <span class="journey-card-icon">🏥</span>
+                    <h2>Healthcare</h2>
+                    <p>Clinical, imaging, population health, and operations.</p>
+                </a>
+                <a href="/catalog?industry=enterprise" class="journey-card">
+                    <span class="journey-card-icon">📋</span>
+                    <h2>Enterprise apps</h2>
+                    <p>Jira and project workflow automation.</p>
+                </a>
+                <a href="/catalog?industry=human_resources" class="journey-card">
+                    <span class="journey-card-icon">👥</span>
+                    <h2>Human Resources</h2>
+                    <p>HR & Payroll: Workday, SAP SuccessFactors, ADP.</p>
+                </a>
+            </div>
+            <p style="text-align: center; margin-top: 1.5rem;">
+                <a href="/catalog?industry=all" class="journey-skip">Browse all AgentWork Simulators</a>
+            </p>
+        </div>
+        <!-- User journey: Step 2 - Choose persona -->
+        <div id="journey-step-2" class="journey-step" style="display: none;">
+            <header class="header">
+                <h1>Choose your workflow</h1>
+                <p class="subtitle" id="journey-step-2-subtitle">Select a workflow area to see matching AgentWork Simulators.</p>
+            </header>
+            <div class="journey-cards" id="journey-persona-cards"></div>
+        </div>
+        <!-- Step 3: Browse AgentWork Simulators -->
+        <div id="catalog-browse" style="display: none;">
         <div class="top-bar">
             <button class="help-button" onclick="openHelpSection()">
                 📚 Help & Documentation
             </button>
         </div>
         <header class="header">
-            <h1>🏥 RL Hub</h1>
-            <p class="subtitle">100 Reinforcement Learning Environments for Healthcare Optimization</p>
+            <h1>AgentWork Simulator</h1>
+            <p class="subtitle" id="subtitle-env-count">Reinforcement learning environments for workflow optimization</p>
             <div class="stats">
                 <div class="stat-item">
-                    <span class="stat-number" id="total-envs">100</span>
+                    <span class="stat-number" id="total-envs">—</span>
                     <span class="stat-label">Environments</span>
                 </div>
                 <div class="stat-item">
@@ -64,26 +142,37 @@
         <div class="controls">
             <div class="search-box">
                 <input type="text" id="search-input" placeholder="Search environments..." />
-                <span class="search-icon">🔍</span>
+                <span class="search-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+            </div>
+            <div class="domain-filter-wrap" style="display: flex; align-items: center; gap: 0.5rem;">
+                <label for="domain-filter" style="font-size: 0.9rem; color: var(--text-secondary); white-space: nowrap;">Domain:</label>
+                <select id="domain-filter" class="system-filter-select" title="Filter by domain: Enterprise (Jira), HR & Payroll, or Operational workflows">
+                    <option value="all">All</option>
+                    <option value="enterprise">Enterprise apps</option>
+                    <option value="hr_payroll">HR & Payroll</option>
+                    <option value="healthcare">Operational workflows</option>
+                </select>
             </div>
             <div class="system-filter-wrap" style="display: flex; align-items: center; gap: 0.5rem;">
                 <label for="system-filter" style="font-size: 0.9rem; color: var(--text-secondary); white-space: nowrap;">Software system:</label>
-                <select id="system-filter" class="system-filter-select" title="Filter environments by healthcare software system (e.g. Epic, Cerner)">
+                <select id="system-filter" class="system-filter-select" title="Filter environments by software system. Enterprise apps shows Jira; Healthcare shows Epic, Cerner, etc.">
                     <option value="all">All systems</option>
                     <!-- Populated by JS from environment data -->
                 </select>
             </div>
-            <div class="filter-buttons">
-                <button class="filter-btn active" data-category="all">All</button>
-                <button class="filter-btn" data-category="clinical">Clinical</button>
-                <button class="filter-btn" data-category="imaging">Imaging</button>
-                <button class="filter-btn" data-category="population_health">Population Health</button>
-                <button class="filter-btn" data-category="revenue_cycle">Revenue Cycle</button>
-                <button class="filter-btn" data-category="clinical_trials">Clinical Trials</button>
-                <button class="filter-btn" data-category="hospital_operations">Hospital Ops</button>
-                <button class="filter-btn" data-category="telehealth">Telehealth</button>
-                <button class="filter-btn" data-category="interoperability">Interoperability</button>
-                <button class="filter-btn" data-category="cross_workflow">Cross-Workflow</button>
+            <div class="filter-buttons" id="filter-buttons">
+                <button class="filter-btn active" data-category="all" data-domain="all">All</button>
+                <button class="filter-btn" data-category="jira" data-domain="enterprise">Jira</button>
+                <button class="filter-btn" data-category="hr_payroll" data-domain="hr_payroll">HR & Payroll</button>
+                <button class="filter-btn" data-category="clinical" data-domain="healthcare">Clinical</button>
+                <button class="filter-btn" data-category="imaging" data-domain="healthcare">Imaging</button>
+                <button class="filter-btn" data-category="population_health" data-domain="healthcare">Population</button>
+                <button class="filter-btn" data-category="revenue_cycle" data-domain="healthcare">Revenue</button>
+                <button class="filter-btn" data-category="clinical_trials" data-domain="healthcare">Clinical Trials</button>
+                <button class="filter-btn" data-category="hospital_operations" data-domain="healthcare">Operations</button>
+                <button class="filter-btn" data-category="telehealth" data-domain="healthcare">Telehealth</button>
+                <button class="filter-btn" data-category="interoperability" data-domain="healthcare">Interoperability</button>
+                <button class="filter-btn" data-category="cross_workflow" data-domain="healthcare">Cross-Workflow</button>
             </div>
         </div>
 
@@ -93,13 +182,6 @@
 
         <div id="loading" class="loading">Loading environments...</div>
         <div id="error" class="error" style="display: none;"></div>
-    </div>
-
-    <!-- Environment Detail Modal -->
-    <div id="env-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('env-modal')">&times;</span>
-            <div id="modal-body"></div>
         </div>
     </div>
 
@@ -119,7 +201,7 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="/static/toast.js"></script>
+    <script src="/static/app.js"></script>
 </body>
 </html>
-

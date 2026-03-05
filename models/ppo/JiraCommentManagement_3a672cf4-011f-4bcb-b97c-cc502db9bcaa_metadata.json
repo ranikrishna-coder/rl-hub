@@ -1,0 +1,12 @@
+{
+  "job_id": "3a672cf4-011f-4bcb-b97c-cc502db9bcaa",
+  "environment_name": "JiraCommentManagement",
+  "algorithm": "PPO",
+  "num_episodes": 100,
+  "mean_reward": 0.0010000000000000204,
+  "max_reward": 0.4,
+  "min_reward": -0.8999999999999999,
+  "total_episodes_completed": 100,
+  "training_completed": true,
+  "timestamp": "1772055384.7179468"
+}

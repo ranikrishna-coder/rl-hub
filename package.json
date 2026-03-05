@@ -1,0 +1,14 @@
+{
+  "name": "agentwork-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AgentWork Simulator - Production-grade RL environments for healthcare and enterprise systems",
+  "scripts": {
+    "build:studio": "cd apps/RL-Env-Studio && npm install && npm run build",
+    "build:studio:dev": "cd apps/RL-Env-Studio && npm install && npm run build",
+    "dev:studio": "cd apps/RL-Env-Studio && npm run dev"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

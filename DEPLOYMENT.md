@@ -1,6 +1,6 @@
 # Deployment Guide
 
-RL Hub can be deployed using multiple methods. Choose the one that best fits your needs.
+AgentWork Simulator can be deployed using multiple methods. Choose the one that best fits your needs.
 
 ## 🚀 Quick Deploy Options
 
@@ -25,10 +25,10 @@ The repository includes GitHub Actions workflows that automatically:
 
 ```bash
 # Build the image
-docker build -t rl-hub .
+docker build -t agentwork-simulator .
 
 # Run the container
-docker run -p 8000:8000 rl-hub
+docker run -p 8000:8000 agentwork-simulator
 
 # Or use docker-compose
 docker-compose up -d
@@ -38,13 +38,13 @@ docker-compose up -d
 
 ```bash
 # Tag for GitHub Container Registry
-docker tag rl-hub ghcr.io/ranikrishna-coder/rl-hub:latest
+docker tag agentwork-simulator ghcr.io/ranikrishna-coder/agentwork-simulator:latest
 
 # Login to GitHub Container Registry
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 # Push
-docker push ghcr.io/ranikrishna-coder/rl-hub:latest
+docker push ghcr.io/ranikrishna-coder/agentwork-simulator:latest
 ```
 
 ### Option 3: Railway
@@ -79,8 +79,8 @@ Or use the GitHub Action with `FLY_API_TOKEN` secret.
 
 ```bash
 # On your server
-git clone https://github.com/ranikrishna-coder/rl-hub.git
-cd rl-hub
+git clone https://github.com/ranikrishna-coder/agentwork-simulator.git
+cd agentwork-simulator
 
 # Create virtual environment
 python3 -m venv venv
@@ -99,7 +99,7 @@ Create a `.env` file or set environment variables:
 
 ```bash
 # Optional: Database connection
-DATABASE_URL=postgresql://user:password@localhost:5432/rl_hub
+DATABASE_URL=postgresql://user:password@localhost:5432/agentwork_simulator
 
 # Optional: API settings
 API_HOST=0.0.0.0
@@ -115,18 +115,18 @@ LOG_LEVEL=INFO
 
 For production, use a process manager like `systemd`, `supervisor`, or `PM2`:
 
-**systemd service** (`/etc/systemd/system/rl-hub.service`):
+**systemd service** (`/etc/systemd/system/agentwork-simulator.service`):
 ```ini
 [Unit]
-Description=RL Hub API Server
+Description=AgentWork Simulator API Server
 After=network.target
 
 [Service]
 Type=simple
 User=www-data
-WorkingDirectory=/opt/rl-hub
-Environment="PATH=/opt/rl-hub/venv/bin"
-ExecStart=/opt/rl-hub/venv/bin/python -m api.main
+WorkingDirectory=/opt/agentwork-simulator
+Environment="PATH=/opt/agentwork-simulator/venv/bin"
+ExecStart=/opt/agentwork-simulator/venv/bin/python -m api.main
 Restart=always
 
 [Install]
@@ -183,7 +183,7 @@ The application includes health check endpoints:
 
 GitHub Actions automatically creates deployment packages:
 - Download from Actions → Artifacts
-- Extract: `tar -xzf rl-hub-deployment.tar.gz`
+- Extract: `tar -xzf agentwork-simulator-deployment.tar.gz`
 - Install: `pip install -r requirements.txt`
 - Run: `python -m api.main`
 

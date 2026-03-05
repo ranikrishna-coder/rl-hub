@@ -2,7 +2,7 @@
 
 ## Overview
 
-Successfully refactored the RL Hub platform to introduce a verifier-based architecture for reward calculation, observability, and governance. This refactoring was applied to **TreatmentPathwayOptimization** environment as a proof of concept.
+Successfully refactored the AgentWork Simulator platform to introduce a verifier-based architecture for reward calculation, observability, and governance. This refactoring was applied to **TreatmentPathwayOptimization** environment as a proof of concept.
 
 ## Architecture Changes
 
@@ -212,7 +212,7 @@ curl -X POST http://localhost:8000/governance/configure \
 Run the test script:
 
 ```bash
-cd /Users/kausalyarani.k/Documents/rl-hub
+cd agentwork-simulator
 python3 test_verifier_refactor.py
 ```
 

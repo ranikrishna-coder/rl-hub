@@ -32,7 +32,7 @@ jobs:
 
     - name: Prepare static files
       env:
-        API_URL: ${{ secrets.API_URL || 'https://rl-hub-api.onrender.com' }}
+        API_URL: ${{ secrets.API_URL || 'https://agentwork-simulator-api.onrender.com' }}
       run: |
         echo "📦 Preparing static files for GitHub Pages..."
         mkdir -p _site
@@ -44,7 +44,7 @@ jobs:
         cat > _site/config.js <<EOF
         // API Configuration for GitHub Pages
         window.API_BASE = window.API_BASE || '${API_URL}';
-        console.log('🚀 RL Hub - API Base URL:', window.API_BASE);
+        console.log('🚀 AgentWork Simulator - API Base URL:', window.API_BASE);
         EOF
         
         # Verify files are in place
@@ -86,7 +86,7 @@ jobs:
         echo "✅ Frontend deployed successfully!" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Access URLs:" >> $GITHUB_STEP_SUMMARY
-        echo "- **GitHub Pages**: \`https://ranikrishna-coder.github.io/rl-hub/\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **GitHub Pages**: \`https://ranikrishna-coder.github.io/agentwork-simulator/\`" >> $GITHUB_STEP_SUMMARY
         echo "- **API Endpoint**: \`${API_URL}\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Files Deployed:" >> $GITHUB_STEP_SUMMARY
@@ -96,5 +96,5 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
         echo "1. ✅ Enable GitHub Pages in repository Settings → Pages (Source: GitHub Actions)" >> $GITHUB_STEP_SUMMARY
-        echo "2. ✅ Visit: https://ranikrishna-coder.github.io/rl-hub/" >> $GITHUB_STEP_SUMMARY
+        echo "2. ✅ Visit: https://ranikrishna-coder.github.io/agentwork-simulator/" >> $GITHUB_STEP_SUMMARY
         echo "3. ⚠️ Deploy the API to Render if not already done (see \`RENDER_DEPLOYMENT.md\`)" >> $GITHUB_STEP_SUMMARY

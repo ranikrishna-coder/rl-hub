@@ -1,0 +1,12 @@
+{
+  "job_id": "d505da2f-d462-47b0-96ce-a29fa6a6b3ad",
+  "environment_name": "JiraIssueResolution",
+  "algorithm": "SLM",
+  "num_episodes": 320,
+  "mean_reward": -0.31781250000000005,
+  "max_reward": 0.6000000000000001,
+  "min_reward": -3.0000000000000013,
+  "total_episodes_completed": 320,
+  "training_completed": true,
+  "timestamp": "1772132548.9499898"
+}

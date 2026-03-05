@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centific AgentWork Simulator - Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/global-nav.css">
+    <link rel="stylesheet" href="/static/toast.css">
+    <script>
+        (function() {
+            const hostname = window.location.hostname;
+            const protocol = window.location.protocol;
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                window.API_BASE = window.API_BASE || 'http://localhost:8000';
+            } else if (hostname.includes('onrender.com')) {
+                window.API_BASE = window.API_BASE || `${protocol}//${hostname}`;
+            } else if (hostname.includes('github.io')) {
+                window.API_BASE = window.API_BASE || 'https://agentwork-simulator-api.onrender.com';
+            } else {
+                window.API_BASE = window.API_BASE || 'https://agentwork-simulator-api.onrender.com';
+            }
+        })();
+    </script>
+    <script src="/config.js" onerror="(function(){})()"></script>
+    <script>
+        (function() {
+            var saved = null;
+            // Dark mode disabled for now - keep code to re-enable later
+            // try { saved = localStorage.getItem('landing-theme'); } catch (e) {}
+            // var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            // if (saved === 'dark' || (saved !== 'light' && prefersDark)) document.documentElement.setAttribute('data-theme', 'dark');
+            // else document.documentElement.setAttribute('data-theme', 'light');
+            document.documentElement.setAttribute('data-theme', 'light');
+        })();
+    </script>
+    <style>
+        .dashboard-nav { display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .dashboard-nav a { text-decoration: none; }
+        .filter-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .filter-row label { font-weight: 600; color: var(--text-secondary); }
+        .filter-row select { padding: 0.5rem 0.75rem; border-radius: 6px; border: 2px solid var(--border-color); min-width: 140px; background: var(--card-bg); font-size: 0.95rem; }
+        .filter-row select:focus { outline: none; border-color: var(--primary-color); }
+        .summary-cards { display: flex; justify-content: center; gap: 2rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .summary-card { text-align: center; background: rgba(255,255,255,0.15); border-radius: 8px; padding: 1rem 2rem; min-width: 140px; }
+        .summary-card .num { display: block; font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .summary-card .label { font-size: 0.9rem; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; }
+        .activity-list { display: flex; flex-direction: column; gap: 0.75rem; }
+        .activity-item { background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 8px; padding: 1rem; box-shadow: var(--shadow); cursor: pointer; transition: border-color 0.2s; }
+        .activity-item:hover { border-color: var(--primary-color); }
+        .activity-item .head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .activity-item .env { font-weight: 600; color: var(--text-primary); }
+        .activity-item .ts { font-size: 0.85rem; color: var(--text-secondary); }
+        .activity-item .event-type { font-size: 0.8rem; padding: 0.2rem 0.5rem; border-radius: 4px; background: var(--bg-color); color: var(--text-secondary); }
+        .trajectory-bar { margin-top: 0.5rem; }
+        .btn-view-trajectory { padding: 0.5rem 1rem; font-size: 0.9rem; border-radius: 6px; border: 2px solid var(--primary-color); background: var(--bg-color); color: var(--primary-color); cursor: pointer; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.35rem; }
+        .btn-view-trajectory:hover { background: var(--primary-color); color: white; }
+        .trajectory-icon { font-size: 0.75rem; }
+        .activity-item .reuse-bar { margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .activity-item .reuse-bar a { text-decoration: none; }
+        .activity-item .reuse-bar button { padding: 0.4rem 0.75rem; font-size: 0.85rem; border-radius: 6px; border: 2px solid var(--primary-color); background: white; color: var(--primary-color); cursor: pointer; transition: all 0.2s; }
+        .activity-item .reuse-bar button:hover { background: var(--primary-color); color: white; }
+        .execution-story { margin-top: 0.75rem; padding: 0.75rem 1rem; background: var(--bg-color); border-radius: 8px; border-left: 4px solid var(--primary-color); display: none; }
+        .execution-story.visible { display: block; }
+        .trajectory-graph-v2 { display: flex; overflow-x: auto; padding: 0.75rem 0; gap: 0; align-items: flex-start; }
+        .traj-node { width: 200px; min-width: 200px; flex-shrink: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow); transition: box-shadow 0.2s; }
+        .traj-node:hover { box-shadow: var(--shadow-lg); }
+        .traj-node-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.7rem; background: linear-gradient(135deg, rgba(157,123,143,0.9) 0%, rgba(45,42,50,0.95) 100%); color: white; }
+        .traj-num { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.25); font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .traj-name { font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+        .traj-node-body { padding: 0.5rem 0.6rem; display: flex; flex-direction: column; gap: 0.5rem; max-height: 180px; overflow-y: auto; background: var(--bg-color); }
+        .traj-block { border-radius: 6px; overflow: hidden; border: 1px solid var(--border-color); }
+        .traj-block-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 0.25rem 0.5rem; color: var(--text-secondary); background: var(--card-bg); border-bottom: 1px solid var(--border-color); }
+        .traj-input .traj-block-label { color: var(--primary-color); }
+        .traj-output .traj-block-label { color: var(--secondary-color); }
+        .traj-block-body { padding: 0.4rem 0.5rem; font-size: 0.72rem; max-height: 80px; overflow-y: auto; background: var(--card-bg); }
+        .traj-kv { margin-bottom: 0.25rem; }
+        .traj-kv:last-child { margin-bottom: 0; }
+        .traj-k { font-weight: 600; color: var(--text-primary); }
+        .traj-v { color: var(--text-secondary); word-break: break-word; display: block; margin-top: 0.1rem; }
+        .traj-connector { width: 24px; flex-shrink: 0; align-self: center; border-bottom: 1px solid var(--border-color); margin: 0 -2px; }
+        .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-secondary); }
+        .group-label { font-weight: 700; color: var(--text-primary); margin: 1rem 0 0.5rem; padding-bottom: 0.25rem; border-bottom: 2px solid var(--border-color); }
+        .group-label:first-child { margin-top: 0; }
+    </style>
+</head>
+<body data-page="dashboard">
+    <nav class="gn-bar">
+        <a href="/" class="gn-logo">
+            <img src="/static/logo.svg" alt="" width="28" height="28">
+            <span class="gn-logo-text">Centific <span class="gn-logo-sub">AgentWork Simulator</span></span>
+        </a>
+        <button type="button" class="gn-toggle" aria-label="Toggle menu" onclick="document.querySelector('.gn-links').classList.toggle('gn-open')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <ul class="gn-links">
+            <li><a href="/catalog" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Catalog</a></li>
+            <li><a href="/test-console" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Simulation</a></li>
+            <li><a href="/dashboard" class="gn-link gn-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="14" y="6" width="3" height="12"/></svg> Dashboard</a></li>
+        </ul>
+    </nav>
+    <div class="container">
+        <header class="header">
+            <h1><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Analytics Dashboard</h1>
+            <p class="subtitle">AgentWork Simulators you've used and end-to-end execution history</p>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-number" id="summary-total">0</span>
+                    <span class="stat-label">Total activities</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="summary-envs">0</span>
+                    <span class="stat-label">Environments used</span>
+                </div>
+            </div>
+        </header>
+        <div class="filter-row">
+            <label>View by:</label>
+            <select id="filter-period">
+                <option value="all">All time</option>
+                <option value="day">Today</option>
+                <option value="week">This week</option>
+                <option value="month">This month</option>
+            </select>
+            <label>Environment:</label>
+            <select id="filter-env">
+                <option value="">All environments</option>
+            </select>
+            <button type="button" class="help-button" id="btn-refresh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.125em"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh</button>
+        </div>
+        <div id="activity-container">
+            <div class="activity-list" id="activity-list"></div>
+            <div class="empty-state" id="empty-state" style="display: none;">
+                No activities in this period. Use the Catalog to start training or open the Simulation Console to run an environment.
+            </div>
+        </div>
+    </div>
+    <script src="/static/toast.js"></script>
+    <script src="/static/dashboard.js"></script>
+</body>
+</html>

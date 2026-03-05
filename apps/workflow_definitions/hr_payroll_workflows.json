@@ -1,0 +1,70 @@
+{
+  "version": "1.0",
+  "environment": "hr_payroll",
+  "description": "HR & Payroll workflow definitions for Workday, SAP SuccessFactors, and ADP.",
+  "workflows": [
+    {
+      "id": "workday_create_record",
+      "title": "Workday Create Worker Record",
+      "system": "Workday",
+      "expected_tool_order": ["get_supervisory_org", "build_worker_payload", "post_worker"],
+      "min_required_calls": 3
+    },
+    {
+      "id": "workday_bulk_import",
+      "title": "Workday Bulk Record Import",
+      "system": "Workday",
+      "expected_tool_order": ["build_bulk_csv", "validate_rows", "launch_integration"],
+      "min_required_calls": 3
+    },
+    {
+      "id": "workday_time_off_expense",
+      "title": "Workday Time-Off & Expense Approval",
+      "system": "Workday",
+      "expected_tool_order": ["get_report", "validate_balance", "approve_request"],
+      "min_required_calls": 3
+    },
+    {
+      "id": "sap_create_record",
+      "title": "SAP SuccessFactors Create Employment Record",
+      "system": "SAP SuccessFactors",
+      "expected_tool_order": ["get_job_classification", "build_employment_payload", "post_employment"],
+      "min_required_calls": 3
+    },
+    {
+      "id": "sap_bulk_import",
+      "title": "SAP SuccessFactors Bulk Upsert",
+      "system": "SAP SuccessFactors",
+      "expected_tool_order": ["build_bulk_payload", "validate_records", "post_upsert"],
+      "min_required_calls": 3
+    },
+    {
+      "id": "sap_onboarding",
+      "title": "SAP SuccessFactors Employee Onboarding",
+      "system": "SAP SuccessFactors",
+      "expected_tool_order": ["get_onboarding_template", "assign_checklist", "launch_process"],
+      "min_required_calls": 3
+    },
+    {
+      "id": "adp_create_worker",
+      "title": "ADP Create Worker & Assign",
+      "system": "ADP",
+      "expected_tool_order": ["get_pay_group", "build_worker_payload", "post_worker"],
+      "min_required_calls": 3
+    },
+    {
+      "id": "adp_bulk_import",
+      "title": "ADP Bulk Worker Import",
+      "system": "ADP",
+      "expected_tool_order": ["validate_positions", "build_bulk_payload", "post_bulk"],
+      "min_required_calls": 3
+    },
+    {
+      "id": "adp_time_off_payroll",
+      "title": "ADP Time-Off & Payroll",
+      "system": "ADP",
+      "expected_tool_order": ["get_accrual_balance", "validate_request", "submit_time_off"],
+      "min_required_calls": 3
+    }
+  ]
+}

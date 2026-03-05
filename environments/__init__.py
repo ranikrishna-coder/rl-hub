@@ -1,4 +1,4 @@
-"""RL Hub Environments Package"""
+"""AgentWork Simulator Environments Package"""
 
 from .base_environment import (
     HealthcareRLEnvironment,

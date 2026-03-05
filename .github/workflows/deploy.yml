@@ -1,4 +1,4 @@
-name: Deploy RL Hub
+name: Deploy AgentWork Simulator
 
 on:
   push:
@@ -50,28 +50,28 @@ jobs:
         cp -r api environments simulator portal training orchestration database deployment/
         cp requirements.txt README.md deployment/
         cp start_server.sh deployment/
-        tar -czf rl-hub-deployment.tar.gz deployment/
+        tar -czf agentwork-simulator-deployment.tar.gz deployment/
         echo "✓ Deployment package created"
 
     - name: Upload deployment artifact
       uses: actions/upload-artifact@v3
       with:
-        name: rl-hub-deployment
-        path: rl-hub-deployment.tar.gz
+        name: agentwork-simulator-deployment
+        path: agentwork-simulator-deployment.tar.gz
         retention-days: 30
 
     - name: Build Docker image (optional)
       if: github.event_name == 'workflow_dispatch'
       run: |
-        docker build -t rl-hub:${{ github.sha }} .
-        echo "✓ Docker image built: rl-hub:${{ github.sha }}"
+        docker build -t agentwork-simulator:${{ github.sha }} .
+        echo "✓ Docker image built: agentwork-simulator:${{ github.sha }}"
 
     - name: Deployment summary
       run: |
         echo "## 🚀 Deployment Ready" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "✅ Application tested and packaged" >> $GITHUB_STEP_SUMMARY
-        echo "📦 Deployment package: \`rl-hub-deployment.tar.gz\`" >> $GITHUB_STEP_SUMMARY
+        echo "📦 Deployment package: \`agentwork-simulator-deployment.tar.gz\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Deployment Options:" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY

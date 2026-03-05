@@ -1,0 +1,12 @@
+{
+  "job_id": "091d9993-3cc0-42ef-adfd-4cda192a4718",
+  "environment_name": "RadiologyScheduling",
+  "algorithm": "PPO",
+  "num_episodes": 1,
+  "mean_reward": 0.4,
+  "max_reward": 0.4,
+  "min_reward": 0.4,
+  "total_episodes_completed": 1,
+  "training_completed": true,
+  "timestamp": "1772579841.9691465"
+}

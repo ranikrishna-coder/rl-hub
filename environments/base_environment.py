@@ -47,7 +47,7 @@ class KPIMetrics:
 
 class HealthcareRLEnvironment(gym.Env):
     """
-    Base class for all RL Hub Environments
+    Base class for all AgentWork Simulator Environments
     
     All environments inherit from this class and implement:
     - State space definition

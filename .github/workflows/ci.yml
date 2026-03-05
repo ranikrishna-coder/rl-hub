@@ -60,6 +60,23 @@ jobs:
         print('✓ Environment registry validation passed')
         "
 
+    - name: Run test suite (Jira + workflow definition + registry + integration)
+      run: |
+        python -m pytest tests/ -v --tb=short -x
+
+    - name: Validate Jira environments load
+      run: |
+        python -c "
+        from portal.environment_registry import get_environment_class
+        for name in ['JiraIssueResolution', 'JiraStatusUpdate', 'JiraCommentManagement']:
+            cls = get_environment_class(name)
+            assert cls is not None, name
+            env = cls()
+            obs, _ = env.reset(seed=0)
+            env.step(0)
+            print(f'✓ {name}: load + reset + step OK')
+        "
+
     - name: Test API imports
       run: |
         python -c "from api.main import app; print('✓ API imports successful')"
@@ -95,6 +112,25 @@ jobs:
         sleep 5
         curl -f http://localhost:8000/ || exit 1
         echo "✓ Server started successfully"
+
+  build-studio:
+    runs-on: ubuntu-latest
+    name: Build RL-Env-Studio
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+
+    - name: Build RL-Env-Studio
+      run: npm run build:studio
+
+    - name: Verify build output
+      run: |
+        test -f api/static/studio/index.html || (echo "❌ api/static/studio/index.html not found" && exit 1)
+        echo "✓ RL-Env-Studio build successful"
 
   lint:
     runs-on: ubuntu-latest

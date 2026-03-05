@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centific AgentWork Simulator</title>
+    <link rel="stylesheet" href="/static/landing.css">
+    <link rel="stylesheet" href="/static/global-nav.css">
+    <link rel="stylesheet" href="/static/toast.css">
+    <script>
+        (function() {
+            var h = window.location.hostname, p = window.location.protocol;
+            if (h === 'localhost' || h === '127.0.0.1') window.API_BASE = 'http://localhost:8000';
+            else if (h.includes('onrender.com')) window.API_BASE = p + '//' + h;
+            else window.API_BASE = 'https://agentwork-simulator-api.onrender.com';
+            document.documentElement.setAttribute('data-theme', 'light');
+        })();
+    </script>
+</head>
+<body data-page="home">
+    <header class="landing-header">
+        <div class="landing-nav-wrap">
+            <a href="/" class="landing-logo">
+                <img src="/static/logo.svg" alt="" class="logo-icon" width="40" height="40">
+                <span class="logo-text"><span class="logo-brand">Centific</span><span class="logo-product">AgentWork Simulator</span></span>
+            </a>
+            <nav class="landing-nav">
+                <a href="/catalog" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.125em"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Catalog</a>
+                <a href="/test-console" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.125em"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Simulation</a>
+                <a href="/dashboard" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.125em"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="14" y="6" width="3" height="12"/></svg> Dashboard</a>
+                <div class="nav-dropdown">
+                    <button type="button" class="nav-link nav-trigger" aria-expanded="false" aria-haspopup="true" id="nav-rl-trigger">Industries</button>
+                    <div class="nav-dropdown-menu" id="nav-rl-menu" aria-hidden="true">
+                        <a href="/catalog?industry=finance">Finance</a>
+                        <a href="/catalog?industry=healthcare">Healthcare</a>
+                        <a href="/catalog?industry=enterprise">Enterprise apps</a>
+                        <a href="/catalog?industry=human_resources">Human Resources</a>
+                        <a href="/catalog" class="nav-dropdown-more">More — View full catalog</a>
+                    </div>
+                </div>
+                <a href="#contact" class="nav-link">Contact us</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="landing-main">
+        <div class="hero-bg" aria-hidden="true"></div>
+        <section class="landing-hero">
+            <div class="hero-content">
+                <div class="hero-left">
+                    <h1>AgentWork Simulator<br>for <span class="hero-highlight">Real-World Workflows</span></h1>
+                    <p class="landing-pitch">Train and evaluate AI agents in production-ready reinforcement learning environments designed for real enterprise decisions. From revenue cycle management and claims processing to clinical pathways and complex enterprise workflows, our environments allow agents to practice tasks, receive structured feedback, and continuously improve performance. Each environment integrates with enterprise systems and scales from safe simulation to real-world deployment.</p>
+                    <a href="#contact" class="landing-cta landing-cta-demo">Book a Demo <span class="cta-arrow" aria-hidden="true">→</span></a>
+                    <div class="hero-stats hero-stats-inline">
+                        <span class="stat-item-inline"><span class="stat-num" id="hero-stat-envs">100+</span> <span class="stat-label">AgentWork Simulators</span></span>
+                        <span class="stat-sep" aria-hidden="true">·</span>
+                        <span class="stat-item-inline"><span class="stat-num" id="hero-stat-industries">3</span> <span class="stat-label">Industries</span></span>
+                        <span class="stat-sep" aria-hidden="true">·</span>
+                        <span class="stat-item-inline"><span class="stat-num" id="hero-stat-systems">18+</span> <span class="stat-label">Systems integrated</span></span>
+                    </div>
+                </div>
+                <div class="hero-feature-card">
+                    <p class="hero-pill" aria-label="Sim to Prod — Train & Deploy">Sim to Prod — Train & Deploy</p>
+                    <div class="hero-feature-item">
+                        <span class="hero-feature-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                        <div><strong>Production-Ready</strong><br><span class="hero-feature-desc">Safe training environments</span></div>
+                    </div>
+                    <div class="hero-feature-item">
+                        <span class="hero-feature-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
+                        <div><strong>Continuous Learning</strong><br><span class="hero-feature-desc">Structured feedback loops</span></div>
+                    </div>
+                    <div class="hero-feature-item">
+                        <span class="hero-feature-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+                        <div><strong>Enterprise Ready</strong><br><span class="hero-feature-desc">Seamless integration</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="landing-section">
+            <h2 class="landing-section-title">Browse Popular AgentWork Simulators</h2>
+            <p class="landing-section-desc">Finance workflows: optimize claims, payments, and revenue cycle with RL.</p>
+            <div class="landing-cards">
+                <a href="/catalog?industry=finance&persona=revenue_cycle&env=ClaimsRouting" class="landing-card">
+                    <span class="card-icon">📋</span>
+                    <h3>Claims routing</h3>
+                    <p>Route insurance claims to the right processors for faster adjudication and higher collection rates.</p>
+                    <span class="landing-card-tag">Finance</span>
+                </a>
+                <a href="/catalog?industry=finance&persona=revenue_cycle&env=PaymentReconciliation" class="landing-card">
+                    <span class="card-icon">💰</span>
+                    <h3>Payment reconciliation</h3>
+                    <p>Optimize payment matching and reconciliation to reduce exceptions and accelerate cash flow.</p>
+                    <span class="landing-card-tag">Finance</span>
+                </a>
+                <a href="/catalog?industry=finance&persona=revenue_cycle&env=RevenueLeakageDetection" class="landing-card">
+                    <span class="card-icon">📊</span>
+                    <h3>Revenue leakage detection</h3>
+                    <p>Identify and prioritize revenue leakage sources with RL-driven prioritization and intervention sequencing.</p>
+                    <span class="landing-card-tag">Finance</span>
+                </a>
+            </div>
+        </section>
+
+        <section class="landing-section landing-section-alt contact-section" id="contact" aria-hidden="true">
+            <h2 class="landing-section-title">Contact us</h2>
+            <p class="landing-section-desc">Let's unlock the full potential of AgentWork Simulator for your enterprise. Request a tailored demo, collaborate on custom-built environments, or speak with our team about enterprise-grade access and deployment options. We're here to partner with you every step of the way.</p>
+            <form class="contact-form" id="contact-form" action="#" method="post">
+                <div class="contact-row">
+                    <label class="contact-label" for="contact-name">Name</label>
+                    <input type="text" id="contact-name" name="name" class="contact-input" placeholder="Your name" required autocomplete="name">
+                </div>
+                <div class="contact-row">
+                    <label class="contact-label" for="contact-email">Email</label>
+                    <input type="email" id="contact-email" name="email" class="contact-input" placeholder="you@company.com" required autocomplete="email">
+                </div>
+                <div class="contact-row">
+                    <label class="contact-label" for="contact-organization">Organization</label>
+                    <input type="text" id="contact-organization" name="organization" class="contact-input" placeholder="Your company or organization" required autocomplete="organization">
+                </div>
+                <div class="contact-row">
+                    <label class="contact-label" for="contact-subject">Subject</label>
+                    <input type="text" id="contact-subject" name="subject" class="contact-input" placeholder="Demos, enterprise access, or custom environments">
+                </div>
+                <div class="contact-row">
+                    <label class="contact-label" for="contact-usecase">Describe your use case</label>
+                    <textarea id="contact-usecase" name="use_case" class="contact-textarea" rows="4" placeholder="Describe your use case and how you plan to use AgentWork Simulator." required></textarea>
+                </div>
+                <div class="contact-row contact-actions">
+                    <button type="submit" class="contact-submit">Send message</button>
+                    <p class="contact-note">Or explore the <a href="/catalog">catalog</a> to try AgentWork Simulator now.</p>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <footer class="landing-footer">
+        <div class="landing-footer-inner">
+            <a href="/catalog">Catalog</a>
+            <a href="/dashboard">Dashboard</a>
+            <a href="/test-console">Simulation</a>
+        </div>
+    </footer>
+
+    <script src="/static/toast.js"></script>
+    <script>
+        (function() {
+            var contactSection = document.getElementById('contact');
+            function showContactAndScroll() {
+                if (!contactSection) return;
+                contactSection.classList.add('is-visible');
+                contactSection.setAttribute('aria-hidden', 'false');
+                contactSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            document.querySelectorAll('a[href="#contact"]').forEach(function(link) {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showContactAndScroll();
+                });
+            });
+            if (window.location.hash === '#contact') {
+                if (contactSection) {
+                    contactSection.classList.add('is-visible');
+                    contactSection.setAttribute('aria-hidden', 'false');
+                }
+            }
+            var trigger = document.getElementById('nav-rl-trigger');
+            var menu = document.getElementById('nav-rl-menu');
+            if (trigger && menu) {
+                trigger.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var open = menu.getAttribute('aria-hidden') !== 'true';
+                    menu.setAttribute('aria-hidden', open ? 'true' : 'false');
+                    trigger.setAttribute('aria-expanded', open ? 'false' : 'true');
+                });
+                document.addEventListener('click', function(e) {
+                    if (!trigger.contains(e.target) && !menu.contains(e.target)) {
+                        menu.setAttribute('aria-hidden', 'true');
+                        trigger.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+            var contactForm = document.getElementById('contact-form');
+            if (contactForm) {
+                contactForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    var nameEl = document.getElementById('contact-name');
+                    var emailEl = document.getElementById('contact-email');
+                    var orgEl = document.getElementById('contact-organization');
+                    var useCaseEl = document.getElementById('contact-usecase');
+                    var name = nameEl ? nameEl.value.trim() : '';
+                    var email = emailEl ? emailEl.value.trim() : '';
+                    var org = orgEl ? orgEl.value.trim() : '';
+                    var useCase = useCaseEl ? useCaseEl.value.trim() : '';
+                    if (!name || !email || !org || !useCase) {
+                        showToast('Please fill in Name, Email, Organization, and Describe your use case.', 'warning');
+                        return;
+                    }
+                    var subjectEl = document.getElementById('contact-subject');
+                    var subject = subjectEl ? subjectEl.value.trim() : null;
+                    var base = window.API_BASE || '';
+                    if (!base && window.location.port === '8000') base = window.location.origin;
+                    if (!base) base = '';
+                    var url = base ? (base.replace(/\/$/, '') + '/api/contact') : (window.location.origin + '/api/contact');
+                    fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: name, email: email, organization: org, subject: subject || null, use_case: useCase })
+                    }).then(function(r) {
+                        if (r.ok) {
+                            showToast('Thank you. Your message has been submitted.', 'success');
+                            contactForm.reset();
+                        } else {
+                            return r.json().then(function(d) { showToast(d.detail || 'Submission failed. Please try again.', 'error'); }).catch(function() { showToast('Submission failed.', 'error'); });
+                        }
+                    }).catch(function(err) {
+                        var mailtoBody = 'Use case: ' + useCase + '\n\nOrganization: ' + org + '\n\n-- ' + name + ' (' + email + ')';
+                        window.location.href = 'mailto:kausalyarani.k@centific.com?subject=' + encodeURIComponent('AgentWork Simulator: ' + name) + '&body=' + encodeURIComponent(mailtoBody);
+                    });
+                });
+            }
+            (function loadHeroStats() {
+                var base = window.API_BASE || '';
+                if (!base && window.location.port === '8000') base = window.location.origin;
+                var url = (base ? base.replace(/\/$/, '') : '') + '/environments';
+                fetch(url).then(function(r) { return r.ok ? r.json() : {}; }).then(function(arr) {
+                    var envs = Array.isArray(arr) ? arr : (arr.environments || []);
+                    var count = envs.length;
+                    var systems = new Set();
+                    envs.forEach(function(e) {
+                        (e.system || '').split(',').forEach(function(s) { var t = s.trim(); if (t) systems.add(t); });
+                    });
+                    var envEl = document.getElementById('hero-stat-envs');
+                    var indEl = document.getElementById('hero-stat-industries');
+                    var sysEl = document.getElementById('hero-stat-systems');
+                    if (envEl) envEl.textContent = count > 0 ? (count >= 100 ? '100+' : String(count)) : '100+';
+                    if (indEl) indEl.textContent = '4';
+                    if (sysEl) sysEl.textContent = systems.size > 0 ? (systems.size >= 22 ? systems.size + '+' : String(systems.size)) : '22+';
+                }).catch(function() {
+                    var envEl = document.getElementById('hero-stat-envs');
+                    var indEl = document.getElementById('hero-stat-industries');
+                    var sysEl = document.getElementById('hero-stat-systems');
+                    if (envEl) envEl.textContent = '100+';
+                    if (indEl) indEl.textContent = '4';
+                    if (sysEl) sysEl.textContent = '22+';
+                });
+            })();
+        })();
+    </script>
+</body>
+</html>

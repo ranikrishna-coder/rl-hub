@@ -86,7 +86,7 @@ Successfully created **50 new RL environments** (51-100) following the compact p
 
 **To test imports properly:**
 ```bash
-cd /Users/kausalyarani.k/Documents/rl-hub
+cd agentwork-simulator
 source venv/bin/activate  # or create venv if needed
 pip install -r requirements.txt
 python3 -c "from portal.environment_registry import list_all_environments; print(f'Total: {len(list_all_environments())} environments')"

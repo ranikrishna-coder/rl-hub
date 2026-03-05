@@ -1,0 +1,12 @@
+{
+  "job_id": "4b27cec0-ba06-44ed-8a26-da4b386a7e4e",
+  "environment_name": "JiraSubtaskManagement",
+  "algorithm": "SLM",
+  "num_episodes": 10,
+  "mean_reward": 0.15,
+  "max_reward": 0.2,
+  "min_reward": 0.0,
+  "total_episodes_completed": 10,
+  "training_completed": true,
+  "timestamp": "1772187263.7675145"
+}

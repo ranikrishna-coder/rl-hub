@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="500" viewBox="0 0 1400 500">
+  <defs>
+    <radialGradient id="orb1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:rgba(243,232,255,0.5)"/>
+      <stop offset="100%" style="stop-color:rgba(243,232,255,0)"/>
+    </radialGradient>
+    <radialGradient id="orb2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:rgba(250,240,255,0.45)"/>
+      <stop offset="100%" style="stop-color:rgba(250,240,255,0)"/>
+    </radialGradient>
+    <radialGradient id="orb3" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:rgba(253,244,255,0.4)"/>
+      <stop offset="100%" style="stop-color:rgba(253,244,255,0)"/>
+    </radialGradient>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="24"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.5"/></feComponentTransfer>
+      <feBlend in="SourceGraphic" mode="normal"/>
+    </filter>
+    <filter id="blurHeavy" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="40"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.35"/></feComponentTransfer>
+    </filter>
+  </defs>
+  <!-- Large ambient blobs (create depth, not a flat box) -->
+  <ellipse cx="1100" cy="60" rx="220" ry="140" fill="url(#orb1)" filter="url(#blurHeavy)"/>
+  <ellipse cx="950" cy="180" rx="180" ry="120" fill="url(#orb2)" filter="url(#blurHeavy)"/>
+  <ellipse cx="200" cy="220" rx="160" ry="100" fill="url(#orb3)" filter="url(#blurHeavy)"/>
+  <ellipse cx="650" cy="120" rx="200" ry="90" fill="url(#orb2)" filter="url(#blurHeavy)"/>
+  <ellipse cx="400" cy="380" rx="140" ry="80" fill="url(#orb1)" filter="url(#blurHeavy)"/>
+  <ellipse cx="1200" cy="320" rx="160" ry="100" fill="url(#orb3)" filter="url(#blurHeavy)"/>
+  <!-- Connecting lines – subtle network -->
+  <path fill="none" stroke="rgba(200,180,230,0.22)" stroke-width="1" stroke-linecap="round" d="M180 140 Q500 80 820 120"/>
+  <path fill="none" stroke="rgba(210,190,240,0.18)" stroke-width="0.9" stroke-linecap="round" d="M320 200 L580 160 L900 200"/>
+  <path fill="none" stroke="rgba(195,175,225,0.2)" stroke-width="0.85" stroke-linecap="round" d="M120 280 L380 240 L700 280 L1000 240"/>
+  <path fill="none" stroke="rgba(205,185,235,0.16)" stroke-width="0.8" stroke-linecap="round" d="M240 360 L520 320 L860 360"/>
+  <!-- Node circles – soft filled, some with glow -->
+  <g filter="url(#softGlow)">
+    <circle cx="180" cy="140" r="32" fill="rgba(238,222,255,0.5)"/>
+    <circle cx="420" cy="95" r="38" fill="rgba(245,235,255,0.5)"/>
+    <circle cx="680" cy="130" r="30" fill="rgba(240,228,255,0.5)"/>
+    <circle cx="920" cy="115" r="28" fill="rgba(248,240,255,0.5)"/>
+    <circle cx="320" cy="200" r="22" fill="rgba(242,232,252,0.45)"/>
+    <circle cx="580" cy="160" r="26" fill="rgba(246,238,255,0.45)"/>
+    <circle cx="820" cy="200" r="24" fill="rgba(241,230,253,0.45)"/>
+    <circle cx="380" cy="280" r="20" fill="rgba(244,234,255,0.4)"/>
+    <circle cx="700" cy="280" r="22" fill="rgba(247,238,255,0.4)"/>
+    <circle cx="240" cy="360" r="18" fill="rgba(243,232,254,0.4)"/>
+    <circle cx="520" cy="320" r="20" fill="rgba(245,236,255,0.4)"/>
+    <circle cx="860" cy="360" r="18" fill="rgba(242,230,253,0.4)"/>
+  </g>
+  <!-- Crisp small nodes on top for clarity -->
+  <circle cx="180" cy="140" r="6" fill="rgba(200,170,230,0.35)"/>
+  <circle cx="420" cy="95" r="7" fill="rgba(195,165,225,0.35)"/>
+  <circle cx="680" cy="130" r="6" fill="rgba(198,168,228,0.35)"/>
+  <circle cx="920" cy="115" r="5" fill="rgba(202,172,232,0.35)"/>
+  <circle cx="320" cy="200" r="5" fill="rgba(196,166,226,0.3)"/>
+  <circle cx="580" cy="160" r="5" fill="rgba(200,170,230,0.3)"/>
+  <circle cx="820" cy="200" r="5" fill="rgba(197,167,227,0.3)"/>
+  <circle cx="380" cy="280" r="4" fill="rgba(199,169,229,0.28)"/>
+  <circle cx="700" cy="280" r="4" fill="rgba(201,171,231,0.28)"/>
+</svg>

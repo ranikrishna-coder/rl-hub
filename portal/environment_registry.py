@@ -475,6 +475,99 @@ ENVIRONMENT_REGISTRY: Dict[str, Dict[str, Any]] = {
         "category": "clinical_trials",
         "multi_agent": False
     },
+    # Jira workflow environments (follow apps/workflow_definitions/jira_workflows.json)
+    "JiraIssueResolution": {
+        "class_path": "environments.jira.jira_workflow_env.JiraIssueResolutionEnv",
+        "system": "Jira (Atlassian)",
+        "workflow": "Jira",
+        "category": "jira",
+        "multi_agent": False
+    },
+    "JiraStatusUpdate": {
+        "class_path": "environments.jira.jira_workflow_env.JiraStatusUpdateEnv",
+        "system": "Jira (Atlassian)",
+        "workflow": "Jira",
+        "category": "jira",
+        "multi_agent": False
+    },
+    "JiraCommentManagement": {
+        "class_path": "environments.jira.jira_workflow_env.JiraCommentManagementEnv",
+        "system": "Jira (Atlassian)",
+        "workflow": "Jira",
+        "category": "jira",
+        "multi_agent": False
+    },
+    "JiraSubtaskManagement": {
+        "class_path": "environments.jira.jira_workflow_env.JiraSubtaskManagementEnv",
+        "system": "Jira (Atlassian)",
+        "workflow": "Jira",
+        "category": "jira",
+        "multi_agent": False
+    },
+    # HR & Payroll (Workday, SAP SuccessFactors, ADP) — apps/workflow_definitions/hr_payroll_workflows.json
+    "WorkdayCreateRecord": {
+        "class_path": "environments.hr_payroll.hr_workflow_env.WorkdayCreateRecordEnv",
+        "system": "Workday",
+        "workflow": "HR & Payroll",
+        "category": "hr_payroll",
+        "multi_agent": False
+    },
+    "WorkdayBulkImport": {
+        "class_path": "environments.hr_payroll.hr_workflow_env.WorkdayBulkImportEnv",
+        "system": "Workday",
+        "workflow": "HR & Payroll",
+        "category": "hr_payroll",
+        "multi_agent": False
+    },
+    "WorkdayTimeOffExpense": {
+        "class_path": "environments.hr_payroll.hr_workflow_env.WorkdayTimeOffExpenseEnv",
+        "system": "Workday",
+        "workflow": "HR & Payroll",
+        "category": "hr_payroll",
+        "multi_agent": False
+    },
+    "SAPSuccessFactorsCreateRecord": {
+        "class_path": "environments.hr_payroll.hr_workflow_env.SAPSuccessFactorsCreateRecordEnv",
+        "system": "SAP SuccessFactors",
+        "workflow": "HR & Payroll",
+        "category": "hr_payroll",
+        "multi_agent": False
+    },
+    "SAPSuccessFactorsBulkImport": {
+        "class_path": "environments.hr_payroll.hr_workflow_env.SAPSuccessFactorsBulkImportEnv",
+        "system": "SAP SuccessFactors",
+        "workflow": "HR & Payroll",
+        "category": "hr_payroll",
+        "multi_agent": False
+    },
+    "SAPSuccessFactorsOnboarding": {
+        "class_path": "environments.hr_payroll.hr_workflow_env.SAPSuccessFactorsOnboardingEnv",
+        "system": "SAP SuccessFactors",
+        "workflow": "HR & Payroll",
+        "category": "hr_payroll",
+        "multi_agent": False
+    },
+    "ADPCreateWorker": {
+        "class_path": "environments.hr_payroll.hr_workflow_env.ADPCreateWorkerEnv",
+        "system": "ADP",
+        "workflow": "HR & Payroll",
+        "category": "hr_payroll",
+        "multi_agent": False
+    },
+    "ADPBulkImport": {
+        "class_path": "environments.hr_payroll.hr_workflow_env.ADPBulkImportEnv",
+        "system": "ADP",
+        "workflow": "HR & Payroll",
+        "category": "hr_payroll",
+        "multi_agent": False
+    },
+    "ADPTimeOffPayroll": {
+        "class_path": "environments.hr_payroll.hr_workflow_env.ADPTimeOffPayrollEnv",
+        "system": "ADP",
+        "workflow": "HR & Payroll",
+        "category": "hr_payroll",
+        "multi_agent": False
+    },
 }
 
 # Helper function to convert CamelCase to snake_case

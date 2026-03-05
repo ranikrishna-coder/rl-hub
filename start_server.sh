@@ -1,7 +1,7 @@
 #!/bin/bash
-# Start script for RL Hub API Server
+# Start script for AgentWork Simulator API Server
 
-echo "Starting RL Hub API Server..."
+echo "Starting AgentWork Simulator API Server..."
 echo ""
 
 # Check if virtual environment exists

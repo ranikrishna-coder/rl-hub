@@ -1,0 +1,12 @@
+{
+  "job_id": "03b43063-932e-4961-a3d0-341ae0e77b33",
+  "environment_name": "JiraStatusUpdate",
+  "algorithm": "PPO",
+  "num_episodes": 100,
+  "mean_reward": -0.022000000000000002,
+  "max_reward": 0.2,
+  "min_reward": -0.1,
+  "total_episodes_completed": 100,
+  "training_completed": true,
+  "timestamp": "1771875400.5011492"
+}

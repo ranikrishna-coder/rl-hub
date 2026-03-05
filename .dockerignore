@@ -56,6 +56,10 @@ Thumbs.db
 # *.md
 # docs/
 
+# Node (Studio build runs npm install in container)
+node_modules/
+**/node_modules/
+
 # GitHub
 .github/
 

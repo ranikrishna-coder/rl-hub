@@ -3,7 +3,7 @@
 ## Step 1: Initialize Git Repository
 
 ```bash
-cd /Users/kausalyarani.k/Documents/rl-hub
+cd agentwork-simulator
 
 # Initialize git (if not already done)
 git init
@@ -12,15 +12,15 @@ git init
 git add .
 
 # Create initial commit
-git commit -m "Initial commit: RL Hub - 50 Healthcare RL Environments"
+git commit -m "Initial commit: AgentWork Simulator - 50 Healthcare RL Environments"
 ```
 
 ## Step 2: Create GitHub Repository
 
 1. Go to [GitHub](https://github.com) and sign in
 2. Click the "+" icon in the top right → "New repository"
-3. Repository name: `rl-hub`
-4. Description: "RL Hub - 50 Reinforcement Learning Environments for Healthcare Optimization"
+3. Repository name: `agentwork-simulator`
+4. Description: "AgentWork Simulator - 50 Reinforcement Learning Environments for Healthcare Optimization"
 5. Choose Public or Private
 6. **DO NOT** initialize with README, .gitignore, or license (we already have these)
 7. Click "Create repository"
@@ -30,13 +30,13 @@ git commit -m "Initial commit: RL Hub - 50 Healthcare RL Environments"
 After creating the repository, GitHub will show you commands. Use these:
 
 ```bash
-cd /Users/kausalyarani.k/Documents/rl-hub
+cd agentwork-simulator
 
 # Add remote (replace YOUR_USERNAME with your GitHub username)
-git remote add origin https://github.com/YOUR_USERNAME/rl-hub.git
+git remote add origin https://github.com/YOUR_USERNAME/agentwork-simulator.git
 
 # Or if using SSH:
-# git remote add origin git@github.com:YOUR_USERNAME/rl-hub.git
+# git remote add origin git@github.com:YOUR_USERNAME/agentwork-simulator.git
 
 # Push to GitHub
 git branch -M main

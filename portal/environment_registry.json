@@ -699,6 +699,69 @@
       "workflow": "Cross Workflow",
       "category": "cross_workflow",
       "multi_agent": true
+    },
+    {
+      "name": "WorkdayCreateRecord",
+      "system": "Workday",
+      "workflow": "HR & Payroll",
+      "category": "hr_payroll",
+      "multi_agent": false
+    },
+    {
+      "name": "WorkdayBulkImport",
+      "system": "Workday",
+      "workflow": "HR & Payroll",
+      "category": "hr_payroll",
+      "multi_agent": false
+    },
+    {
+      "name": "WorkdayTimeOffExpense",
+      "system": "Workday",
+      "workflow": "HR & Payroll",
+      "category": "hr_payroll",
+      "multi_agent": false
+    },
+    {
+      "name": "SAPSuccessFactorsCreateRecord",
+      "system": "SAP SuccessFactors",
+      "workflow": "HR & Payroll",
+      "category": "hr_payroll",
+      "multi_agent": false
+    },
+    {
+      "name": "SAPSuccessFactorsBulkImport",
+      "system": "SAP SuccessFactors",
+      "workflow": "HR & Payroll",
+      "category": "hr_payroll",
+      "multi_agent": false
+    },
+    {
+      "name": "SAPSuccessFactorsOnboarding",
+      "system": "SAP SuccessFactors",
+      "workflow": "HR & Payroll",
+      "category": "hr_payroll",
+      "multi_agent": false
+    },
+    {
+      "name": "ADPCreateWorker",
+      "system": "ADP",
+      "workflow": "HR & Payroll",
+      "category": "hr_payroll",
+      "multi_agent": false
+    },
+    {
+      "name": "ADPBulkImport",
+      "system": "ADP",
+      "workflow": "HR & Payroll",
+      "category": "hr_payroll",
+      "multi_agent": false
+    },
+    {
+      "name": "ADPTimeOffPayroll",
+      "system": "ADP",
+      "workflow": "HR & Payroll",
+      "category": "hr_payroll",
+      "multi_agent": false
     }
   ]
 }

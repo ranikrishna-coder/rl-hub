@@ -1,4 +1,4 @@
-app = "rl-hub"
+app = "agentwork-simulator"
 primary_region = "iad"
 
 [build]

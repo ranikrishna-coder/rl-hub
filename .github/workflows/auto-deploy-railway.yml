@@ -25,7 +25,7 @@ jobs:
       run: |
         echo "🚀 Deploying to Railway..."
         railway login --token $RAILWAY_TOKEN
-        railway up --service rl-hub --detach
+        railway up --service agentwork-simulator --detach
         
         echo "✅ Deployment initiated!"
         echo "🌐 Check your Railway dashboard for the deployment URL"

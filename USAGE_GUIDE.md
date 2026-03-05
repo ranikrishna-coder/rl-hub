@@ -1,4 +1,4 @@
-# RL Hub - Usage Guide for Healthcare Companies
+# AgentWork Simulator - Usage Guide for Healthcare Companies
 
 ## 🏥 How Healthcare Companies Can Use RL Environments
 
