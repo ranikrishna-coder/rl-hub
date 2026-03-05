@@ -52,71 +52,7 @@ docker run -p 8000:8000 agentwork-simulator
 
 ---
 
-### 3. **Railway Deployment**
-
-Railway automatically provides a public URL:
-
-**Access URLs:**
-- **https://YOUR_APP_NAME.railway.app**
-- Example: `https://agentwork-simulator-production.railway.app`
-
-**How to get your URL:**
-1. Go to your Railway dashboard
-2. Select your project
-3. Click on your service
-4. The public URL is shown in the "Settings" → "Domains" section
-
-**Custom Domain:**
-- Add your domain in Railway settings
-- Configure DNS records as instructed
-- Access via: **https://yourdomain.com**
-
----
-
-### 4. **Render Deployment**
-
-Render provides a public URL automatically:
-
-**Access URLs:**
-- **https://YOUR_APP_NAME.onrender.com**
-- Example: `https://agentwork-simulator-api.onrender.com`
-
-**How to get your URL:**
-1. Go to Render dashboard
-2. Select your service
-3. The URL is shown at the top of the service page
-
-**Custom Domain:**
-- Add custom domain in Render settings
-- Configure DNS records
-- Access via: **https://yourdomain.com**
-
----
-
-### 5. **Fly.io Deployment**
-
-Fly.io provides a public URL:
-
-**Access URLs:**
-- **https://YOUR_APP_NAME.fly.dev**
-- Example: `https://agentwork-simulator.fly.dev`
-
-**How to get your URL:**
-```bash
-fly status
-# or
-fly open
-```
-
-**Custom Domain:**
-```bash
-fly certs add yourdomain.com
-# Configure DNS as shown
-```
-
----
-
-### 6. **GitHub Container Registry (Docker)**
+### 3. **GitHub Container Registry (Docker)**
 
 If you deploy the Docker image to a cloud provider:
 
@@ -128,7 +64,7 @@ If you deploy the Docker image to a cloud provider:
 
 ---
 
-### 7. **Traditional VPS/Server**
+### 4. **Traditional VPS/Server**
 
 If deployed on a VPS (AWS EC2, DigitalOcean, Linode, etc.):
 
@@ -169,11 +105,7 @@ If deployed on a VPS (AWS EC2, DigitalOcean, Linode, etc.):
 
 For production, always use HTTPS:
 
-### Option 1: Cloud Platform (Automatic)
-- **Railway, Render, Fly.io**: HTTPS is automatic
-- No configuration needed
-
-### Option 2: Reverse Proxy (Nginx)
+### Option 1: Reverse Proxy (Nginx)
 
 ```nginx
 server {
@@ -195,7 +127,7 @@ Then use Let's Encrypt:
 sudo certbot --nginx -d yourdomain.com
 ```
 
-### Option 3: Cloudflare
+### Option 2: Cloudflare
 - Add your domain to Cloudflare
 - Enable "Proxy" (orange cloud)
 - SSL/TLS mode: Full or Full (strict)
@@ -252,7 +184,7 @@ curl http://YOUR_URL/validate/TreatmentPathwayOptimization
 ## 🌍 Public vs Private Access
 
 ### Public Access (Internet):
-- ✅ Cloud platforms (Railway, Render, Fly.io)
+- ✅ Cloud platforms (Azure, Docker on cloud)
 - ✅ VPS with public IP and open firewall
 - ✅ Domain name pointing to your server
 
@@ -274,9 +206,7 @@ curl http://YOUR_URL/validate/TreatmentPathwayOptimization
 |------------|------------|-------|---------------|
 | **Local** | `http://localhost:8000` | ❌ | ❌ |
 | **Docker** | `http://localhost:8000` | ❌ | ✅ (if configured) |
-| **Railway** | `https://app.railway.app` | ✅ | ✅ |
-| **Render** | `https://app.onrender.com` | ✅ | ✅ |
-| **Fly.io** | `https://app.fly.dev` | ✅ | ✅ |
+| **Azure** | `https://your-app.azurewebsites.net` | ✅ | ✅ |
 | **VPS** | `http://IP:8000` | ✅ (with setup) | ✅ |
 
 ---

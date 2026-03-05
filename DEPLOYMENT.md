@@ -15,9 +15,6 @@ The repository includes GitHub Actions workflows that automatically:
 **Workflows available:**
 - `deploy.yml` - General deployment package
 - `deploy-docker.yml` - Build and push Docker image to GitHub Container Registry
-- `deploy-railway.yml` - Deploy to Railway
-- `deploy-render.yml` - Deploy to Render
-- `deploy-flyio.yml` - Deploy to Fly.io
 
 ### Option 2: Docker Deployment
 
@@ -47,35 +44,7 @@ echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 docker push ghcr.io/ranikrishna-coder/agentwork-simulator:latest
 ```
 
-### Option 3: Railway
-
-1. Install Railway CLI: `npm i -g @railway/cli`
-2. Login: `railway login`
-3. Initialize: `railway init`
-4. Deploy: `railway up`
-
-Or use the GitHub Action with `RAILWAY_TOKEN` secret.
-
-### Option 4: Render
-
-1. Create a new Web Service on Render
-2. Connect your GitHub repository
-3. Set build command: `pip install -r requirements.txt`
-4. Set start command: `python -m api.main`
-5. Add environment variables if needed
-
-Or use the GitHub Action with `RENDER_API_KEY` and `RENDER_SERVICE_ID` secrets.
-
-### Option 5: Fly.io
-
-1. Install Fly CLI: `curl -L https://fly.io/install.sh | sh`
-2. Login: `fly auth login`
-3. Launch: `fly launch`
-4. Deploy: `fly deploy`
-
-Or use the GitHub Action with `FLY_API_TOKEN` secret.
-
-### Option 6: Traditional VPS/Server
+### Option 3: Traditional VPS/Server
 
 ```bash
 # On your server

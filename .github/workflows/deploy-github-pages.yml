@@ -32,7 +32,7 @@ jobs:
 
     - name: Prepare static files
       env:
-        API_URL: ${{ secrets.API_URL || 'https://agentwork-simulator-api.onrender.com' }}
+        API_URL: ${{ secrets.API_URL || '' }}
       run: |
         echo "📦 Preparing static files for GitHub Pages..."
         mkdir -p _site

@@ -9,10 +9,9 @@
     <link rel="stylesheet" href="/static/toast.css">
     <script>
         (function() {
-            var h = window.location.hostname, p = window.location.protocol;
+            var h = window.location.hostname;
             if (h === 'localhost' || h === '127.0.0.1') window.API_BASE = 'http://localhost:8000';
-            else if (h.includes('onrender.com')) window.API_BASE = p + '//' + h;
-            else window.API_BASE = 'https://agentwork-simulator-api.onrender.com';
+            else window.API_BASE = window.location.origin;
             document.documentElement.setAttribute('data-theme', 'light');
         })();
     </script>

@@ -98,7 +98,6 @@ allowed_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:8000",
     "https://ranikrishna-coder.github.io",
-    "https://agentwork-simulator-api.onrender.com",
 ]
 # Add environment variable for additional origins
 if os.getenv("CORS_ORIGINS"):
@@ -942,7 +941,7 @@ async def delete_jira_subtasks(issue_key: str):
 async def get_config():
     """Serve config.js with API URL"""
     # Get the API URL from environment or use current request host
-    api_url = os.getenv("API_URL", "https://agentwork-simulator-api.onrender.com")
+    api_url = os.getenv("API_URL", "")
     
     # If API_URL is not set, try to construct from request
     # This will be handled by the JavaScript auto-detection

@@ -141,10 +141,8 @@
   <script>
     const API_BASE = window.API_BASE || (() => {
       const hostname = window.location.hostname;
-      const protocol = window.location.protocol;
       if (hostname === 'localhost' || hostname === '127.0.0.1') return 'http://localhost:8000';
-      if (hostname.includes('onrender.com')) return protocol + '//' + hostname;
-      return 'https://agentwork-simulator-api.onrender.com';
+      return window.location.origin;
     })();
 
     const params = new URLSearchParams(window.location.search);

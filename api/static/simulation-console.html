@@ -218,31 +218,15 @@
     <script>
         // Auto-detect API URL based on current hostname
         (function() {
-            const hostname = window.location.hostname;
-            const protocol = window.location.protocol;
-            
-            // If we're on localhost, use localhost API
+            var hostname = window.location.hostname;
             if (hostname === 'localhost' || hostname === '127.0.0.1') {
                 window.API_BASE = window.API_BASE || 'http://localhost:8000';
+            } else {
+                window.API_BASE = window.API_BASE || window.location.origin;
             }
-            // If we're on Render, use the current origin (same domain)
-            else if (hostname.includes('onrender.com')) {
-                window.API_BASE = window.API_BASE || `${protocol}//${hostname}`;
-            }
-            // If we're on GitHub Pages, use the Render API
-            else if (hostname.includes('github.io')) {
-                window.API_BASE = window.API_BASE || 'https://agentwork-simulator-api.onrender.com';
-            }
-            // Default fallback
-            else {
-                window.API_BASE = window.API_BASE || 'https://agentwork-simulator-api.onrender.com';
-            }
-            
-            console.log('🚀 AgentWork Simulator - Detected API Base URL:', window.API_BASE);
         })();
     </script>
-    <!-- Load config.js if it exists (can override auto-detection) -->
-    <script src="/config.js" onerror="console.log('config.js not found, using auto-detected URL')"></script>
+    <script src="/config.js" onerror="(function(){})()"></script>
     <script src="/static/toast.js"></script>
     <script src="/static/simulation-console.js"></script>
     <script>

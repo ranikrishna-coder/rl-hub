@@ -18,7 +18,7 @@ This document captures the current architecture, product vision, requirements, a
   - Train RL or SLM (sequence-learning model) policies.
   - Perform **human-in-the-loop (HITL) evaluation** of model outputs, with structured scoring.
 
-The near-term deployment target is **Render** (Dockerized FastAPI backend serving static frontends).
+The near-term deployment target is **Azure** (Dockerized FastAPI backend serving static frontends).
 
 ---
 
@@ -35,7 +35,7 @@ The near-term deployment target is **Render** (Dockerized FastAPI backend servin
       - Human Evaluation Console (`human-eval.html`).
       - Optional RL-Env-Studio build at `/static/studio`.
   - Manages in-memory training jobs (`training_jobs` dict).
-  - Exposes a healthcheck endpoint for Render.
+  - Exposes a healthcheck endpoint.
 
 - **Environments (`environments/`)**
   - `base_environment.py` – `HealthcareRLEnvironment` + base RL environment abstractions.
@@ -330,7 +330,7 @@ flowchart LR
 
 ### 4.3 Reliability & Availability
 
-- Render deployment:
+- Container deployment:
   - Healthcheck at `/` (or root FastAPI health) ensures container restarts on failure.
   - Tests are run in Docker build (`pytest tests/`), failing build if:
     - Jira mock data or workflow definitions are inconsistent.
@@ -627,7 +627,7 @@ Below are high-value manual test scenarios for UAT before deployment.
 
 ## 8. Operations & Deployment Notes
 
-- **Deployment target:** Render (Docker)
+- **Deployment target:** Azure (Docker)
   - Dockerfile:
     - **Stage 1:** Optionally builds RL-Env-Studio if `apps/RL-Env-Studio/package.json` exists; otherwise logs a message and leaves `api/static/studio` empty.
     - **Stage 2:** Installs Python dependencies, copies code, copies Studio build (empty or real), runs `pytest tests/` as part of the build, then defines the run command (`python -m api.main`).
