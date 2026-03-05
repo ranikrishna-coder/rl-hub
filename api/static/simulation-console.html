@@ -70,29 +70,46 @@
                     <div class="empty-state">Select an environment to configure</div>
                 </div>
 
-                <details class="advanced-settings">
-                    <summary>Advanced Settings</summary>
-                    <div class="config-section">
-                        <h3>Verifier Configuration</h3>
-                        <div id="jira-verifier-info" class="jira-verifier-info" style="display: none; margin-bottom: 0.75rem; padding: 0.5rem; font-size: 0.85rem;"></div>
-                        <div class="form-group">
-                            <label>Reward Verifier: <span class="tooltip-icon" title="Select the reward verifier to use for calculating rewards. For Jira envs, use Default (environment built-in) to match app verifiers (Jira Issue Resolution / Jira Comment Management).">ℹ️</span></label>
-                            <select id="verifier-type">
-                                <option value="ensemble" selected>Ensemble (Default - All Verifiers)</option>
-                                <option value="clinical">Clinical Verifier</option>
-                                <option value="operational">Operational Verifier</option>
-                                <option value="financial">Financial Verifier</option>
-                                <option value="compliance">Compliance Verifier</option>
-                                <option value="default">Default (Environment Built-in)</option>
-                            </select>
-                        </div>
-                        <div class="form-group" id="verifier-weights-group" style="display: none;">
-                            <label>Verifier Weights (JSON): <span class="tooltip-icon" title="Optional: Customize verifier weights for reward calculation. Leave empty for defaults.">ℹ️</span></label>
-                            <textarea id="verifier-weights" rows="3" placeholder='{"clinical": 0.4, "operational": 0.3, "financial": 0.2, "compliance": 0.1}'></textarea>
-                            <small>Optional: Custom weights for ensemble verifier components</small>
-                        </div>
+                <!-- Verifier Configuration (compact dropdown) -->
+                <div class="config-section" id="verifier-section" style="display:none;">
+                    <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em"><path d="M9 12l2 2 4-4"/><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/></svg> Verifier <span class="tooltip-icon" title="Select a verifier to define the reward signal. Types: rule-based, trajectory-based, LLM-judged, or human evaluation.">ℹ️</span></h3>
+
+                    <div class="verifier-compact-controls">
+                        <select id="verifier-system-select" class="verifier-compact-select" title="System"></select>
+                        <select id="verifier-type-filter-dropdown" class="verifier-compact-select" title="Type filter">
+                            <option value="all">All types</option>
+                            <option value="rule-based">Rule-based</option>
+                            <option value="trajectory-based">Trajectory</option>
+                            <option value="llm-judge">LLM Judge</option>
+                            <option value="human-eval">Human Eval</option>
+                        </select>
+                        <button class="verifier-clear-btn" id="btn-clear-verifier" title="Clear selection" style="display:none;">✕</button>
                     </div>
 
+                    <select id="verifier-dropdown" class="verifier-main-dropdown">
+                        <option value="">-- Select verifier --</option>
+                    </select>
+
+                    <div id="verifier-info-row" class="verifier-info-row" style="display:none;"></div>
+                    <div id="verifier-sub-filter" class="verifier-sub-filter" style="display:none;"></div>
+
+                    <div id="hil-verifier-notice" class="hil-notice" style="display:none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" style="flex-shrink:0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <span>Human evaluation required.</span>
+                    </div>
+
+                    <details class="verifier-advanced-details" id="verifier-advanced-details" style="display:none;">
+                        <summary>Details</summary>
+                        <div id="verifier-expanded-content"></div>
+                    </details>
+
+                    <div class="verifier-action-row">
+                        <button class="btn btn-outline btn-small" id="btn-create-verifier">+ New</button>
+                    </div>
+                </div>
+
+                <details class="advanced-settings">
+                    <summary>Advanced Settings</summary>
                     <div class="config-section">
                         <h3>RL Agent Settings</h3>
                         <div class="form-group">
@@ -211,6 +228,7 @@
                     <div id="results-lagging" class="result-content">-</div>
                 </div>
             </div>
+            <div id="sim-rollout-comparison" style="display:none; margin-top:1.25rem;"></div>
         </div>
     </div>
 
@@ -228,6 +246,8 @@
     </script>
     <script src="/config.js" onerror="(function(){})()"></script>
     <script src="/static/toast.js"></script>
+    <script src="/static/verifier-data.js"></script>
+    <script src="/static/rollout-comparison.js"></script>
     <script src="/static/simulation-console.js"></script>
     <script>
         // Make formatEnvironmentName available globally

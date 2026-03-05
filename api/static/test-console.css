@@ -699,3 +699,182 @@ h1 svg, h2 svg, h3 svg, h4 svg {
     flex-shrink: 0;
 }
 
+/* ── Verifier Section (Simulation-specific overrides) ──────────── */
+/* Shared verifier styles are in styles.css — these are simulation-specific tweaks */
+
+#verifier-section h3 { font-size: 0.92rem; margin-bottom: 0.5rem; }
+
+.verifier-advanced-details { margin-top: 0.3rem; }
+.verifier-advanced-details summary { font-size: 0.78rem; cursor: pointer; color: var(--text-secondary, #5a5568); padding: 0.2rem 0; }
+.verifier-advanced-details[open] summary { color: var(--primary-color, #c026d3); }
+
+.verifier-action-row { display: flex; gap: 0.4rem; margin-top: 0.35rem; }
+.verifier-action-row .btn { font-size: 0.75rem; padding: 0.25rem 0.6rem; }
+
+/* Type Badges — simulation overrides */
+.verifier-type-badge {
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+.vtype-rule-based { background: #dbeafe; color: #1d4ed8; }
+.vtype-trajectory-based { background: #f3e8ff; color: #7c3aed; }
+.vtype-llm-judge { background: #ffedd5; color: #c2410c; }
+.vtype-human-eval { background: #fef3c7; color: #92400e; }
+
+/* Expanded View (inside Advanced Details) */
+.verifier-expanded {
+    padding: 0.5rem 0;
+}
+.verifier-detail-section {
+    margin-bottom: 0.85rem;
+}
+.verifier-detail-section h4 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+    color: var(--text-secondary, #5a5568);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.verifier-detail-section p {
+    font-size: 0.82rem;
+    color: var(--text-primary, #222);
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Metadata grid */
+.verifier-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+}
+.verifier-meta-item {
+    font-size: 0.78rem;
+}
+.verifier-meta-item .label {
+    color: var(--text-secondary, #5a5568);
+    font-weight: 500;
+}
+.verifier-meta-item .value {
+    color: var(--text-primary, #222);
+    font-weight: 600;
+}
+
+/* Code Block */
+.verifier-code-block {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 0.65rem;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre;
+    max-height: 180px;
+    overflow-y: auto;
+    color: #334155;
+}
+
+/* Scenario list */
+.verifier-scenario-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.verifier-scenario-list li {
+    padding: 0.2rem 0;
+    font-size: 0.82rem;
+    color: var(--text-primary, #222);
+}
+.verifier-scenario-list li::before {
+    content: "\2022";
+    color: var(--primary-color, #c026d3);
+    margin-right: 0.5rem;
+    font-weight: bold;
+}
+
+/* Verifier Actions row */
+.verifier-actions {
+    display: flex;
+    gap: 0.4rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--border-color, #e8e4ef);
+    flex-wrap: wrap;
+}
+.verifier-actions .btn {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.65rem;
+}
+
+/* Create Verifier Modal */
+.verifier-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.verifier-modal {
+    background: var(--card-bg, #fff);
+    border-radius: 12px;
+    padding: 1.75rem;
+    width: 92%;
+    max-width: 580px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+.verifier-modal h3 {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+.verifier-modal .form-group {
+    margin-bottom: 0.85rem;
+}
+.verifier-modal .form-group label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    color: var(--text-primary, #222);
+}
+.verifier-modal .form-group input,
+.verifier-modal .form-group select,
+.verifier-modal .form-group textarea {
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--border-color, #e8e4ef);
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-family: inherit;
+}
+.verifier-modal .form-group textarea {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.78rem;
+    min-height: 80px;
+    resize: vertical;
+}
+.verifier-modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1.25rem;
+}
+
+/* Verifier section header */
+#verifier-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+

@@ -15,6 +15,10 @@ let allEnvironments = [];
 let jiraMockData = null;
 let jiraIssueIndex = 0;  // Cycles through all issues on each Initialize (agent runs across all)
 let jiraSubtaskLog = []; // Collects all subtasks created in simulation for download
+let currentRolloutSteps = []; // Accumulates step data during a simulation run
+let rolloutEpisodeCounter = 0; // Auto-incrementing episode number per session
+let _previousTotalReward = 0; // For computing per-step reward delta
+let _simStartTime = 0; // performance.now() at simulation start, for timeline timestamps
 
 // Environment-specific configurations
 const environmentConfigs = {
@@ -151,118 +155,381 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupVerifierControls();
 });
 
-// Jira verifier options for dropdown (value used in API: jira_workflow:workflow_id)
-const JIRA_VERIFIER_OPTIONS = [
-    { value: 'jira_workflow:issue_resolution', label: 'Jira Issue Resolution' },
-    { value: 'jira_workflow:status_update', label: 'Jira Status Update' },
-    { value: 'jira_workflow:comment_management', label: 'Jira Comment Management' },
-    { value: 'jira_workflow:subtask_management', label: 'Jira Task Management' }
-];
-const JIRA_ENV_TO_WORKFLOW = { JiraIssueResolution: 'issue_resolution', JiraStatusUpdate: 'status_update', JiraCommentManagement: 'comment_management', JiraSubtaskManagement: 'subtask_management' };
+// ── Verifier Section State ───────────────────────────────────────────
+let _verifierActiveSystem = null;
+let _verifierActiveTypeFilter = 'all';
+let _selectedVerifierId = null;
 
-// Jira verifiers from app (Verifiers.tsx): per-environment verifier name and expected tool order
-const JIRA_VERIFIERS_BY_ENV = {
-    'JiraIssueResolution': {
-        name: 'Jira Issue Resolution',
-        description: 'Validates tool sequence and argument validity for Jira issue resolution.',
-        expected_order: ['get_issue_summary_and_description', 'get_transitions', 'transition_issue'],
-        usedInScenarios: ['Issue Resolution Flow', 'Status Update Workflow']
-    },
-    'JiraStatusUpdate': {
-        name: 'Jira Issue Resolution',
-        description: 'Validates valid transitions and status updates (same validator as Issue Resolution).',
-        expected_order: ['get_transitions', 'transition_issue'],
-        usedInScenarios: ['Status Update Workflow']
-    },
-    'JiraCommentManagement': {
-        name: 'Jira Comment Management',
-        description: 'Validates tool sequence and content for Jira comment workflows.',
-        expected_order: ['add_comment', 'get_comments'],
-        usedInScenarios: ['Comment Thread Management']
-    },
-    'JiraSubtaskManagement': {
-        name: 'Jira Subtask Management',
-        description: 'Validates tool sequence for adding subtasks to Jira issues.',
-        expected_order: ['get_issue_summary_and_description', 'create_subtask'],
-        usedInScenarios: ['Subtask Management']
-    }
-};
+// ── Verifier Section: Show/hide and render (compact dropdown) ──────
 
-// Recommended verifier by software system (aligned with catalog/training and app Verifiers.tsx)
-function getVerifierRecommendationForSystem(system) {
-    if (!system || system === 'all') {
-        return { type: 'ensemble', weights: { clinical: 0.35, operational: 0.3, financial: 0.2, compliance: 0.15 } };
-    }
-    const s = system.toLowerCase();
-    // Jira: use environment built-in verifier (workflow order); app verifiers in Verifiers.tsx
-    if (s.includes('jira') || s.includes('atlassian')) {
-        return { type: 'default' };
-    }
-    if (s.includes('epic') || s.includes('cerner') || s.includes('allscripts') || s.includes('meditech')) {
-        return { type: 'ensemble', weights: { clinical: 0.45, operational: 0.25, financial: 0.15, compliance: 0.15 } };
-    }
-    if (s.includes('philips') || s.includes('ge ')) {
-        return { type: 'ensemble', weights: { clinical: 0.3, operational: 0.45, financial: 0.15, compliance: 0.1 } };
-    }
-    if (s.includes('change ')) {
-        return { type: 'ensemble', weights: { clinical: 0.15, operational: 0.2, financial: 0.45, compliance: 0.2 } };
-    }
-    if (s.includes('veeva') || s.includes('iqvia')) {
-        return { type: 'ensemble', weights: { clinical: 0.4, operational: 0.2, financial: 0.2, compliance: 0.2 } };
-    }
-    if (s.includes('health catalyst') || s.includes('innovaccer')) {
-        return { type: 'ensemble', weights: { clinical: 0.4, operational: 0.35, financial: 0.15, compliance: 0.1 } };
-    }
-    if (s.includes('teladoc') || s.includes('amwell')) {
-        return { type: 'ensemble', weights: { clinical: 0.35, operational: 0.4, financial: 0.15, compliance: 0.1 } };
-    }
-    if (s.includes('intersystems') || s.includes('orion health')) {
-        return { type: 'ensemble', weights: { clinical: 0.25, operational: 0.35, financial: 0.15, compliance: 0.25 } };
-    }
-    return { type: 'ensemble', weights: { clinical: 0.35, operational: 0.3, financial: 0.2, compliance: 0.15 } };
+function showVerifierSection(envName) {
+    var section = document.getElementById('verifier-section');
+    if (!section || !window.VERIFIER_DATA) return;
+    var env = allEnvironments.find(function (e) { return e.name === envName; });
+    var category = env ? (env.category || '') : '';
+    var system = window.VERIFIER_DATA.getSystemForCategory(category);
+    _verifierActiveSystem = system;
+    _verifierActiveTypeFilter = 'all';
+    _selectedVerifierId = null;
+    section.style.display = '';
+    populateSystemDropdown(system);
+    populateVerifierDropdown(system, 'all');
+    updateVerifierInfoRow();
+    setupVerifierDropdownListeners();
+    setupCreateVerifierButton();
 }
+
+function hideVerifierSection() {
+    var section = document.getElementById('verifier-section');
+    if (section) section.style.display = 'none';
+}
+
+// ── System Dropdown ─────────────────────────────────────────────────
+
+function populateSystemDropdown(activeSystem) {
+    var select = document.getElementById('verifier-system-select');
+    if (!select) return;
+    var groups = window.VERIFIER_DATA.getGroups();
+    select.innerHTML = groups.map(function (g) {
+        return '<option value="' + escAttr(g.system) + '"' +
+            (g.system === activeSystem ? ' selected' : '') + '>' +
+            esc(g.system) + ' (' + g.count + ')</option>';
+    }).join('');
+}
+
+// ── Verifier Dropdown ───────────────────────────────────────────────
+
+function populateVerifierDropdown(system, typeFilter) {
+    var select = document.getElementById('verifier-dropdown');
+    if (!select) return;
+    var verifiers = window.VERIFIER_DATA.getBySystem(system);
+    if (typeFilter && typeFilter !== 'all') {
+        verifiers = verifiers.filter(function (v) { return v.type === typeFilter; });
+    }
+    select.innerHTML = '<option value="">-- Select verifier (' + verifiers.length + ') --</option>';
+    verifiers.forEach(function (v) {
+        var badge = v.type === 'human-eval' ? ' [HIL]' : '';
+        var statusTag = v.status === 'disabled' ? ' (disabled)' : '';
+        select.innerHTML += '<option value="' + escAttr(v.id) + '"' +
+            (v.status === 'disabled' ? ' disabled' : '') +
+            (v.id === _selectedVerifierId ? ' selected' : '') + '>' +
+            esc(v.name) + badge + statusTag + '</option>';
+    });
+}
+
+// ── Dropdown Listeners ──────────────────────────────────────────────
+
+function setupVerifierDropdownListeners() {
+    var systemSelect = document.getElementById('verifier-system-select');
+    var verifierSelect = document.getElementById('verifier-dropdown');
+    var typeFilter = document.getElementById('verifier-type-filter-dropdown');
+    var clearBtn = document.getElementById('btn-clear-verifier');
+
+    if (systemSelect) {
+        systemSelect.onchange = function () {
+            _verifierActiveSystem = systemSelect.value;
+            _selectedVerifierId = null;
+            populateVerifierDropdown(_verifierActiveSystem, typeFilter ? typeFilter.value : 'all');
+            updateVerifierInfoRow();
+        };
+    }
+    if (typeFilter) {
+        typeFilter.onchange = function () {
+            _verifierActiveTypeFilter = typeFilter.value;
+            populateVerifierDropdown(_verifierActiveSystem, typeFilter.value);
+        };
+    }
+    if (verifierSelect) {
+        verifierSelect.onchange = function () {
+            _selectedVerifierId = verifierSelect.value || null;
+            updateVerifierInfoRow();
+            showSubVerifierFilter();
+            showHilNotice();
+            showAdvancedDetails();
+        };
+    }
+    if (clearBtn) {
+        clearBtn.onclick = function () {
+            _selectedVerifierId = null;
+            if (verifierSelect) verifierSelect.value = '';
+            updateVerifierInfoRow();
+            showSubVerifierFilter();
+            showHilNotice();
+            showAdvancedDetails();
+        };
+    }
+}
+
+// ── Info Row (selected verifier summary) ────────────────────────────
+
+function updateVerifierInfoRow() {
+    var row = document.getElementById('verifier-info-row');
+    var clearBtn = document.getElementById('btn-clear-verifier');
+    if (!row) return;
+    if (!_selectedVerifierId) {
+        row.style.display = 'none';
+        if (clearBtn) clearBtn.style.display = 'none';
+        showSubVerifierFilter();
+        showHilNotice();
+        showAdvancedDetails();
+        return;
+    }
+    var v = window.VERIFIER_DATA.getById(_selectedVerifierId);
+    if (!v) { row.style.display = 'none'; return; }
+    var typeCls = 'vtype-' + v.type;
+    row.style.display = '';
+    row.innerHTML = '<span class="verifier-type-badge ' + typeCls + '">' + esc(v.type) + '</span> ' +
+        '<span style="font-size:0.82rem;color:var(--text-secondary);">' + esc(v.system) + ' &middot; v' + v.version + ' &middot; ' + esc(v.status) + '</span>' +
+        '<span style="font-size:0.78rem;color:var(--text-secondary);margin-left:auto;">' + v.usedInScenarios.length + ' scenario' + (v.usedInScenarios.length !== 1 ? 's' : '') + '</span>';
+    if (clearBtn) clearBtn.style.display = '';
+}
+
+// ── Sub-Verifier Filter ─────────────────────────────────────────────
+
+function showSubVerifierFilter() {
+    var container = document.getElementById('verifier-sub-filter');
+    if (!container) return;
+    if (!_selectedVerifierId) { container.style.display = 'none'; return; }
+    var v = window.VERIFIER_DATA.getById(_selectedVerifierId);
+    if (!v || !v.subVerifiers || v.subVerifiers.length === 0) {
+        container.style.display = 'none'; return;
+    }
+    container.style.display = '';
+    container.innerHTML = '<label style="font-size:0.78rem;font-weight:600;margin-bottom:0.25rem;display:block;">Sub-verifiers</label>' +
+        v.subVerifiers.map(function (sv) {
+            return '<label class="sub-verifier-chip' + (sv.enabled ? ' active' : '') + '" title="' + escAttr(sv.description) + '">' +
+                '<input type="checkbox"' + (sv.enabled ? ' checked' : '') + ' data-svid="' + escAttr(sv.id) + '"> ' +
+                esc(sv.name) + '</label>';
+        }).join('');
+    container.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+            var svid = cb.getAttribute('data-svid');
+            var sv = v.subVerifiers.find(function (s) { return s.id === svid; });
+            if (sv) sv.enabled = cb.checked;
+            cb.parentElement.classList.toggle('active', cb.checked);
+        });
+    });
+}
+
+// ── HIL Notice ──────────────────────────────────────────────────────
+
+function showHilNotice() {
+    var notice = document.getElementById('hil-verifier-notice');
+    if (!notice) return;
+    if (!_selectedVerifierId) { notice.style.display = 'none'; return; }
+    var v = window.VERIFIER_DATA.getById(_selectedVerifierId);
+    notice.style.display = (v && v.type === 'human-eval') ? 'flex' : 'none';
+}
+
+// ── Advanced Details (expandable) ───────────────────────────────────
+
+function showAdvancedDetails() {
+    var details = document.getElementById('verifier-advanced-details');
+    var content = document.getElementById('verifier-expanded-content');
+    if (!details || !content) return;
+    if (!_selectedVerifierId) { details.style.display = 'none'; return; }
+    var v = window.VERIFIER_DATA.getById(_selectedVerifierId);
+    if (!v) { details.style.display = 'none'; return; }
+    details.style.display = '';
+    content.innerHTML = renderVerifierExpanded(v);
+    content.querySelectorAll('[data-vaction]').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            handleVerifierAction(btn.getAttribute('data-vaction'), v.id);
+        });
+    });
+}
+
+// ── Expanded Verifier View (reused in Advanced Details) ─────────────
+
+function renderVerifierExpanded(v) {
+    var html = '<div class="verifier-expanded">';
+    html += '<div class="verifier-detail-section"><p style="font-size:0.85rem;color:var(--text-secondary);">' + esc(v.description) + '</p></div>';
+    html += '<div class="verifier-detail-section"><h4>Metadata</h4>' +
+        '<div class="verifier-meta-grid">' +
+            '<div class="verifier-meta-item"><span class="label">Type: </span><span class="value">' + esc(v.type) + '</span></div>' +
+            '<div class="verifier-meta-item"><span class="label">Environment: </span><span class="value">' + esc(v.environment) + '</span></div>' +
+            '<div class="verifier-meta-item"><span class="label">On Failure: </span><span class="value">' + esc(v.metadata.onFailure) + '</span></div>' +
+            '<div class="verifier-meta-item"><span class="label">Timeout: </span><span class="value">' + esc(v.metadata.timeout) + '</span></div>' +
+            '<div class="verifier-meta-item"><span class="label">Version: </span><span class="value">v' + v.version + '</span></div>' +
+            '<div class="verifier-meta-item"><span class="label">System: </span><span class="value">' + esc(v.system) + '</span></div>' +
+        '</div></div>';
+    html += '<div class="verifier-detail-section"><h4>Verifier Logic</h4>' +
+        '<div class="verifier-code-block">' + esc(JSON.stringify(v.logic, null, 2)) + '</div></div>';
+    html += '<div class="verifier-detail-section"><h4>Example Input</h4>' +
+        '<div class="verifier-code-block">' + esc(JSON.stringify(v.exampleInput, null, 2)) + '</div></div>';
+    html += '<div class="verifier-detail-section"><h4>Example Output</h4>' +
+        '<div class="verifier-code-block">' + esc(JSON.stringify(v.exampleOutput, null, 2)) + '</div></div>';
+    html += '<div class="verifier-detail-section"><h4>Used by Scenarios</h4>' +
+        '<ul class="verifier-scenario-list">' +
+        v.usedInScenarios.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') +
+        '</ul></div>';
+    html += '<div class="verifier-detail-section"><h4>Failure Policy</h4>' +
+        '<div class="verifier-code-block">' + esc(JSON.stringify(v.failurePolicy, null, 2)) + '</div></div>';
+    html += '<div class="verifier-actions">' +
+        '<button class="btn btn-secondary btn-small" data-vaction="edit">Edit (New Version)</button>' +
+        '<button class="btn btn-secondary btn-small" data-vaction="duplicate">Duplicate</button>' +
+        '<button class="btn btn-secondary btn-small" data-vaction="toggle-status">' + (v.status === 'active' ? 'Disable' : 'Enable') + '</button>' +
+        '</div>';
+    html += '</div>';
+    return html;
+}
+
+// ── Lifecycle Actions ──────────────────────────────────────────────
+
+function handleVerifierAction(action, vid) {
+    var v = window.VERIFIER_DATA.getById(vid);
+    if (!v) return;
+
+    if (action === 'edit') {
+        v.version = (v.version || 1) + 1;
+        if (window.showToast) window.showToast('Verifier "' + v.name + '" updated to v' + v.version, 'success');
+        updateVerifierInfoRow();
+        showAdvancedDetails();
+    } else if (action === 'duplicate') {
+        var newV = JSON.parse(JSON.stringify(v));
+        newV.id = window.VERIFIER_DATA.generateId();
+        newV.name = v.name + ' (Copy)';
+        newV.version = 1;
+        window.VERIFIER_DATA.add(newV);
+        if (window.showToast) window.showToast('Duplicated "' + v.name + '" as "' + newV.name + '"', 'success');
+        populateSystemDropdown(_verifierActiveSystem);
+        populateVerifierDropdown(_verifierActiveSystem, _verifierActiveTypeFilter);
+    } else if (action === 'toggle-status') {
+        v.status = v.status === 'active' ? 'disabled' : 'active';
+        if (window.showToast) window.showToast('Verifier "' + v.name + '" ' + v.status, v.status === 'active' ? 'success' : 'warning');
+        if (_selectedVerifierId === vid && v.status === 'disabled') {
+            _selectedVerifierId = null;
+            var sel = document.getElementById('verifier-dropdown');
+            if (sel) sel.value = '';
+        }
+        populateVerifierDropdown(_verifierActiveSystem, _verifierActiveTypeFilter);
+        updateVerifierInfoRow();
+        showAdvancedDetails();
+    } else if (action === 'view-scenarios') {
+        var scenarioSelect = document.querySelector('#dynamic-config select[id*="scenario"]');
+        if (scenarioSelect) {
+            scenarioSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            scenarioSelect.style.outline = '2px solid var(--primary-color)';
+            setTimeout(function () { scenarioSelect.style.outline = ''; }, 2000);
+        }
+        if (window.showToast) window.showToast('Scenarios linked: ' + v.usedInScenarios.join(', '), 'info');
+    }
+}
+
+// ── Create New Verifier Modal ──────────────────────────────────────
+
+function setupCreateVerifierButton() {
+    var btn = document.getElementById('btn-create-verifier');
+    if (!btn) return;
+    btn.removeEventListener('click', _openCreateVerifierModal);
+    btn.addEventListener('click', _openCreateVerifierModal);
+}
+
+function _openCreateVerifierModal() {
+    var existing = document.querySelector('.verifier-modal-overlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'verifier-modal-overlay';
+    overlay.innerHTML =
+        '<div class="verifier-modal">' +
+            '<h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em"><path d="M12 5v14M5 12h14"/></svg> Create New Verifier</h3>' +
+            '<div class="form-group"><label>Name</label><input type="text" id="new-v-name" placeholder="e.g. My Custom Verifier"></div>' +
+            '<div class="form-group"><label>Type</label><select id="new-v-type"><option value="rule-based">Rule-based</option><option value="trajectory-based">Trajectory-based</option><option value="llm-judge">LLM Judge</option><option value="human-eval">Human Eval (HIL)</option></select></div>' +
+            '<div class="form-group"><label>System</label><input type="text" id="new-v-system" value="' + escAttr(_verifierActiveSystem || '') + '" readonly></div>' +
+            '<div class="form-group"><label>Description</label><textarea id="new-v-desc" rows="2" placeholder="What does this verifier check?"></textarea></div>' +
+            '<div class="form-group"><label>Logic (JSON)</label><textarea id="new-v-logic" rows="4" placeholder=\'{"checks": {}, "scoring": {}}\'></textarea></div>' +
+            '<div class="form-group"><label>Failure Policy</label>' +
+                '<div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.3rem;">' +
+                    '<label style="font-weight:400;font-size:0.8rem;"><input type="checkbox" id="new-v-hardfail"> Hard fail</label>' +
+                    '<label style="font-weight:400;font-size:0.8rem;"><input type="checkbox" id="new-v-logfail" checked> Log failure</label>' +
+                '</div>' +
+                '<div class="form-group" style="margin-bottom:0;"><label style="font-size:0.78rem;">Penalty</label><input type="number" id="new-v-penalty" value="-0.5" step="0.1"></div>' +
+            '</div>' +
+            '<div class="verifier-modal-actions">' +
+                '<button class="btn btn-secondary" id="new-v-cancel">Cancel</button>' +
+                '<button class="btn btn-primary" id="new-v-save">Create Verifier</button>' +
+            '</div>' +
+        '</div>';
+
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+    document.getElementById('new-v-cancel').addEventListener('click', function () { overlay.remove(); });
+    document.getElementById('new-v-save').addEventListener('click', function () {
+        var name = document.getElementById('new-v-name').value.trim();
+        if (!name) { if (window.showToast) window.showToast('Verifier name is required', 'warning'); return; }
+        var type = document.getElementById('new-v-type').value;
+        var system = document.getElementById('new-v-system').value;
+        var desc = document.getElementById('new-v-desc').value.trim();
+        var logicRaw = document.getElementById('new-v-logic').value.trim();
+        var logic = {};
+        if (logicRaw) { try { logic = JSON.parse(logicRaw); } catch (e) { if (window.showToast) window.showToast('Invalid JSON in Logic field', 'error'); return; } }
+        var penalty = parseFloat(document.getElementById('new-v-penalty').value) || -0.5;
+        var hardFail = document.getElementById('new-v-hardfail').checked;
+        var logFail = document.getElementById('new-v-logfail').checked;
+        var category = '';
+        window.VERIFIER_DATA.systems.forEach(function (s) { if (s.system === system) category = s.category; });
+        var onFailure = type === 'human-eval' ? 'block_training' : 'log_and_continue';
+        var timeout = type === 'human-eval' ? 'manual' : '30s';
+
+        var newV = {
+            id: window.VERIFIER_DATA.generateId(),
+            name: name,
+            type: type,
+            system: system,
+            environment: category,
+            version: 1,
+            status: 'active',
+            usedInScenarios: [],
+            description: desc,
+            metadata: { type: type, environment: category, onFailure: onFailure, timeout: timeout },
+            logic: logic,
+            exampleInput: {},
+            exampleOutput: {},
+            failurePolicy: { hard_fail: hardFail, penalty: penalty, log_failure: logFail },
+            subVerifiers: []
+        };
+        window.VERIFIER_DATA.add(newV);
+        _selectedVerifierId = newV.id;
+        overlay.remove();
+        if (window.showToast) window.showToast('Created verifier "' + name + '"', 'success');
+        populateSystemDropdown(_verifierActiveSystem);
+        populateVerifierDropdown(_verifierActiveSystem, _verifierActiveTypeFilter);
+        updateVerifierInfoRow();
+        showSubVerifierFilter();
+        showHilNotice();
+        showAdvancedDetails();
+    });
+}
+
+// ── HTML escape helpers ────────────────────────────────────────────
+
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// ── Legacy stubs (keep for backward compat) ────────────────────────
 
 function updateSimulationVerifierForSystem() {
-    const systemSelect = document.getElementById('system-select');
-    const verifierTypeSelect = document.getElementById('verifier-type');
-    const verifierWeightsInput = document.getElementById('verifier-weights');
-    if (!systemSelect || !verifierTypeSelect) return;
-    const rec = getVerifierRecommendationForSystem(systemSelect.value);
-    verifierTypeSelect.value = rec.type;
-    if (verifierWeightsInput && rec.weights) verifierWeightsInput.value = JSON.stringify(rec.weights, null, 2);
-    const g = document.getElementById('verifier-weights-group');
-    if (g) g.style.display = (verifierTypeSelect.value === 'ensemble') ? 'block' : 'none';
-    updateJiraVerifierDisplay();
-}
-
-function updateJiraVerifierDisplay() {
-    const envName = currentEnvironment;
-    const verifierInfo = document.getElementById('jira-verifier-info');
-    if (!verifierInfo) return;
-    const v = JIRA_VERIFIERS_BY_ENV[envName];
-    if (v) {
-        verifierInfo.style.display = 'block';
-        verifierInfo.innerHTML = '<strong>Active verifier (from app):</strong> ' + v.name + '<br>' +
-            '<span class="verifier-desc">' + v.description + '</span><br>' +
-            '<span class="verifier-order">Tool order: ' + v.expected_order.join(' → ') + '</span>';
-    } else {
-        verifierInfo.style.display = 'none';
-    }
+    // Now handled by showVerifierSection
 }
 
 function setupVerifierControls() {
-    const verifierTypeSelect = document.getElementById('verifier-type');
-    const verifierWeightsGroup = document.getElementById('verifier-weights-group');
-    
-    if (verifierTypeSelect && verifierWeightsGroup) {
-        verifierTypeSelect.addEventListener('change', (e) => {
-            if (e.target.value === 'ensemble') {
-                verifierWeightsGroup.style.display = 'block';
-            } else {
-                verifierWeightsGroup.style.display = 'none';
-            }
-        });
-    }
+    // Now handled by setupVerifierTypeFilters + setupCreateVerifierButton
+}
+
+function getSelectedVerifierConfig() {
+    if (!_selectedVerifierId || !window.VERIFIER_DATA) return { type: 'ensemble' };
+    var v = window.VERIFIER_DATA.getById(_selectedVerifierId);
+    if (!v) return { type: 'ensemble' };
+    return {
+        type: v.type,
+        id: v.id,
+        name: v.name,
+        system: v.system,
+        failurePolicy: v.failurePolicy,
+        logic: v.logic
+    };
 }
 
 function getFilteredEnvironmentsForSystem() {
@@ -367,8 +634,8 @@ function selectEnvironment(envName) {
     const displayName = formatEnvironmentName(envName);
     document.getElementById('console-title').textContent = `🩻 ${displayName} - Simulation Console`;
     
-    // For Jira envs, show Jira verifier options and set default to matching workflow
-    updateVerifierSelectForEnvironment(envName);
+    // Show verifier section with system-appropriate verifiers
+    showVerifierSection(envName);
 
     // Limit system selector to relevant system(s) for this environment
     const systemSelect = document.getElementById('system-select');
@@ -385,34 +652,9 @@ function selectEnvironment(envName) {
 
     // Load environment-specific configuration
     loadEnvironmentConfig(envName);
-    // Show correct Jira verifier (from app) for Jira envs
-    updateJiraVerifierDisplay();
 }
 
-function updateVerifierSelectForEnvironment(envName) {
-    const verifierTypeSelect = document.getElementById('verifier-type');
-    const verifierWeightsGroup = document.getElementById('verifier-weights-group');
-    if (!verifierTypeSelect) return;
-    const isJiraEnv = JIRA_VERIFIERS_BY_ENV[envName];
-    if (isJiraEnv) {
-        const defaultWorkflow = JIRA_ENV_TO_WORKFLOW[envName] || 'issue_resolution';
-        const hasMatchingVerifier = JIRA_VERIFIER_OPTIONS.some(o => o.value === 'jira_workflow:' + defaultWorkflow);
-        verifierTypeSelect.innerHTML = JIRA_VERIFIER_OPTIONS.map(o =>
-            `<option value="${o.value}"${o.value === 'jira_workflow:' + defaultWorkflow ? ' selected' : ''}>${o.label}</option>`
-        ).join('') + `<option value="default"${!hasMatchingVerifier ? ' selected' : ''}>Default (Environment Built-in)</option>`;
-        if (verifierWeightsGroup) verifierWeightsGroup.style.display = 'none';
-    } else {
-        verifierTypeSelect.innerHTML = `
-            <option value="ensemble" selected>Ensemble (Default - All Verifiers)</option>
-            <option value="clinical">Clinical Verifier</option>
-            <option value="operational">Operational Verifier</option>
-            <option value="financial">Financial Verifier</option>
-            <option value="compliance">Compliance Verifier</option>
-            <option value="human_evaluation">Human Evaluation</option>
-            <option value="default">Default (Environment Built-in)</option>`;
-        if (verifierWeightsGroup) verifierWeightsGroup.style.display = 'none';
-    }
-}
+// updateVerifierSelectForEnvironment removed — replaced by showVerifierSection()
 
 function loadEnvironmentConfig(envName) {
     const configDiv = document.getElementById('dynamic-config');
@@ -621,6 +863,13 @@ async function initializeEnvironment() {
         simulationState.step = 0;
         stepCount = 0;
         metricsHistory = [];
+
+        // Rollout tracking
+        currentRolloutSteps = [];
+        rolloutEpisodeCounter++;
+        _previousTotalReward = 0;
+        _simStartTime = performance.now();
+        simulationState._initialStateSnapshot = JSON.parse(JSON.stringify(simulationState.metrics || {}));
         
         // Initialize metrics based on state
         if (simulationState.queue) {
@@ -639,12 +888,12 @@ async function initializeEnvironment() {
 
         // Dashboard: record simulation initialized with rich config for execution trajectory
         try {
-            const verifierEl = document.getElementById('verifier-type');
+            const _vConfig = getSelectedVerifierConfig();
             const metadata = {
                 step_count: 0,
                 agent_strategy: config.agentStrategy,
                 agent_model: config.agentModel || 'N/A',
-                verifier_type: verifierEl ? verifierEl.value : 'default',
+                verifier_type: _vConfig.type || 'default',
                 system_integrated: currentEnvironment && currentEnvironment.startsWith('Jira') ? 'Jira' : 'Simulation',
                 config_summary: Object.keys(config).filter(k => !['verifier_config'].includes(k)).reduce((o, k) => { o[k] = config[k]; return o; }, {}),
             };
@@ -700,30 +949,10 @@ function getConfiguration() {
         config.agentModel = agentModelEl.value;
     }
     
-    // Add verifier configuration
-    const verifierType = document.getElementById('verifier-type');
-    if (verifierType && verifierType.value !== 'default') {
-        if (verifierType.value.startsWith('jira_workflow:')) {
-            config.verifier_config = {
-                type: 'jira_workflow',
-                metadata: { workflow_id: verifierType.value.split(':')[1] }
-            };
-        } else {
-            config.verifier_config = {
-                type: verifierType.value
-            };
-            if (verifierType.value === 'ensemble') {
-                const verifierWeights = document.getElementById('verifier-weights');
-                if (verifierWeights && verifierWeights.value.trim()) {
-                    try {
-                        const weights = JSON.parse(verifierWeights.value);
-                        config.verifier_config.verifiers = weights;
-                    } catch (e) {
-                        console.warn('Invalid verifier weights JSON, using defaults:', e);
-                    }
-                }
-            }
-        }
+    // Add verifier configuration from the compact dropdown
+    const selectedVerifier = getSelectedVerifierConfig();
+    if (selectedVerifier && selectedVerifier.type !== 'ensemble') {
+        config.verifier_config = selectedVerifier;
     }
 
     return config;
@@ -1226,7 +1455,39 @@ function runStep() {
     
     stepCount++;
     simulationState.step = stepCount;
-    
+
+    // Record step data for rollout with rich timeline events
+    var _currentReward = (simulationState.metrics || {}).totalReward || 0;
+    var _stepReward = _currentReward - _previousTotalReward;
+    _previousTotalReward = _currentReward;
+    var _elapsed = performance.now() - (_simStartTime || performance.now());
+    var _stepEvents = [];
+    if (stepCount === 1) {
+        _stepEvents.push({ timestamp_ms: 0, event_type: 'SYSTEM', content: 'User request received: "' + (currentEnvironment || 'simulation') + '"' });
+    }
+    var _actionDesc = simulationState.lastAction || ('action_' + stepCount);
+    _stepEvents.push({
+        timestamp_ms: Math.round(_elapsed),
+        event_type: 'TOOL_CALL',
+        tool_name: typeof _actionDesc === 'object' ? (_actionDesc.name || JSON.stringify(_actionDesc)) : String(_actionDesc),
+        tool_args: typeof _actionDesc === 'object' ? _actionDesc : null
+    });
+    _stepEvents.push({
+        timestamp_ms: Math.round(_elapsed + 5),
+        event_type: 'TOOL_RESULT',
+        content: 'reward: ' + _stepReward.toFixed(4),
+        reward: _stepReward,
+        state_snapshot: { step: stepCount, queueLength: (simulationState.metrics || {}).queueLength || 0 }
+    });
+    currentRolloutSteps.push({
+        step: stepCount,
+        action: simulationState.lastAction || null,
+        reward: _stepReward,
+        state_summary: { step: stepCount, queueLength: (simulationState.metrics || {}).queueLength || 0 },
+        reward_breakdown: null,
+        timeline_events: _stepEvents
+    });
+
     // Update metrics after step
     updateMetricsAfterStep();
     
@@ -1713,5 +1974,70 @@ function showFinalResults() {
             Lagging indicators help compare strategies and assess convergence over multiple runs.
         </div>
     `;
+
+    // Store rollout to backend
+    if (currentEnvironment && currentRolloutSteps.length > 0) {
+        var rolloutData = {
+            environment_name: currentEnvironment,
+            episode_number: rolloutEpisodeCounter,
+            steps: currentRolloutSteps,
+            initial_state: simulationState._initialStateSnapshot || null,
+            final_outcome: {
+                total_reward: totalReward,
+                steps_completed: stepCount,
+                episode_completed: isComplete
+            },
+            total_reward: totalReward,
+            total_steps: stepCount,
+            status: isComplete ? 'completed' : 'incomplete',
+            source: 'simulation'
+        };
+        fetch(API_BASE + '/api/rollouts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(rolloutData)
+        }).then(function () {
+            if (window.showToast) window.showToast('Rollout saved (Episode ' + rolloutEpisodeCounter + ')', 'info');
+            // Show rollout comparison if there's a previous rollout to compare against
+            _showSimRolloutComparison(currentEnvironment);
+        }).catch(function () {});
+    }
+
+    // HIL flow: if human-eval verifier is selected, prompt to open evaluation console
+    if (_selectedVerifierId && window.VERIFIER_DATA) {
+        var _hilV = window.VERIFIER_DATA.getById(_selectedVerifierId);
+        if (_hilV && _hilV.type === 'human-eval') {
+            setTimeout(function () {
+                if (window.showToast) window.showToast('Human evaluation required for this verifier.', 'warning', 5000);
+                if (confirm('Simulation complete. This verifier requires human evaluation.\n\nOpen the Human Evaluation Console now?')) {
+                    window.open('/human-eval', '_blank');
+                }
+            }, 600);
+        }
+    }
+}
+
+function _showSimRolloutComparison(envName) {
+    if (!envName || !window.renderRolloutComparison) return;
+    fetch(API_BASE + '/api/rollouts/' + encodeURIComponent(envName) + '?limit=2')
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) {
+        if (!data || !data.rollouts || data.rollouts.length < 2) return;
+        var compContainer = document.getElementById('sim-rollout-comparison');
+        if (!compContainer) return;
+        var latestId = data.rollouts[0].id;
+        var previousId = data.rollouts[1].id;
+        return Promise.all([
+            fetch(API_BASE + '/api/rollouts/' + encodeURIComponent(envName) + '/' + previousId).then(function(r) { return r.json(); }),
+            fetch(API_BASE + '/api/rollouts/' + encodeURIComponent(envName) + '/' + latestId).then(function(r) { return r.json(); })
+        ]).then(function(pair) {
+            compContainer.style.display = '';
+            window.renderRolloutComparison(compContainer, pair[0], pair[1], {
+                scenarioName: window.formatEnvironmentName ? window.formatEnvironmentName(envName) : envName,
+                envName: envName,
+                trainedLabel: 'Current Run (Episode ' + rolloutEpisodeCounter + ')'
+            });
+        });
+    }).catch(function() {});
 }
 

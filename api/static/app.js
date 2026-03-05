@@ -674,6 +674,7 @@ function renderEnvironments() {
             testEnvironment(envName);
         });
     });
+
 }
 
 function formatEnvironmentName(name) {
@@ -2006,18 +2007,31 @@ function openTrainingConfig(envName) {
                 
                 <section class="training-section">
                     <span class="training-section-title">Reward verifier</span>
-                    <div class="form-group">
-                        <label>Verifier <span class="tooltip-icon" title="Select the reward verifier. For Jira envs choose Issue Resolution, Status Update, or Comment Management. Ensemble combines clinical, operational, financial, and compliance verifiers.">ℹ️</span></label>
-                        <select id="training-verifier-type" onchange="updateVerifierWeightsVisibility()">
-                            ${verifierOptionsHtml}
+                    <div id="training-verifier-section">
+                        <div class="verifier-compact-controls">
+                            <select id="training-verifier-system-select" class="verifier-compact-select" title="System"></select>
+                            <select id="training-verifier-type-filter" class="verifier-compact-select" title="Type filter">
+                                <option value="all">All types</option>
+                                <option value="rule-based">Rule-based</option>
+                                <option value="trajectory-based">Trajectory</option>
+                                <option value="llm-judge">LLM Judge</option>
+                                <option value="human-eval">Human Eval</option>
+                            </select>
+                        </div>
+                        <select id="training-verifier-dropdown" class="verifier-main-dropdown">
+                            <option value="">-- Select verifier --</option>
                         </select>
-                        <small>Choose a software system above to get a suggested verifier and weights.</small>
-                        <div id="training-verifier-hint" class="verifier-hint"></div>
+                        <div id="training-verifier-info-row" class="verifier-info-row" style="display:none;"></div>
+                        <div id="training-verifier-sub-filter" class="verifier-sub-filter" style="display:none;"></div>
+                        <div id="training-hil-notice" class="hil-notice" style="display:none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" style="flex-shrink:0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <span>Human evaluation required.</span>
+                        </div>
+                        <small style="display:block;margin-top:0.25rem;color:var(--text-secondary);font-size:0.78rem;">Select a verifier to define the reward signal for training.</small>
                     </div>
                     <div class="form-group" id="training-verifier-weights-group" style="display: none;">
-                        <label>Verifier weights (JSON) <span class="tooltip-icon" title="Optional. Updated when you change the software system.">ℹ️</span></label>
-                        <textarea id="training-verifier-weights" rows="4" placeholder='{"clinical": 0.4, "operational": 0.3, "financial": 0.2, "compliance": 0.1}'></textarea>
-                        <small>Optional. Suggested weights are set from the selected software system.</small>
+                        <label>Verifier weights (JSON)</label>
+                        <textarea id="training-verifier-weights" rows="3" placeholder='{"clinical": 0.4, "operational": 0.3, "financial": 0.2, "compliance": 0.1}'></textarea>
                     </div>
                 </section>
                 
@@ -2214,9 +2228,11 @@ print(f"Training started: {job_data['job_id']}")
         const headerVal = document.getElementById('training-system-header-value');
         if (headerVal) headerVal.textContent = systemSelect.options[systemSelect.selectedIndex].text;
     }
-    updateTrainingVerifierForSystem();
+    // Initialize rich verifier cascade if VERIFIER_DATA is available
+    if (window.VERIFIER_DATA) {
+        _initTrainingVerifier(envName);
+    }
     updateModelInfo();
-    updateVerifierWeightsVisibility();
 }
 
 function getExampleConfig(envName) {
@@ -2299,6 +2315,133 @@ function closeTrainingConfig() {
     if (modal) {
         modal.remove();
     }
+}
+
+// ── Training Verifier Cascade (mirrors simulation-console.js) ───────────
+
+var _tvActiveSystem = null;
+var _tvActiveTypeFilter = 'all';
+var _tvSelectedVerifierId = null;
+
+function _initTrainingVerifier(envName) {
+    if (!window.VERIFIER_DATA) return;
+    var env = allEnvironments.find(function(e) { return e.name === envName; });
+    var category = env ? (env.category || '') : '';
+    var system = window.VERIFIER_DATA.getSystemForCategory(category);
+    _tvActiveSystem = system || (window.VERIFIER_DATA.systems && window.VERIFIER_DATA.systems[0] ? window.VERIFIER_DATA.systems[0].system : null);
+    _tvActiveTypeFilter = 'all';
+    _tvSelectedVerifierId = null;
+    _tvPopulateSystemDropdown(_tvActiveSystem);
+    _tvPopulateVerifierDropdown(_tvActiveSystem, 'all');
+    _tvSetupListeners();
+    _tvUpdateInfoRow();
+}
+
+function _tvPopulateSystemDropdown(activeSystem) {
+    var sel = document.getElementById('training-verifier-system-select');
+    if (!sel || !window.VERIFIER_DATA) return;
+    var groups = window.VERIFIER_DATA.getGroups();
+    sel.innerHTML = groups.map(function(g) {
+        return '<option value="' + g.system.replace(/"/g, '&quot;') + '"' +
+            (g.system === activeSystem ? ' selected' : '') + '>' +
+            g.system + ' (' + g.count + ')</option>';
+    }).join('');
+}
+
+function _tvPopulateVerifierDropdown(system, typeFilter) {
+    var sel = document.getElementById('training-verifier-dropdown');
+    if (!sel || !window.VERIFIER_DATA) return;
+    var verifiers = window.VERIFIER_DATA.getBySystem(system);
+    if (typeFilter && typeFilter !== 'all') {
+        verifiers = verifiers.filter(function(v) { return v.type === typeFilter; });
+    }
+    sel.innerHTML = '<option value="">-- Select verifier (' + verifiers.length + ') --</option>';
+    verifiers.forEach(function(v) {
+        var badge = v.type === 'human-eval' ? ' [HIL]' : '';
+        var statusTag = v.status === 'disabled' ? ' (disabled)' : '';
+        sel.innerHTML += '<option value="' + v.id.replace(/"/g, '&quot;') + '"' +
+            (v.status === 'disabled' ? ' disabled' : '') +
+            (v.id === _tvSelectedVerifierId ? ' selected' : '') + '>' +
+            v.name + badge + statusTag + '</option>';
+    });
+}
+
+function _tvSetupListeners() {
+    var systemSel = document.getElementById('training-verifier-system-select');
+    var verifierSel = document.getElementById('training-verifier-dropdown');
+    var typeSel = document.getElementById('training-verifier-type-filter');
+
+    if (systemSel) systemSel.onchange = function() {
+        _tvActiveSystem = systemSel.value;
+        _tvSelectedVerifierId = null;
+        _tvPopulateVerifierDropdown(_tvActiveSystem, typeSel ? typeSel.value : 'all');
+        _tvUpdateInfoRow();
+    };
+    if (typeSel) typeSel.onchange = function() {
+        _tvActiveTypeFilter = typeSel.value;
+        _tvPopulateVerifierDropdown(_tvActiveSystem, typeSel.value);
+    };
+    if (verifierSel) verifierSel.onchange = function() {
+        _tvSelectedVerifierId = verifierSel.value || null;
+        _tvUpdateInfoRow();
+        _tvUpdateSubFilter();
+        _tvUpdateHilNotice();
+    };
+}
+
+function _tvUpdateInfoRow() {
+    var row = document.getElementById('training-verifier-info-row');
+    if (!row) return;
+    if (!_tvSelectedVerifierId || !window.VERIFIER_DATA) { row.style.display = 'none'; return; }
+    var v = window.VERIFIER_DATA.getById(_tvSelectedVerifierId);
+    if (!v) { row.style.display = 'none'; return; }
+    row.style.display = '';
+    var typeCls = 'vtype-' + v.type;
+    row.innerHTML = '<span class="verifier-type-badge ' + typeCls + '">' + v.type + '</span> ' +
+        '<span style="color:var(--text-secondary);font-size:0.78rem;">' + v.system + ' &middot; v' + v.version + ' &middot; ' + v.status + '</span>';
+}
+
+function _tvUpdateSubFilter() {
+    var container = document.getElementById('training-verifier-sub-filter');
+    if (!container) return;
+    if (!_tvSelectedVerifierId || !window.VERIFIER_DATA) { container.style.display = 'none'; return; }
+    var v = window.VERIFIER_DATA.getById(_tvSelectedVerifierId);
+    if (!v || !v.subVerifiers || v.subVerifiers.length === 0) { container.style.display = 'none'; return; }
+    container.style.display = '';
+    container.innerHTML = v.subVerifiers.map(function(sv) {
+        return '<label class="sub-verifier-chip' + (sv.enabled ? ' active' : '') + '" title="' + (sv.description || '').replace(/"/g, '&quot;') + '">' +
+            '<input type="checkbox"' + (sv.enabled ? ' checked' : '') + ' data-sv-id="' + sv.id + '"> ' + sv.name + '</label>';
+    }).join('');
+    container.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+        cb.addEventListener('change', function() {
+            var svId = cb.getAttribute('data-sv-id');
+            var sv = v.subVerifiers.find(function(s) { return s.id === svId; });
+            if (sv) sv.enabled = cb.checked;
+            cb.parentElement.classList.toggle('active', cb.checked);
+        });
+    });
+}
+
+function _tvUpdateHilNotice() {
+    var notice = document.getElementById('training-hil-notice');
+    if (!notice) return;
+    if (!_tvSelectedVerifierId || !window.VERIFIER_DATA) { notice.style.display = 'none'; return; }
+    var v = window.VERIFIER_DATA.getById(_tvSelectedVerifierId);
+    notice.style.display = (v && v.type === 'human-eval') ? '' : 'none';
+}
+
+function _tvGetSelectedVerifierConfig() {
+    if (!_tvSelectedVerifierId || !window.VERIFIER_DATA) return null;
+    var v = window.VERIFIER_DATA.getById(_tvSelectedVerifierId);
+    if (!v) return null;
+    return {
+        type: v.type,
+        id: v.id,
+        name: v.name,
+        system: v.system,
+        failurePolicy: v.failurePolicy,
+        logic: v.logic
+    };
 }
 
 function updateModelInfo() {
@@ -2390,29 +2533,22 @@ async function submitTrainingConfig(envName) {
         maxSteps = parseInt(document.getElementById('training-max-steps').value);
         datasetUrl = document.getElementById('training-dataset-url').value.trim() || null;
         
-        // Get verifier configuration
-        const verifierType = document.getElementById('training-verifier-type');
-        if (verifierType && verifierType.value !== 'default') {
-            if (verifierType.value.startsWith('jira_workflow:')) {
-                verifierConfig = {
-                    type: 'jira_workflow',
-                    metadata: { workflow_id: verifierType.value.split(':')[1] }
-                };
-            } else {
-                verifierConfig = {
-                    type: verifierType.value
-                };
+        // Get verifier configuration from rich cascade dropdown
+        if (window.VERIFIER_DATA && _tvSelectedVerifierId) {
+            verifierConfig = _tvGetSelectedVerifierConfig();
+            // Add weights if provided
+            var wInput = document.getElementById('training-verifier-weights');
+            if (wInput && wInput.value.trim() && verifierConfig) {
+                try { verifierConfig.weights = JSON.parse(wInput.value); } catch(e) {}
             }
-            // Add weights if ensemble and weights are provided
-            if (verifierType.value === 'ensemble') {
-                const verifierWeights = document.getElementById('training-verifier-weights');
-                if (verifierWeights && verifierWeights.value.trim()) {
-                    try {
-                        const weights = JSON.parse(verifierWeights.value);
-                        verifierConfig.verifiers = weights;
-                    } catch (e) {
-                        console.warn('Invalid verifier weights JSON, using defaults:', e);
-                    }
+        } else {
+            // Fallback to old dropdown if VERIFIER_DATA not available
+            var verifierType = document.getElementById('training-verifier-type');
+            if (verifierType && verifierType.value !== 'default') {
+                if (verifierType.value.startsWith('jira_workflow:')) {
+                    verifierConfig = { type: 'jira_workflow', metadata: { workflow_id: verifierType.value.split(':')[1] } };
+                } else {
+                    verifierConfig = { type: verifierType.value };
                 }
             }
         }
@@ -2465,6 +2601,26 @@ async function submitTrainingConfig(envName) {
 
 async function startTraining(envName, algorithm = 'PPO', numEpisodes = 100, maxSteps = 1000, config = null, datasetUrl = null, verifierConfig = null) {
     try {
+        // HIL guard: if verifier is human-eval type, warn user before proceeding
+        if (verifierConfig && (verifierConfig.type === 'human_evaluation' || verifierConfig.type === 'human-eval')) {
+            const hilConfirmed = confirm(
+                '⚠️ Human Evaluation (HIL) Verifier Selected\n\n' +
+                'This training job uses a Human-in-the-Loop verifier. After training completes, ' +
+                'the job will enter "awaiting_human_eval" status and will NOT be marked as finished ' +
+                'until a human reviewer completes the evaluation.\n\n' +
+                'You will need to:\n' +
+                '1. Wait for training episodes to finish\n' +
+                '2. Open the Human Evaluation console\n' +
+                '3. Review agent behavior and submit your evaluation\n' +
+                '4. Only then will the training job be finalized\n\n' +
+                'Do you want to proceed with HIL-gated training?'
+            );
+            if (!hilConfirmed) {
+                showToast('Training cancelled — HIL verifier requires human review commitment.', 'info');
+                return;
+            }
+        }
+
         const requestBody = {
             environment_name: envName,
             algorithm: algorithm,
@@ -2473,12 +2629,12 @@ async function startTraining(envName, algorithm = 'PPO', numEpisodes = 100, maxS
             dataset_url: datasetUrl,
             config: config
         };
-        
+
         // Add verifier config if provided
         if (verifierConfig) {
             requestBody.verifier_config = verifierConfig;
         }
-        
+
         const response = await fetch(`${API_BASE}/train/${envName}`, {
             method: 'POST',
             headers: {
@@ -2508,6 +2664,8 @@ async function startTraining(envName, algorithm = 'PPO', numEpisodes = 100, maxS
 • Use for predictions: action, _ = model.predict(observation)
         `.trim();
         
+        const isHilJob = verifierConfig && (verifierConfig.type === 'human_evaluation' || verifierConfig.type === 'human-eval');
+        const hilReminder = isHilJob ? `\n⚠️ HIL REQUIRED: This job will pause for human evaluation after training episodes complete. Open /human-eval?job_id=${data.job_id} to review.\n` : '';
         const monitorMessage = `Would you like to open the Training Monitor to track this job's progress?`;
         const openMonitor = confirm(`✅ Training started successfully!\n\n` +
               `Job ID: ${data.job_id}\n` +
@@ -2517,6 +2675,7 @@ async function startTraining(envName, algorithm = 'PPO', numEpisodes = 100, maxS
               `Episodes: ${numEpisodes}\n` +
               `Max Steps: ${maxSteps}\n` +
               (datasetUrl ? `Dataset: ${datasetUrl}\n` : ``) +
+              hilReminder +
               `\n${modelInfo}\n\n` +
               `Monitor progress at: ${API_BASE}/training/${data.job_id}\n\n` +
               `Once training completes, check the job status to get the model download URL.\n\n` +
@@ -2682,6 +2841,12 @@ function displayTrainingJob(jobData) {
             <div style="margin-top: 0.75rem; padding: 0.5rem 0.75rem; background: rgba(124,58,237,0.1); border-radius: 6px; font-size: 0.85rem;">
                 <strong>Change:</strong> ${delta >= 0 ? '+' : ''}${delta.toFixed(3)} mean reward (${deltaPct}% vs baseline)
             </div>
+            ${jobData.baseline_rollout_id && jobData.trained_rollout_id ? `
+            <div style="margin-top: 0.75rem;">
+                <button class="btn btn-primary" style="font-size:0.85rem;" onclick="openRolloutComparisonFromJob('${jobData.job_id}', '${jobData.environment_name}')">
+                    🔍 View Rollout Comparison
+                </button>
+            </div>` : ''}
         </div>
     `;
     })() : '';
@@ -2948,3 +3113,33 @@ window.refreshJobStatus = refreshJobStatus;
 window.copyModelInfo = copyModelInfo;
 window.toggleSave = toggleSave;
 
+// ── Rollout Comparison from Training Monitor ────────────────────
+
+async function openRolloutComparisonFromJob(jobId, envName) {
+    var jobsList = document.getElementById('training-jobs-list');
+    if (!jobsList) return;
+    jobsList.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);">Loading rollout comparison...</div>';
+
+    try {
+        var resp = await fetch(API_BASE + '/api/rollout-comparison/' + encodeURIComponent(envName) + '?job_id=' + encodeURIComponent(jobId));
+        if (!resp.ok) throw new Error('Failed to load comparison data');
+        var data = await resp.json();
+
+        var backBtn = '<button class="btn btn-secondary btn-small" onclick="loadTrainingJob(\'' + jobId + '\')" style="margin-bottom:1rem;">← Back to job</button>';
+        jobsList.innerHTML = backBtn + '<div id="rc-training-container"></div>';
+
+        var container = document.getElementById('rc-training-container');
+        if (window.renderRolloutComparison) {
+            window.renderRolloutComparison(container, data.baseline, data.trained, {
+                scenarioName: formatEnvironmentName(envName),
+                envName: envName,
+                trainedLabel: 'Trained Policy (' + ((data.trained && data.trained.policy_name) || 'PPO') + (data.trained && data.trained.checkpoint_label ? ' \u00b7 ' + data.trained.checkpoint_label : '') + ')'
+            });
+        } else {
+            container.innerHTML = '<p style="color:var(--text-secondary);">Rollout comparison component not loaded.</p>';
+        }
+    } catch (err) {
+        jobsList.innerHTML = '<div style="padding:1rem;"><button class="btn btn-secondary btn-small" onclick="loadTrainingJob(\'' + jobId + '\')" style="margin-bottom:1rem;">← Back to job</button><p style="color:#ef4444;">Error loading comparison: ' + err.message + '</p></div>';
+    }
+}
+window.openRolloutComparisonFromJob = openRolloutComparisonFromJob;

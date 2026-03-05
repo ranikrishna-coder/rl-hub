@@ -130,6 +130,9 @@ governance_configs: Dict[str, Dict[str, Any]] = {}
 # Dashboard / BI: activity log (in-memory; for production use a database)
 dashboard_activities: List[Dict[str, Any]] = []
 
+# Rollout storage: { environment_name: [ rollout_dict, ... ] }
+rollout_store: Dict[str, List[Dict[str, Any]]] = {}
+
 
 class TrainingRequest(BaseModel):
     environment_name: Optional[str] = None
@@ -146,6 +149,36 @@ class TrainingResponse(BaseModel):
     status: str
     environment_name: str
     message: str
+
+
+class RolloutStepData(BaseModel):
+    """Single step within a rollout."""
+    step: int
+    action: Any = None
+    reward: float = 0.0
+    state_summary: Optional[Dict[str, Any]] = None
+    reward_breakdown: Optional[Dict[str, float]] = None
+    timeline_events: Optional[List[Dict[str, Any]]] = None
+
+
+class RolloutRecord(BaseModel):
+    """A complete rollout (episode run) for an environment."""
+    environment_name: str
+    episode_number: int = 1
+    steps: List[RolloutStepData] = []
+    initial_state: Optional[Dict[str, Any]] = None
+    final_outcome: Optional[Dict[str, Any]] = None
+    total_reward: float = 0.0
+    total_steps: int = 0
+    status: str = "completed"  # completed | failed | in_progress
+    source: str = "simulation"  # simulation | training
+    job_id: Optional[str] = None
+    timestamp: Optional[str] = None
+    policy_name: Optional[str] = None
+    checkpoint_label: Optional[str] = None
+    scenario_name: Optional[str] = None
+    verifier_results: Optional[List[Dict[str, Any]]] = None
+    final_environment_state: Optional[Dict[str, Any]] = None
 
 
 class DashboardActivityRequest(BaseModel):
@@ -1106,6 +1139,7 @@ async def start_training(
         model_path = os.path.join(models_dir, model_filename)
         
         # Store job info (include verifier_config so we can require human eval when type is human_evaluation)
+        _hil_required = (req.verifier_config or {}).get("type") == "human_evaluation"
         training_jobs[job_id] = {
             "job_id": job_id,
             "environment_name": final_env_name,
@@ -1118,6 +1152,7 @@ async def start_training(
             "model_url": f"/models/{req.algorithm.lower()}/{model_filename}",
             "dataset_url": req.dataset_url,
             "verifier_config": req.verifier_config,
+            "hil_required": _hil_required,
         }
         
         # Dashboard: record training started
@@ -1314,6 +1349,7 @@ def run_training(
         # Pre-training baseline: run a few episodes with random policy for comparison
         baseline_episodes = min(5, max(1, num_episodes // 20))
         baseline_rewards: list[float] = []
+        _baseline_steps: list[Dict[str, Any]] = []
         try:
             for be in range(baseline_episodes):
                 reset_result = env.reset(seed=1000 + be)
@@ -1322,6 +1358,7 @@ def run_training(
                 else:
                     state = reset_result
                 ep_rew = 0.0
+                _bl_step_idx = 0
                 for _ in range(max_steps):
                     action = env.action_space.sample()
                     step_result = env.step(action)
@@ -1332,6 +1369,20 @@ def run_training(
                         terminated = done
                         truncated = False
                     ep_rew += float(reward)
+                    _bl_step_idx += 1
+                    # Capture per-step data for the first baseline episode only
+                    if be == 0:
+                        _baseline_steps.append({
+                            "step": _bl_step_idx,
+                            "action": int(action) if hasattr(action, '__int__') else action,
+                            "reward": float(reward),
+                            "state_summary": None,
+                            "reward_breakdown": None,
+                            "timeline_events": [
+                                {"type": "TOOL_CALL", "detail": f"action={action}"},
+                                {"type": "TOOL_RESULT", "detail": f"reward={float(reward):.4f}"},
+                            ],
+                        })
                     if terminated or truncated:
                         break
                 baseline_rewards.append(ep_rew)
@@ -1342,6 +1393,33 @@ def run_training(
                     "min_reward": min(baseline_rewards),
                     "episodes": len(baseline_rewards),
                 }
+            # Store a rich baseline rollout entry for comparison
+            if _baseline_steps:
+                import uuid as _uuid_bl
+                from datetime import timezone as _tz_bl
+                _baseline_rollout = {
+                    "id": str(_uuid_bl.uuid4()),
+                    "environment_name": environment_name,
+                    "episode_number": 0,
+                    "total_reward": baseline_rewards[0] if baseline_rewards else 0.0,
+                    "total_steps": len(_baseline_steps),
+                    "status": "completed",
+                    "source": "training",
+                    "job_id": job_id,
+                    "timestamp": datetime.now(_tz_bl.utc).isoformat().replace("+00:00", "Z"),
+                    "steps": _baseline_steps,
+                    "initial_state": None,
+                    "final_outcome": {"reward": baseline_rewards[0] if baseline_rewards else 0.0, "steps": len(_baseline_steps)},
+                    "policy_name": "Random Baseline",
+                    "checkpoint_label": "base",
+                    "scenario_name": None,
+                    "verifier_results": None,
+                    "final_environment_state": None,
+                }
+                if environment_name not in rollout_store:
+                    rollout_store[environment_name] = []
+                rollout_store[environment_name].append(_baseline_rollout)
+                training_jobs[job_id]["baseline_rollout_id"] = _baseline_rollout["id"]
         except Exception as e:
             print(f"Baseline run skipped: {e}")
             training_jobs[job_id]["baseline_results"] = None
@@ -1378,7 +1456,8 @@ def run_training(
                 
                 episode_reward = 0.0
                 episode_steps = 0
-                
+                _sampled_steps: list[Dict[str, Any]] = []
+
                 for step in range(max_steps):
                     # Get action: SLM policy for Jira when algorithm=SLM, else random
                     try:
@@ -1422,6 +1501,21 @@ def run_training(
                     episode_reward += float(reward)
                     episode_steps += 1
 
+                    # Capture per-step data for sampled episodes
+                    _sample_interval_check = max(1, num_episodes // 10)
+                    if episode == 0 or episode == num_episodes - 1 or (episode + 1) % _sample_interval_check == 0:
+                        _sampled_steps.append({
+                            "step": episode_steps,
+                            "action": int(action) if hasattr(action, '__int__') else action,
+                            "reward": float(reward),
+                            "state_summary": None,
+                            "reward_breakdown": None,
+                            "timeline_events": [
+                                {"type": "TOOL_CALL", "detail": f"action={action}"},
+                                {"type": "TOOL_RESULT", "detail": f"reward={float(reward):.4f}"},
+                            ],
+                        })
+
                     # JiraSubtaskManagement: log when create_subtask is used
                     if environment_name == "JiraSubtaskManagement":
                         try:
@@ -1449,7 +1543,40 @@ def run_training(
                 if (episode + 1) % 10 == 0 or (episode + 1) == num_episodes:
                     training_jobs[job_id]["current_episode"] = episode + 1
                     training_jobs[job_id]["avg_reward_so_far"] = sum(total_rewards) / len(total_rewards) if total_rewards else 0.0
-                    
+
+                # Store rollout for sampled episodes (first, last, every 10th)
+                _sample_interval = max(1, num_episodes // 10)
+                if episode == 0 or episode == num_episodes - 1 or (episode + 1) % _sample_interval == 0:
+                    import uuid as _uuid
+                    from datetime import timezone as _tz
+                    _rollout_entry = {
+                        "id": str(_uuid.uuid4()),
+                        "environment_name": environment_name,
+                        "episode_number": episode + 1,
+                        "total_reward": episode_reward,
+                        "total_steps": step + 1,
+                        "status": "completed",
+                        "source": "training",
+                        "job_id": job_id,
+                        "timestamp": datetime.now(_tz.utc).isoformat().replace("+00:00", "Z"),
+                        "steps": _sampled_steps,
+                        "initial_state": None,
+                        "final_outcome": {"reward": episode_reward, "steps": step + 1},
+                        "policy_name": algorithm,
+                        "checkpoint_label": f"step_{episode+1}",
+                        "scenario_name": None,
+                        "verifier_results": None,
+                        "final_environment_state": None,
+                    }
+                    if environment_name not in rollout_store:
+                        rollout_store[environment_name] = []
+                    rollout_store[environment_name].append(_rollout_entry)
+                    # Cap at 100 rollouts per environment
+                    if len(rollout_store[environment_name]) > 100:
+                        rollout_store[environment_name] = rollout_store[environment_name][-100:]
+                    # Save the last stored rollout as the trained rollout for comparison
+                    training_jobs[job_id]["trained_rollout_id"] = _rollout_entry["id"]
+
             except Exception as episode_error:
                 # Log episode error but continue training
                 consecutive_errors += 1
@@ -1890,24 +2017,33 @@ async def validate_all_environments():
 
 
 # ============================================================================
-# VERIFIER ARCHITECTURE ENDPOINTS
+# VERIFIER ARCHITECTURE ENDPOINTS (CRUD + lifecycle)
 # ============================================================================
 
-@app.get("/verifiers")
-async def list_verifiers():
-    """List all available verifier types"""
-    verifier_types = VerifierRegistry.list_verifier_types()
-    instances = VerifierRegistry.list_instances()
-    
-    return {
-        "verifier_types": verifier_types,
-        "instances": instances,
-        "count": len(instances)
-    }
+# In-memory verifier definitions store (seeded from frontend verifier-data.js schema)
+_verifier_store: Dict[str, dict] = {}
+
+
+class VerifierDefinition(BaseModel):
+    """Verifier definition model"""
+    id: Optional[str] = None
+    name: str
+    type: str  # rule-based, trajectory-based, llm-judge
+    system: str
+    environment: str
+    version: int = 1
+    status: str = "active"
+    used_in_scenarios: list = []
+    description: str = ""
+    metadata: dict = {}
+    logic: dict = {}
+    example_input: dict = {}
+    example_output: dict = {}
+    failure_policy: dict = {"hard_fail": False, "penalty": 0.0, "log_failure": True}
 
 
 class VerifierConfigRequest(BaseModel):
-    """Request model for verifier configuration"""
+    """Request model for verifier configuration (legacy compat)"""
     verifier_type: str
     environment_name: str
     weights: Dict[str, float]
@@ -1916,9 +2052,92 @@ class VerifierConfigRequest(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
 
 
+@app.get("/api/verifiers")
+async def list_verifier_definitions(system: Optional[str] = None, type: Optional[str] = None):
+    """List all verifier definitions with optional system/type filters"""
+    verifiers = list(_verifier_store.values())
+    if system:
+        verifiers = [v for v in verifiers if v.get("system", "").lower() == system.lower()]
+    if type:
+        verifiers = [v for v in verifiers if v.get("type", "").lower() == type.lower()]
+    return {"verifiers": verifiers, "count": len(verifiers)}
+
+
+@app.get("/api/verifiers/{verifier_id}")
+async def get_verifier_definition(verifier_id: str):
+    """Get a single verifier by ID"""
+    v = _verifier_store.get(verifier_id)
+    if not v:
+        raise HTTPException(status_code=404, detail=f"Verifier {verifier_id} not found")
+    return v
+
+
+@app.post("/api/verifiers")
+async def create_verifier_definition(request: VerifierDefinition):
+    """Create a new verifier definition"""
+    import uuid
+    vid = request.id or f"custom-{uuid.uuid4().hex[:12]}"
+    vdata = request.dict()
+    vdata["id"] = vid
+    vdata["version"] = 1
+    vdata["status"] = "active"
+    _verifier_store[vid] = vdata
+    return {"success": True, "verifier": vdata}
+
+
+@app.put("/api/verifiers/{verifier_id}")
+async def edit_verifier_definition(verifier_id: str, request: VerifierDefinition):
+    """Edit a verifier (creates new immutable version with verifier_version++)"""
+    existing = _verifier_store.get(verifier_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail=f"Verifier {verifier_id} not found")
+    vdata = request.dict()
+    vdata["id"] = verifier_id
+    vdata["version"] = existing.get("version", 1) + 1
+    _verifier_store[verifier_id] = vdata
+    return {"success": True, "verifier": vdata}
+
+
+@app.post("/api/verifiers/{verifier_id}/duplicate")
+async def duplicate_verifier(verifier_id: str):
+    """Duplicate a verifier (new verifier_id, seeded from existing config)"""
+    import uuid
+    existing = _verifier_store.get(verifier_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail=f"Verifier {verifier_id} not found")
+    new_id = f"dup-{uuid.uuid4().hex[:12]}"
+    new_v = dict(existing)
+    new_v["id"] = new_id
+    new_v["name"] = existing.get("name", "") + " (Copy)"
+    new_v["version"] = 1
+    _verifier_store[new_id] = new_v
+    return {"success": True, "verifier": new_v}
+
+
+@app.patch("/api/verifiers/{verifier_id}/disable")
+async def disable_verifier(verifier_id: str):
+    """Disable a verifier (prevents selection in new runs, preserves history)"""
+    existing = _verifier_store.get(verifier_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail=f"Verifier {verifier_id} not found")
+    current_status = existing.get("status", "active")
+    new_status = "disabled" if current_status == "active" else "active"
+    existing["status"] = new_status
+    return {"success": True, "verifier_id": verifier_id, "status": new_status}
+
+
+# Legacy endpoints (backward compatible)
+@app.get("/verifiers")
+async def list_verifiers_legacy():
+    """List all available verifier types (legacy)"""
+    verifier_types = VerifierRegistry.list_verifier_types()
+    instances = VerifierRegistry.list_instances()
+    return {"verifier_types": verifier_types, "instances": instances, "count": len(instances)}
+
+
 @app.post("/verifiers/configure")
 async def configure_verifier(request: VerifierConfigRequest):
-    """Configure a verifier for an environment"""
+    """Configure a verifier for an environment (legacy)"""
     try:
         config = VerifierConfig(
             weights=request.weights,
@@ -1926,26 +2145,126 @@ async def configure_verifier(request: VerifierConfigRequest):
             enabled=request.enabled,
             metadata=request.metadata or {}
         )
-        
         verifier = VerifierRegistry.create_verifier(
             verifier_type=request.verifier_type,
             config=config,
             instance_id=f"{request.environment_name}_{request.verifier_type}"
         )
-        
         return {
             "success": True,
             "verifier_type": request.verifier_type,
             "environment_name": request.environment_name,
             "instance_id": f"{request.environment_name}_{request.verifier_type}",
-            "config": {
-                "weights": request.weights,
-                "thresholds": request.thresholds,
-                "enabled": request.enabled
-            }
+            "config": {"weights": request.weights, "thresholds": request.thresholds, "enabled": request.enabled}
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# ============================================================================
+# ROLLOUT ENDPOINTS (episode runs per environment)
+# ============================================================================
+
+
+@app.post("/api/rollouts")
+async def store_rollout(rollout: RolloutRecord):
+    """Store a rollout (episode run) for an environment."""
+    import uuid as _uuid
+    from datetime import timezone as _tz
+
+    entry = rollout.dict()
+    entry["id"] = str(_uuid.uuid4())
+    entry["timestamp"] = entry.get("timestamp") or datetime.now(_tz.utc).isoformat().replace("+00:00", "Z")
+
+    env_name = rollout.environment_name
+    if env_name not in rollout_store:
+        rollout_store[env_name] = []
+    rollout_store[env_name].append(entry)
+
+    # Cap at 100 rollouts per environment
+    if len(rollout_store[env_name]) > 100:
+        rollout_store[env_name] = rollout_store[env_name][-100:]
+
+    return {"success": True, "id": entry["id"], "environment_name": env_name}
+
+
+@app.get("/api/rollouts/{environment_name}")
+async def get_rollouts(environment_name: str, limit: int = 20, offset: int = 0):
+    """Get rollouts (episode runs) for an environment. Returns summaries (no per-step data)."""
+    rollouts = rollout_store.get(environment_name, [])
+    rollouts_sorted = sorted(rollouts, key=lambda r: r.get("timestamp", ""), reverse=True)
+    page = rollouts_sorted[offset:offset + limit]
+    summaries = []
+    for r in page:
+        summaries.append({
+            "id": r["id"],
+            "episode_number": r.get("episode_number", 0),
+            "total_reward": r.get("total_reward", 0.0),
+            "total_steps": r.get("total_steps", 0),
+            "status": r.get("status", "completed"),
+            "source": r.get("source", "simulation"),
+            "timestamp": r.get("timestamp"),
+            "job_id": r.get("job_id"),
+        })
+    return {"environment_name": environment_name, "rollouts": summaries, "total": len(rollouts)}
+
+
+@app.get("/api/rollouts/{environment_name}/{rollout_id}")
+async def get_rollout_detail(environment_name: str, rollout_id: str):
+    """Get full rollout detail including step-by-step data."""
+    rollouts = rollout_store.get(environment_name, [])
+    rollout = next((r for r in rollouts if r["id"] == rollout_id), None)
+    if not rollout:
+        raise HTTPException(status_code=404, detail="Rollout not found")
+    return rollout
+
+
+@app.get("/api/rollout-comparison/{environment_name}")
+async def get_rollout_comparison(
+    environment_name: str,
+    baseline_id: Optional[str] = None,
+    trained_id: Optional[str] = None,
+    job_id: Optional[str] = None
+):
+    """Get two rollouts for side-by-side comparison."""
+    rollouts = rollout_store.get(environment_name, [])
+
+    if job_id:
+        job = training_jobs.get(job_id)
+        if job:
+            baseline_id = baseline_id or job.get("baseline_rollout_id")
+            trained_id = trained_id or job.get("trained_rollout_id")
+
+    baseline = next((r for r in rollouts if r["id"] == baseline_id), None) if baseline_id else None
+    trained = next((r for r in rollouts if r["id"] == trained_id), None) if trained_id else None
+
+    # Fallback: find most recent baseline and trained rollouts
+    if not baseline:
+        for r in reversed(rollouts):
+            if r.get("checkpoint_label") == "base" or r.get("episode_number") == 0:
+                baseline = r
+                break
+    if not trained:
+        for r in reversed(rollouts):
+            if r.get("source") == "training" and r.get("checkpoint_label") != "base" and r.get("episode_number", 0) > 0:
+                trained = r
+                break
+
+    return {
+        "environment_name": environment_name,
+        "baseline": baseline,
+        "trained": trained,
+    }
+
+
+@app.get("/human-eval")
+async def human_eval_page():
+    """Serve the HITL evaluation console."""
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    path = os.path.join(static_dir, "human-eval.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="Human eval page not found")
 
 
 @app.get("/episodes/{episode_id}/reward-breakdown")
