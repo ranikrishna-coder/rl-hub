@@ -153,6 +153,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
     setupRangeInputs();
     setupVerifierControls();
+    populateSimAlgorithms();
 });
 
 // ── Verifier Section State ───────────────────────────────────────────
@@ -815,6 +816,61 @@ function selectEnvironment(envName) {
 
     // Load environment-specific configuration
     loadEnvironmentConfig(envName);
+
+    // Populate scenario, agent, algorithm from training config data
+    populateSimScenarios(env);
+    populateSimAgents(env);
+    populateSimAlgorithms();
+}
+
+/* ── Scenario / Agent / Algorithm population (from TRAINING_CONFIG) ── */
+
+function populateSimScenarios(env) {
+    var sel = document.getElementById('sim-scenario');
+    if (!sel) return;
+    var cat = env ? env.category : '';
+    var CFG = window.TRAINING_CONFIG || {};
+    sel.innerHTML = '<option value="">— Select scenario —</option>';
+    (CFG.scenarios || []).forEach(function (s) {
+        if (!cat || s.category === cat) {
+            var o = document.createElement('option');
+            o.value = s.id;
+            o.textContent = s.name + ' (' + s.task_count + ' tasks)';
+            sel.appendChild(o);
+        }
+    });
+}
+
+function populateSimAgents(env) {
+    var sel = document.getElementById('sim-agent');
+    if (!sel) return;
+    var cat = env ? env.category : '';
+    var CFG = window.TRAINING_CONFIG || {};
+    sel.innerHTML = '<option value="">— Select agent —</option>';
+    (CFG.agents || []).forEach(function (a) {
+        if (cat && a.compatible_categories && a.compatible_categories.indexOf(cat) === -1) return;
+        var o = document.createElement('option');
+        o.value = a.id;
+        o.textContent = a.name + ' (' + a.base_model + ')';
+        sel.appendChild(o);
+    });
+}
+
+function populateSimAlgorithms() {
+    var container = document.getElementById('sim-algo-group');
+    if (!container) return;
+    var CFG = window.TRAINING_CONFIG || {};
+    container.innerHTML = '';
+    (CFG.algorithms || []).forEach(function (a, i) {
+        var id = 'sim-algo-' + a.id;
+        var html = '<label class="sim-algo-option" style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.4rem 0;cursor:pointer;">' +
+            '<input type="radio" name="sim-algorithm" value="' + a.id + '"' + (i === 0 ? ' checked' : '') + ' id="' + id + '" style="margin-top:0.25rem;">' +
+            '<div><strong style="font-size:0.85rem;">' + a.name + '</strong>' +
+            (a.recommended ? ' <span style="color:var(--primary-color);font-size:0.75rem;">(Recommended)</span>' : '') +
+            '<div style="font-size:0.78rem;color:var(--text-secondary);">' + a.description + '</div></div>' +
+            '</label>';
+        container.insertAdjacentHTML('beforeend', html);
+    });
 }
 
 // updateVerifierSelectForEnvironment removed — replaced by showVerifierSection()

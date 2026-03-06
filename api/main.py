@@ -1700,6 +1700,7 @@ async def list_training_jobs():
             "model_url": job.get("model_url"),
             "model_metadata": job.get("model_metadata"),
             "started_at": job.get("started_at"),
+            "error": job.get("error"),
         })
     return {"jobs": jobs}
 

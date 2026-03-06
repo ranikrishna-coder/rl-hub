@@ -44,6 +44,7 @@
                         existing.model_url = j.model_url || existing.model_url;
                         existing.model_metadata = j.model_metadata || existing.model_metadata;
                         existing.hil_required = j.hil_required || existing.hil_required;
+                        if (j.error) existing.error = j.error;
                         if (j.results) {
                             existing.results = j.results;
                             existing.avgReward = res.mean_reward;
@@ -79,7 +80,8 @@
                             model_url: j.model_url || null,
                             model_metadata: j.model_metadata || null,
                             results: j.results,
-                            baseline_results: j.baseline_results
+                            baseline_results: j.baseline_results,
+                            error: j.error || null
                         });
                     }
                 });
@@ -706,14 +708,7 @@
                 '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ' +
                 'Export Model</button>';
         }
-        if (!actionsHtml) {
-            actionsHtml = '<button type="button" class="btn btn-secondary btn-small" id="btn-export-run">Export Results</button>';
-        }
         actionsEl.innerHTML = actionsHtml;
-        var exportBtn = document.getElementById('btn-export-run');
-        if (exportBtn) {
-            exportBtn.addEventListener('click', function () { showToast('Export feature coming soon', 'info'); });
-        }
         var viewArtifactBtn = document.getElementById('btn-view-model-artifact');
         if (viewArtifactBtn) {
             viewArtifactBtn.addEventListener('click', function () {
@@ -768,6 +763,22 @@
                 stepperHtml += '</div>';
             }
             stepperEl.innerHTML = stepperHtml;
+        }
+
+        // Failure reason panel
+        var failurePanel = document.getElementById('detail-failure-reason');
+        if (failurePanel) {
+            if (run.status === 'failed') {
+                var reason = run.error || run.fail_reason || 'An unexpected error occurred during training.';
+                failurePanel.style.display = '';
+                failurePanel.innerHTML = '<h4>' +
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' +
+                    ' Training Failed</h4>' +
+                    '<p class="failure-message">' + esc(reason) + '</p>';
+            } else {
+                failurePanel.style.display = 'none';
+                failurePanel.innerHTML = '';
+            }
         }
 
         // Metric cards

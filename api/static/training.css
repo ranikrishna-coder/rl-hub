@@ -554,6 +554,43 @@
     .stepper-label { font-size: 0.65rem; }
 }
 
+/* ── Failure Reason Panel ─────────────────────────────────── */
+.failure-reason-panel {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-left: 4px solid #ef4444;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+}
+.failure-reason-panel h4 {
+    color: #dc2626;
+    font-size: 0.9rem;
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.failure-reason-panel .failure-message {
+    color: #991b1b;
+    font-size: 0.85rem;
+    margin: 0;
+    line-height: 1.5;
+}
+.failure-reason-panel code {
+    display: block;
+    background: #fee2e2;
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: #7f1d1d;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
 /* ── Details View ──────────────────────────────────────────── */
 .details-header {
     display: flex;

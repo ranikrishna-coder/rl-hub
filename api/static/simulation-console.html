@@ -69,9 +69,16 @@
                 <!-- Hidden: dynamic config fields for Jira scenarios etc. -->
                 <div class="config-section" id="dynamic-config" style="display:none;"></div>
 
-                <!-- B. Scenario & Verifier (matches Training Section C) -->
+                <!-- B. Scenario & Evaluation (matches Training Section C) -->
                 <div class="config-section" id="verifier-section">
-                    <h3>B. Evaluation</h3>
+                    <h3>B. Scenario &amp; Evaluation</h3>
+
+                    <div class="form-group">
+                        <label>Scenario:</label>
+                        <select id="sim-scenario">
+                            <option value="">— Select scenario —</option>
+                        </select>
+                    </div>
 
                     <div class="form-group">
                         <label>Verifier:</label>
@@ -109,9 +116,19 @@
                     </div>
                 </div>
 
-                <!-- C. Agent & Simulation (matches Training Section D) -->
+                <!-- C. Agent & Training Method (matches Training Section D) -->
                 <div class="config-section">
-                    <h3>C. Agent &amp; Settings</h3>
+                    <h3>C. Agent &amp; Training Method</h3>
+                    <div class="form-group">
+                        <label>Agent:</label>
+                        <select id="sim-agent">
+                            <option value="">— Select agent —</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Algorithm:</label>
+                        <div id="sim-algo-group" class="sim-algo-group"></div>
+                    </div>
                     <div class="form-group">
                         <label>Agent Strategy:</label>
                         <select id="agent-strategy">
@@ -241,6 +258,7 @@
         })();
     </script>
     <script src="/config.js" onerror="(function(){})()"></script>
+    <script src="/static/training-config-data.js"></script>
     <script src="/static/toast.js"></script>
     <script src="/static/verifier-data.js"></script>
     <script src="/static/rollout-comparison.js"></script>
