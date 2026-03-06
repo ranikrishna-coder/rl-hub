@@ -743,6 +743,318 @@
 }
 .tradeoff-note strong { color: #78350f; }
 
+/* ── Training Tabs ────────────────────────────────────────── */
+.training-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 1.5rem;
+}
+.training-tab {
+    padding: 0.65rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+}
+.training-tab:hover { color: var(--text-primary); }
+.training-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+.training-tab-content { display: none; }
+.training-tab-content.active { display: block; }
+
+/* ── Rollout List ────────────────────────────────────────── */
+.rollout-list-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.rollout-meta h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+.rollout-meta p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+.rollout-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.rollout-filter-select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    background: #fff;
+    min-width: 180px;
+}
+.rollout-filter-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(192, 38, 211, 0.1);
+}
+
+/* Rollout table */
+.rollout-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+.rollout-table thead th {
+    text-align: left;
+    padding: 0.7rem 1rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-secondary);
+    background: var(--bg-secondary, #faf8fc);
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+.rollout-table tbody tr {
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+.rollout-table tbody tr:hover {
+    background: var(--bg-secondary, #faf8fc);
+}
+.rollout-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+    color: var(--text-primary);
+}
+.rollout-table .rl-episode { font-weight: 600; }
+.rollout-table .rl-issue { color: var(--primary-color); font-weight: 600; }
+
+.policy-badge {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+.policy-badge.trained { background: #dbeafe; color: #1d4ed8; }
+.policy-badge.baseline { background: #f3f4f6; color: #4b5563; }
+
+.final-state-badge {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    background: #f3f4f6;
+    color: #374151;
+}
+.final-state-badge.resolved,
+.final-state-badge.done { background: #dcfce7; color: #166534; }
+.final-state-badge.open { background: #fef3c7; color: #92400e; }
+
+.rollout-list-footer {
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* ── Rollout Detail View ─────────────────────────────────── */
+.rollout-detail-header {
+    margin-bottom: 1rem;
+}
+.rollout-detail-header h2 {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+.rollout-detail-meta {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    font-size: 0.9rem;
+    flex-wrap: wrap;
+}
+.rollout-detail-meta .rdm-label {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+.rollout-detail-meta .rdm-value {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-left: 0.35rem;
+}
+
+/* Rollout detail tabs */
+.rollout-detail-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 1rem;
+}
+.rollout-dtab {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.rollout-dtab:first-child { border-radius: 8px 0 0 8px; }
+.rollout-dtab:last-child { border-radius: 0 8px 8px 0; border-left: 0; }
+.rollout-dtab:not(:first-child):not(:last-child) { border-left: 0; }
+.rollout-dtab.active {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+}
+
+/* Rollout detail layout */
+.rollout-detail-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    min-height: 400px;
+}
+@media (max-width: 1024px) {
+    .rollout-detail-layout { grid-template-columns: 1fr; }
+}
+
+.rollout-detail-content {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 1.25rem;
+    overflow: auto;
+    max-height: 600px;
+}
+.rollout-detail-content pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+    color: var(--text-primary);
+}
+
+.rollout-detail-trajectory {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 1.25rem;
+    overflow: auto;
+    max-height: 600px;
+    position: relative;
+}
+
+/* Trajectory diagram */
+.traj-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.78rem;
+}
+.traj-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.traj-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.traj-legend-dot.agent { background: #3b82f6; }
+.traj-legend-dot.tool { background: #f59e0b; }
+.traj-legend-dot.verifier { background: #ec4899; }
+.traj-legend-dot.reward { background: #10b981; }
+
+.traj-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.traj-node {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+}
+.traj-node:not(:last-child) {
+    border-bottom: 1px dashed #e5e7eb;
+}
+.traj-node-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    color: #fff;
+}
+.traj-node-icon.system { background: #6b7280; }
+.traj-node-icon.agent { background: #3b82f6; }
+.traj-node-icon.tool { background: #f59e0b; }
+.traj-node-icon.result { background: #8b5cf6; }
+.traj-node-icon.verifier { background: #ec4899; }
+
+.traj-node-body {
+    flex: 1;
+    min-width: 0;
+}
+.traj-node-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.15rem;
+}
+.traj-node-detail {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    word-break: break-word;
+}
+.traj-node-args {
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: #6366f1;
+    background: #eef2ff;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 0.2rem;
+}
+
 /* ── Responsive ────────────────────────────────────────────── */
 @media (max-width: 1024px) {
     .metric-cards { grid-template-columns: repeat(2, 1fr); }
@@ -754,4 +1066,5 @@
     .training-section .t-row { grid-template-columns: 1fr; }
     .condition-table-header,
     .condition-row { grid-template-columns: 1fr 80px 32px; }
+    .rollout-detail-layout { grid-template-columns: 1fr; }
 }

@@ -278,6 +278,7 @@ class TrainingRequest(BaseModel):
     max_steps: int = 1000
     dataset_url: Optional[str] = None
     verifier_config: Optional[Dict[str, Any]] = None  # Verifier configuration
+    run_name: Optional[str] = None
 
 
 class TrainingResponse(BaseModel):
@@ -1125,6 +1126,7 @@ async def start_training(
         training_jobs[job_id] = {
             "job_id": job_id,
             "environment_name": final_env_name,
+            "run_name": req.run_name or "",
             "status": "running",
             "algorithm": req.algorithm,
             "model": req.model or "",
@@ -1685,6 +1687,7 @@ async def list_training_jobs():
     for jid, job in training_jobs.items():
         jobs.append({
             "job_id": jid,
+            "run_name": job.get("run_name", ""),
             "status": job.get("status", "unknown"),
             "environment_name": job.get("environment_name", ""),
             "algorithm": job.get("algorithm", ""),
@@ -2138,6 +2141,48 @@ async def store_rollout(rollout: RolloutRecord):
         rollout_store[env_name] = rollout_store[env_name][-100:]
 
     return {"success": True, "id": entry["id"], "environment_name": env_name}
+
+
+@app.get("/api/rollouts-all")
+async def get_all_rollouts(environment_name: Optional[str] = None, limit: int = 50, offset: int = 0):
+    """Get rollouts across all (or one) environment. Returns summaries for list view."""
+    all_rollouts = []
+    sources = rollout_store.items()
+    if environment_name:
+        sources = [(environment_name, rollout_store.get(environment_name, []))]
+    for env_name, env_rollouts in sources:
+        for r in env_rollouts:
+            ti = (r.get("steps") or [{}])[-1] if r.get("steps") else {}
+            last_events = ti.get("timeline_events", [])
+            tool_calls = sum(1 for e in last_events if e.get("event_type") == "TOOL_CALL")
+            for s in (r.get("steps") or [])[:-1]:
+                tool_calls += sum(1 for e in s.get("timeline_events", []) if e.get("event_type") == "TOOL_CALL")
+            fs = r.get("final_environment_state") or {}
+            final_state_label = fs.get("status") or fs.get("issue_status") or ("Resolved" if fs.get("resolved") else "")
+            if not final_state_label and r.get("final_outcome", {}).get("resolved"):
+                final_state_label = "Resolved"
+            all_rollouts.append({
+                "id": r["id"],
+                "environment_name": env_name,
+                "episode_number": r.get("episode_number", 0),
+                "total_reward": round(r.get("total_reward", 0.0), 2),
+                "total_steps": r.get("total_steps", 0),
+                "tool_calls": tool_calls,
+                "status": r.get("status", "completed"),
+                "source": r.get("source", "simulation"),
+                "policy_name": r.get("policy_name", ""),
+                "checkpoint_label": r.get("checkpoint_label", ""),
+                "final_state": final_state_label or "N/A",
+                "duration_s": round(r.get("total_steps", 0) * 0.7, 1),
+                "timestamp": r.get("timestamp"),
+                "job_id": r.get("job_id"),
+                "issue_key": fs.get("issue_key", ""),
+            })
+    all_rollouts.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    total = len(all_rollouts)
+    page = all_rollouts[offset:offset + limit]
+    env_names = sorted(rollout_store.keys())
+    return {"rollouts": page, "total": total, "environments": env_names}
 
 
 @app.get("/api/rollouts/{environment_name}")

@@ -58,10 +58,11 @@
                         }
                     } else {
                         // New backend job — append
+                        var fallbackName = (j.algorithm || '') + ' \u2014 ' + humanizeName(j.environment_name || '');
                         CFG.trainingRuns.push({
                             id: j.job_id,
                             job_id: j.job_id,
-                            name: (j.algorithm || '') + ' \u2014 ' + humanizeName(j.environment_name || ''),
+                            name: j.run_name || fallbackName,
                             description: (j.algorithm || '') + ' training on ' + humanizeName(j.environment_name || ''),
                             status: j.status || 'unknown',
                             environment: j.environment_name || '',
@@ -543,7 +544,7 @@
             agent: document.getElementById('tr-agent').value,
             model: getAgentModel(document.getElementById('tr-agent').value),
             algorithm: getSelectedAlgorithm(),
-            episodes: parseInt(document.getElementById('tr-episodes').value) || 320,
+            num_episodes: parseInt(document.getElementById('tr-episodes').value) || 320,
             max_steps: parseInt(document.getElementById('tr-steps').value) || 50,
             lora: {
                 r: parseInt(document.getElementById('lora-r').value) || 32,
@@ -1299,6 +1300,294 @@
         }
     }
 
+    // ─── Tab Switching ──────────────────────────────────────────
+    function initTabs() {
+        var tabs = document.querySelectorAll('#training-tabs .training-tab');
+        tabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                tabs.forEach(function (t) { t.classList.remove('active'); });
+                tab.classList.add('active');
+                document.querySelectorAll('.training-tab-content').forEach(function (c) { c.classList.remove('active'); });
+                var target = document.getElementById('tab-' + tab.getAttribute('data-tab'));
+                if (target) target.classList.add('active');
+                if (tab.getAttribute('data-tab') === 'rollouts') {
+                    loadRolloutList();
+                }
+            });
+        });
+    }
+
+    // ─── Rollout List ────────────────────────────────────────────
+    var _rolloutCache = [];
+    var _rolloutEnvs = [];
+
+    function loadRolloutList(envFilter) {
+        var apiBase = window.API_BASE || '';
+        var url = apiBase + '/api/rollouts-all?limit=100';
+        if (envFilter) url += '&environment_name=' + encodeURIComponent(envFilter);
+        fetch(url)
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                _rolloutCache = data.rollouts || [];
+                _rolloutEnvs = data.environments || [];
+                renderRolloutEnvFilter();
+                renderRolloutList();
+                var footer = document.getElementById('rollout-list-footer');
+                if (footer) {
+                    footer.style.display = 'block';
+                    footer.textContent = 'Showing ' + _rolloutCache.length + ' of ' + data.total + ' rollouts' +
+                        (_rolloutCache.length < data.total ? ' \u00b7 Sampled for inspection' : '');
+                }
+            })
+            .catch(function (err) {
+                console.warn('Failed to load rollouts:', err);
+                document.getElementById('rollout-list-body').innerHTML =
+                    '<div style="padding:2rem;text-align:center;color:var(--text-secondary)">No rollouts yet. Run a training session first.</div>';
+            });
+    }
+
+    function renderRolloutEnvFilter() {
+        var sel = document.getElementById('rollout-env-filter');
+        if (!sel) return;
+        var current = sel.value;
+        sel.innerHTML = '<option value="">All Environments</option>';
+        _rolloutEnvs.forEach(function (env) {
+            sel.innerHTML += '<option value="' + esc(env) + '">' + humanizeName(env) + '</option>';
+        });
+        sel.value = current;
+    }
+
+    function renderRolloutList() {
+        var body = document.getElementById('rollout-list-body');
+        if (!_rolloutCache.length) {
+            body.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-secondary)">No rollouts found. Run a training session to generate rollouts.</div>';
+            return;
+        }
+
+        var envFilter = (document.getElementById('rollout-env-filter') || {}).value;
+        var subtitle = document.getElementById('rollout-list-subtitle');
+        if (subtitle) {
+            var envLabel = envFilter ? humanizeName(envFilter) : 'All';
+            subtitle.innerHTML = 'Environment: <span id="rollout-env-label">' + esc(envLabel) + '</span>';
+        }
+
+        var html = '<table class="rollout-table"><thead><tr>';
+        html += '<th>Episode ID</th><th>Issue Key</th><th>Policy</th><th>Final State</th><th>Tool Calls</th><th>Reward</th><th>Duration</th>';
+        html += '</tr></thead><tbody>';
+
+        _rolloutCache.forEach(function (r) {
+            var epId = 'ep_' + String(r.episode_number).padStart(6, '0');
+            var issueKey = r.issue_key || '—';
+            var policyLabel = r.checkpoint_label === 'base' ? 'Baseline' : 'Trained';
+            var policyClass = r.checkpoint_label === 'base' ? 'baseline' : 'trained';
+            var fsLabel = r.final_state || 'N/A';
+            var fsClass = fsLabel.toLowerCase().replace(/[\s-]/g, '');
+            if (fsClass === 'done' || fsClass === 'resolved' || fsClass === 'closed') fsClass = 'resolved';
+            else if (fsClass === 'open' || fsClass === 'inprogress') fsClass = 'open';
+            var toolCalls = r.tool_calls || 0;
+            var reward = (r.total_reward != null) ? r.total_reward.toFixed(2) : '0.00';
+            var duration = r.duration_s ? (r.duration_s + 's') : '—';
+
+            html += '<tr class="rollout-row" data-rollout-id="' + esc(r.id) + '" data-env="' + esc(r.environment_name) + '">';
+            html += '<td class="rl-episode">' + esc(epId) + '</td>';
+            html += '<td class="rl-issue">' + esc(issueKey) + '</td>';
+            html += '<td><span class="policy-badge ' + policyClass + '">' + policyLabel + '</span></td>';
+            html += '<td><span class="final-state-badge ' + fsClass + '">' + esc(fsLabel) + '</span></td>';
+            html += '<td>' + toolCalls + '</td>';
+            html += '<td>' + reward + '</td>';
+            html += '<td>' + esc(duration) + '</td>';
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        body.innerHTML = html;
+
+        // Click handler: open rollout detail
+        body.querySelectorAll('.rollout-row').forEach(function (row) {
+            row.addEventListener('click', function () {
+                var rid = row.getAttribute('data-rollout-id');
+                var env = row.getAttribute('data-env');
+                showRolloutDetail(env, rid);
+            });
+        });
+    }
+
+    // ─── Rollout Detail ──────────────────────────────────────────
+    function showRolloutDetail(envName, rolloutId) {
+        var apiBase = window.API_BASE || '';
+        fetch(apiBase + '/api/rollouts/' + encodeURIComponent(envName) + '/' + encodeURIComponent(rolloutId))
+            .then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function (rollout) {
+                _currentRolloutDetail = rollout;
+                renderRolloutDetailHeader(rollout);
+                renderRolloutDetailContent(rollout, 'messages');
+                renderRolloutTrajectory(rollout);
+                showView('rollout-detail');
+            })
+            .catch(function (err) {
+                showToast('Failed to load rollout: ' + err.message, 'error');
+            });
+    }
+
+    var _currentRolloutDetail = null;
+
+    function renderRolloutDetailHeader(r) {
+        var hdr = document.getElementById('rollout-detail-header');
+        var epId = 'ep_' + String(r.episode_number || 0).padStart(6, '0');
+        var fs = r.final_environment_state || {};
+        var issueKey = fs.issue_key || r.environment_name || '';
+        var policyLabel = r.checkpoint_label === 'base' ? 'Baseline' : 'Trained';
+        hdr.innerHTML =
+            '<h2><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> Episode Detail</h2>' +
+            '<div class="rollout-detail-meta">' +
+            '<span><span class="rdm-label">Episode:</span><span class="rdm-value">' + esc(epId) + '</span></span>' +
+            '<span>\u00b7</span>' +
+            '<span><span class="rdm-label">Issue:</span><span class="rdm-value">' + esc(issueKey) + '</span></span>' +
+            '<span>\u00b7</span>' +
+            '<span><span class="rdm-label">Policy:</span><span class="rdm-value">' + esc(policyLabel) + '</span></span>' +
+            '</div>';
+    }
+
+    function renderRolloutDetailContent(r, mode) {
+        var container = document.getElementById('rollout-detail-content');
+        if (mode === 'messages') {
+            // Build messages JSON view
+            var messages = buildMessagesFromSteps(r);
+            container.innerHTML = '<pre>' + syntaxHighlight(JSON.stringify(messages, null, 2)) + '</pre>';
+        } else if (mode === 'toolcalls') {
+            var toolCalls = extractToolCalls(r);
+            container.innerHTML = '<pre>' + syntaxHighlight(JSON.stringify(toolCalls, null, 2)) + '</pre>';
+        } else if (mode === 'json') {
+            container.innerHTML = '<pre>' + syntaxHighlight(JSON.stringify(r, null, 2)) + '</pre>';
+        }
+    }
+
+    function buildMessagesFromSteps(r) {
+        var messages = [];
+        var steps = r.steps || [];
+        // System message
+        messages.push({ role: 'system', content: 'You are an LLM/Agent to resolve JIRA tickets...' });
+        // User message
+        var fs = r.final_environment_state || {};
+        messages.push({ role: 'user', content: 'Resolve ticket ' + (fs.issue_key || r.environment_name || '') });
+
+        steps.forEach(function (step) {
+            var events = step.timeline_events || [];
+            events.forEach(function (evt) {
+                if (evt.event_type === 'TOOL_CALL' && evt.tool_name) {
+                    messages.push({
+                        role: 'assistant',
+                        content: '',
+                        tool_calls: [{
+                            name: evt.tool_name,
+                            arguments: evt.tool_args || {}
+                        }]
+                    });
+                } else if (evt.event_type === 'TOOL_RESULT') {
+                    messages.push({
+                        role: 'tool',
+                        name: evt.tool_name || 'get_transitions',
+                        content: evt.content || ''
+                    });
+                }
+            });
+        });
+        return messages;
+    }
+
+    function extractToolCalls(r) {
+        var calls = [];
+        (r.steps || []).forEach(function (step) {
+            (step.timeline_events || []).forEach(function (evt) {
+                if (evt.event_type === 'TOOL_CALL' && evt.tool_name) {
+                    calls.push({
+                        step: step.step,
+                        tool: evt.tool_name,
+                        args: evt.tool_args || {},
+                        timestamp_ms: evt.timestamp_ms
+                    });
+                }
+            });
+        });
+        return calls;
+    }
+
+    function syntaxHighlight(json) {
+        return json
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"([^"]+)":/g, '<span style="color:#1e40af">"$1"</span>:')
+            .replace(/: "([^"]*)"/g, ': <span style="color:#047857">"$1"</span>')
+            .replace(/: (\d+\.?\d*)/g, ': <span style="color:#b45309">$1</span>')
+            .replace(/: (true|false|null)/g, ': <span style="color:#9333ea">$1</span>');
+    }
+
+    function renderRolloutTrajectory(r) {
+        var container = document.getElementById('rollout-detail-trajectory');
+        var html = '';
+        // Legend
+        html += '<div class="traj-legend">' +
+            '<span class="traj-legend-item"><span class="traj-legend-dot agent"></span> User/Agent</span>' +
+            '<span class="traj-legend-item"><span class="traj-legend-dot tool"></span> Tool Call</span>' +
+            '<span class="traj-legend-item"><span class="traj-legend-dot verifier"></span> Verifier</span>' +
+            '<span class="traj-legend-item"><span class="traj-legend-dot reward"></span> Reward</span>' +
+            '</div>';
+
+        html += '<div class="traj-flow">';
+
+        // System node
+        html += buildTrajNode('system', 'SYS', 'System', 'Agent policy + tool schema');
+
+        // User request
+        var fs = r.final_environment_state || {};
+        html += buildTrajNode('agent', 'USR', 'User Request', 'Scenario prompt: Resolve ' + esc(fs.issue_key || ''));
+
+        // Steps
+        (r.steps || []).forEach(function (step) {
+            (step.timeline_events || []).forEach(function (evt) {
+                if (evt.event_type === 'TOOL_CALL' && evt.tool_name) {
+                    var argsStr = evt.tool_args ? Object.keys(evt.tool_args).map(function (k) { return k + '=' + evt.tool_args[k]; }).join(', ') : '';
+                    html += buildTrajNode('tool', 'TC', evt.tool_name, argsStr ? '<span class="traj-node-args">' + esc(argsStr) + '</span>' : '');
+                } else if (evt.event_type === 'TOOL_RESULT') {
+                    html += buildTrajNode('result', 'TR', 'Result', esc(evt.content || ''));
+                }
+            });
+        });
+
+        // Verifier results
+        (r.verifier_results || []).forEach(function (v) {
+            var icon = v.passed ? '\u2705' : '\u274c';
+            html += buildTrajNode('verifier', icon, v.check, esc(v.detail || ''));
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    function buildTrajNode(type, iconText, title, detail) {
+        return '<div class="traj-node">' +
+            '<div class="traj-node-icon ' + type + '">' + iconText + '</div>' +
+            '<div class="traj-node-body">' +
+            '<div class="traj-node-title">' + title + '</div>' +
+            (detail ? '<div class="traj-node-detail">' + detail + '</div>' : '') +
+            '</div></div>';
+    }
+
+    function initRolloutDetailTabs() {
+        var tabs = document.querySelectorAll('#rollout-detail-tabs .rollout-dtab');
+        tabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                tabs.forEach(function (t) { t.classList.remove('active'); });
+                tab.classList.add('active');
+                if (_currentRolloutDetail) {
+                    renderRolloutDetailContent(_currentRolloutDetail, tab.getAttribute('data-dtab'));
+                }
+            });
+        });
+    }
+
     // ─── Init ───────────────────────────────────────────────────
     function refreshAndRenderList() {
         fetchLiveJobs().then(function () { renderTrainingList(); });
@@ -1317,18 +1606,14 @@
             var urlParams = new URLSearchParams(window.location.search);
             var preselectedEnv = urlParams.get('env');
             if (preselectedEnv) {
-                // Switch to new-run view
                 showView('new');
-                // Find the environment by id (raw name) and select its category first
                 var env = findEnv(preselectedEnv);
                 if (env && env.category) {
                     document.getElementById('tr-env-category').value = env.category;
                     populateEnvironments();
                 }
-                // Select the environment
                 document.getElementById('tr-env').value = preselectedEnv;
                 onEnvironmentChange();
-                // Clean up URL
                 history.replaceState(null, '', window.location.pathname);
             }
         });
@@ -1338,6 +1623,17 @@
         document.getElementById('btn-back-list').addEventListener('click', function () { showView('list'); refreshAndRenderList(); });
         document.getElementById('btn-back-list-2').addEventListener('click', function () { showView('list'); refreshAndRenderList(); });
         document.getElementById('btn-cancel-new').addEventListener('click', function () { showView('list'); });
+
+        // Back from rollout detail
+        var btnBackRollouts = document.getElementById('btn-back-rollouts');
+        if (btnBackRollouts) {
+            btnBackRollouts.addEventListener('click', function () {
+                showView('list');
+                // Activate rollouts tab
+                var rolloutTab = document.querySelector('#training-tabs .training-tab[data-tab="rollouts"]');
+                if (rolloutTab) rolloutTab.click();
+            });
+        }
 
         // Category filter
         document.getElementById('tr-env-category').addEventListener('change', onCategoryChange);
@@ -1360,6 +1656,20 @@
 
         // Submit
         document.getElementById('btn-start-training').addEventListener('click', submitNewTraining);
+
+        // Tabs (Training Runs / Rollouts)
+        initTabs();
+
+        // Rollout detail tabs
+        initRolloutDetailTabs();
+
+        // Rollout environment filter
+        var rolloutEnvFilter = document.getElementById('rollout-env-filter');
+        if (rolloutEnvFilter) {
+            rolloutEnvFilter.addEventListener('change', function () {
+                loadRolloutList(rolloutEnvFilter.value || undefined);
+            });
+        }
     }
 
     if (document.readyState === 'loading') {

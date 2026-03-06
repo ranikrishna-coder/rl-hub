@@ -660,18 +660,22 @@ function renderEnvironments() {
     
     grid.innerHTML = filteredEnvironments.map(env => createEnvCard(env)).join('');
     
-    // Add event listeners to buttons
-    document.querySelectorAll('.btn-view-details').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const envName = e.target.dataset.env;
-            showEnvironmentDetails(envName);
+    // Add click listener on entire card for view details
+    document.querySelectorAll('.env-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            // Don't trigger if clicking action buttons
+            if (e.target.closest('.env-actions')) return;
+            const envName = card.dataset.env;
+            if (envName) showEnvironmentDetails(envName);
         });
     });
-    
-    document.querySelectorAll('.btn-test-env').forEach(btn => {
+
+    // Also keep view-details button working
+    document.querySelectorAll('.btn-view-details').forEach(btn => {
         btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             const envName = e.target.dataset.env;
-            testEnvironment(envName);
+            showEnvironmentDetails(envName);
         });
     });
 
@@ -987,15 +991,12 @@ function createEnvCard(env) {
     const saveCount = getSavedCount(env.name);
     
     return `
-        <div class="env-card">
+        <div class="env-card" data-env="${env.name}" style="cursor:pointer;">
             <div class="env-card-header">
                 <div>
                     <div class="env-name">${displayName}${multiAgentBadge}</div>
                     <span class="env-category ${categoryClass}">${env.category || 'other'}</span>
                 </div>
-                <button class="save-btn ${saved ? 'saved' : ''}" data-save-env="${env.name}" onclick="toggleSave('${env.name}')" title="${saved ? 'Unsave this environment' : 'Save this environment'}">
-                    ${saved ? '❤️' : '🤍'} <span class="save-count">${saveCount}</span>
-                </button>
             </div>
             <div class="env-description">
                 ${env.description || getEnvironmentDescription(env.name, env.category || 'other') || 'Reinforcement learning environment for workflow optimization.'}
@@ -1014,8 +1015,8 @@ function createEnvCard(env) {
                 <button class="btn btn-primary btn-view-details" data-env="${env.name}">
                     View Details
                 </button>
-                <button class="btn btn-secondary" onclick="window.location.href='/test-console?env=${encodeURIComponent(env.name)}'">
-                    🧪 Simulation
+                <button class="btn btn-secondary" onclick="event.stopPropagation(); window.location.href='/test-console?env=${encodeURIComponent(env.name)}'">
+                    Simulation
                 </button>
             </div>
         </div>

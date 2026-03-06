@@ -46,49 +46,50 @@
         <div class="console-layout">
             <!-- Left Panel: Configuration -->
             <div class="panel config-panel">
-                <h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Configuration - Input</h2>
-                
+                <h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Configuration</h2>
+
+                <!-- A. Environment (matches Training Section B) -->
                 <div class="config-section">
-                    <h3>Environment Selection</h3>
+                    <h3>A. Environment</h3>
                     <div class="form-group">
-                        <label>Software system: <span class="tooltip-icon" title="Filter environments by software system (e.g. Jira, Epic, Cerner, Philips). Select a system to see only environments that integrate with it.">ℹ️</span></label>
+                        <label>Category:</label>
                         <select id="system-select">
-                            <option value="all">All systems</option>
+                            <option value="all">All categories</option>
                             <!-- Populated by JS -->
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Environment: <span class="tooltip-icon" title="Select the AgentWork Simulator you want to run. Each simulator represents a different workflow optimization scenario.">ℹ️</span></label>
+                        <label>Environment:</label>
                         <select id="environment-select">
                             <option value="">Loading environments...</option>
                         </select>
                     </div>
                 </div>
-                
-                <div class="config-section" id="dynamic-config">
-                    <h3>Environment Configuration</h3>
-                    <div class="empty-state">Select an environment to configure</div>
-                </div>
 
-                <!-- Verifier Configuration (compact dropdown) -->
-                <div class="config-section" id="verifier-section" style="display:none;">
-                    <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em"><path d="M9 12l2 2 4-4"/><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/></svg> Verifier <span class="tooltip-icon" title="Select a verifier to define the reward signal. Types: rule-based, trajectory-based, LLM-judged, or human evaluation.">ℹ️</span></h3>
+                <!-- Hidden: dynamic config fields for Jira scenarios etc. -->
+                <div class="config-section" id="dynamic-config" style="display:none;"></div>
 
-                    <div class="verifier-compact-controls">
-                        <select id="verifier-system-select" class="verifier-compact-select" title="System"></select>
-                        <select id="verifier-type-filter-dropdown" class="verifier-compact-select" title="Type filter">
-                            <option value="all">All types</option>
-                            <option value="rule-based">Rule-based</option>
-                            <option value="trajectory-based">Trajectory</option>
-                            <option value="llm-judge">LLM Judge</option>
-                            <option value="human-eval">Human Eval</option>
+                <!-- B. Scenario & Verifier (matches Training Section C) -->
+                <div class="config-section" id="verifier-section">
+                    <h3>B. Evaluation</h3>
+
+                    <div class="form-group">
+                        <label>Verifier:</label>
+                        <select id="verifier-dropdown" class="verifier-main-dropdown">
+                            <option value="">-- Select verifier --</option>
                         </select>
-                        <button class="verifier-clear-btn" id="btn-clear-verifier" title="Clear selection" style="display:none;">✕</button>
                     </div>
 
-                    <select id="verifier-dropdown" class="verifier-main-dropdown">
-                        <option value="">-- Select verifier --</option>
+                    <!-- Hidden filter controls (used by JS) -->
+                    <select id="verifier-system-select" style="display:none;"></select>
+                    <select id="verifier-type-filter-dropdown" style="display:none;">
+                        <option value="all">All types</option>
+                        <option value="rule-based">Rule-based</option>
+                        <option value="trajectory-based">Trajectory</option>
+                        <option value="llm-judge">LLM Judge</option>
+                        <option value="human-eval">Human Eval</option>
                     </select>
+                    <button class="verifier-clear-btn" id="btn-clear-verifier" title="Clear selection" style="display:none;">✕</button>
 
                     <div id="verifier-info-row" class="verifier-info-row" style="display:none;"></div>
                     <div id="verifier-sub-filter" class="verifier-sub-filter" style="display:none;"></div>
@@ -108,41 +109,36 @@
                     </div>
                 </div>
 
-                <details class="advanced-settings">
-                    <summary>Advanced Settings</summary>
-                    <div class="config-section">
-                        <h3>RL Agent Settings</h3>
-                        <div class="form-group">
-                            <label>Agent Strategy: <span class="tooltip-icon" title="Select the decision-making strategy: Random (baseline), Urgency First (prioritize urgent cases), Value First (prioritize high-value items), or Balanced (RL-optimized approach)">ℹ️</span></label>
-                            <select id="agent-strategy">
-                                <option value="random">Random (Baseline)</option>
-                                <option value="urgency_first">Urgency First</option>
-                                <option value="value_first">High Value First</option>
-                                <option value="balanced">Balanced (RL Optimized)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Agent Model: <span class="tooltip-icon" title="Select which trained or baseline model to conceptually use for the agent. In this console, this is used as documentation alongside the Agent Strategy (simulation remains client-side).">ℹ️</span></label>
-                            <select id="agent-model">
-                                <option value="baseline" selected>Baseline (no trained model)</option>
-                                <option value="ppo">PPO-trained model (offline)</option>
-                                <option value="slm">SLM (Jira)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Simulation Speed: <span class="tooltip-icon" title="Control how fast the simulation runs. Slow: 1 step per second (good for detailed observation), Medium: 2 steps/sec (balanced), Fast: 5 steps/sec (quick overview)">ℹ️</span></label>
-                            <select id="sim-speed">
-                                <option value="slow">Slow (1 step/sec)</option>
-                                <option value="medium" selected>Medium (2 steps/sec)</option>
-                                <option value="fast">Fast (5 steps/sec)</option>
-                            </select>
-                        </div>
+                <!-- C. Agent & Simulation (matches Training Section D) -->
+                <div class="config-section">
+                    <h3>C. Agent &amp; Settings</h3>
+                    <div class="form-group">
+                        <label>Agent Strategy:</label>
+                        <select id="agent-strategy">
+                            <option value="random">Random (Baseline)</option>
+                            <option value="urgency_first">Urgency First</option>
+                            <option value="value_first">High Value First</option>
+                            <option value="balanced">Balanced (RL Optimized)</option>
+                        </select>
                     </div>
-                </details>
+                    <div class="form-group">
+                        <label>Simulation Speed:</label>
+                        <select id="sim-speed">
+                            <option value="slow">Slow (1 step/sec)</option>
+                            <option value="medium" selected>Medium (2 steps/sec)</option>
+                            <option value="fast">Fast (5 steps/sec)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Hidden: agent-model kept for JS compatibility -->
+                <select id="agent-model" style="display:none;">
+                    <option value="baseline" selected>Baseline</option>
+                </select>
 
                 <div class="action-buttons">
-                    <button class="btn btn-primary" id="btn-initialize" title="Initialize a new simulation episode with the configured parameters. This resets the environment and starts fresh.">Initialize Environment</button>
-                    <button class="btn btn-secondary" id="btn-reset" title="Reset the simulation to its initial state, clearing all progress and metrics.">Reset</button>
+                    <button class="btn btn-primary" id="btn-initialize" title="Initialize a new simulation episode">Initialize Environment</button>
+                    <button class="btn btn-secondary" id="btn-reset" title="Reset the simulation">Reset</button>
                 </div>
             </div>
 
