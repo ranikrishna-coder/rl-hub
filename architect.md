@@ -8,118 +8,163 @@ This document captures the current architecture, product vision, requirements, a
 
 **AgentWork Simulator** is a platform for:
 
-- **Designing, simulating, and training** reinforcement learning (RL) agents across a catalog of workflow environments.
-- **Bridging multiple domains** – currently:
-  - A rich set of **healthcare and operations** environments (clinical, imaging, hospital operations, revenue cycle, etc.).
-  - A family of **Jira workflow environments** (Issue Resolution, Status Update, Comment Management, Subtask Management).
-- Providing a **full loop from design → simulation → training → human evaluation** so domain experts can:
+- **Designing, simulating, and training** reinforcement learning (RL) agents across **113 Gymnasium-compatible environments** spanning healthcare, enterprise, and HR/payroll workflows.
+- **Bridging multiple domains**:
+  - **Healthcare & operations** environments (clinical, imaging, hospital operations, revenue cycle, population health, telehealth, clinical trials, interoperability, cross-workflow).
+  - **HR & payroll** environments (Workday, SAP SuccessFactors, ADP).
+  - **Jira workflow** environments (Issue Resolution, Status Update, Comment Management, Subtask Management).
+- Providing a **full loop from design → simulation → training → evaluation** so domain experts can:
   - Explore environments and understand what they optimize.
   - Run interactive simulations to understand behavior.
-  - Train RL or SLM (sequence-learning model) policies.
+  - Train RL policies with GRPO, PPO, DPO, or A2C algorithms.
+  - Compare pre- and post-training rollouts side by side with named tool calls, verifier results, and final environment state.
   - Perform **human-in-the-loop (HITL) evaluation** of model outputs, with structured scoring.
 
-The near-term deployment target is **Azure** (Dockerized FastAPI backend serving static frontends).
+The deployment target is **Azure** (Dockerized FastAPI backend serving static frontends).
 
 ---
 
-## 2. High-Level System Overview
+## 2. Tech Stack
 
-### 2.1 Main Components
+| Layer | Technology |
+|-------|-----------|
+| **Backend** | Python 3.11, FastAPI, Uvicorn |
+| **Frontend** | Vanilla HTML/JS/CSS (no build step, no framework) |
+| **RL Framework** | Gymnasium, Stable-Baselines3, PyTorch |
+| **Data** | In-memory (training jobs, rollouts); PostgreSQL schema available |
+| **Deployment** | Docker, Azure |
+| **Testing** | Pytest |
+| **Version Control** | Git, GitHub |
+
+### Frontend Assets (`api/static/`)
+
+| File | Purpose |
+|------|---------|
+| `landing.html` + `landing.css` | Landing page with hero, features, CTA |
+| `index.html` + `app.js` + `styles.css` | Environment catalog with filtering and detail overlays |
+| `training.html` + `training.js` + `training.css` | Training console (stepper, charts, rollout comparison) |
+| `training-config-data.js` | 19 pre-configured training scenarios, agents, algorithms |
+| `simulation-console.html` + `simulation-console.js` + `test-console.css` | Interactive simulation engine |
+| `human-eval.html` + `human-eval.css` | Human-in-the-loop evaluation console |
+| `rollout-comparison.js` | Side-by-side rollout renderer with tool calls and verifier results |
+| `contact.html` | Feedback/contact form |
+| `global-nav.css` | Shared navigation bar styles |
+| `toast.js` + `toast.css` | Toast notification system |
+| `verifier-data.js` | Verifier configuration data |
+
+### Backend (`api/main.py`)
+
+Single FastAPI application handling:
+- REST API for training, rollouts, monitoring, KPIs, Jira operations, and human evaluation
+- Static asset serving for all frontend pages
+- In-memory training job store with background task execution
+- Enriched rollout data pipeline (numeric actions → named tool calls with verifier results)
+
+---
+
+## 3. High-Level System Overview
+
+### 3.1 Main Components
 
 - **FastAPI backend (`api/main.py`)**
-  - Serves:
-    - REST API for training, monitoring, KPIs, Jira operations, and human evaluation.
-    - Static assets for:
-      - Environment catalog (`index.html`, `app.js`, `styles.css`).
-      - Simulation Console (`simulation-console.html`, `simulation-console.js`, `test-console.css`).
-      - Human Evaluation Console (`human-eval.html`).
-      - Training Console (`training.html`, `training.js`).
-  - Manages in-memory training jobs (`training_jobs` dict).
-  - Exposes a healthcheck endpoint.
+  - REST API for training, monitoring, KPIs, Jira operations, rollout comparison, and human evaluation.
+  - Serves static assets for 6 HTML pages.
+  - Manages in-memory training jobs (`training_jobs` dict) and rollout store (`rollout_store` dict).
+  - Enriches training step data with named tool calls, verifier results, and final environment state for rollout comparison rendering.
 
-- **Environments (`environments/`)**
-  - `base_environment.py` – `HealthcareRLEnvironment` + base RL environment abstractions.
-  - Domain packages: `clinical/`, `imaging/`, `hospital_operations/`, `revenue_cycle/`, `population_health/`, `telehealth/`, `clinical_trials/`, `interoperability/`, `cross_workflow/`.
-  - `jira/jira_workflow_env.py` – encapsulates Jira workflows defined in `apps/workflow_definitions/jira_workflows.json`, plus helpers for Jira-specific logic and reward signals.
+- **Environments (`environments/`) — 113 across 12 packages**
+  - `base_environment.py` — `HealthcareRLEnvironment` base class implementing the Gymnasium interface (`reset`, `step`, `action_space`, `observation_space`).
+  - Domain packages:
+
+  | Package | Count | Systems |
+  |---------|-------|---------|
+  | `clinical/` | 20 | Epic, Cerner, Allscripts |
+  | `imaging/` | 15 | Philips, GE Healthcare, PACS |
+  | `population_health/` | 15 | Health Catalyst, Innovaccer |
+  | `revenue_cycle/` | 15 | Change Healthcare |
+  | `clinical_trials/` | 15 | Veeva, IQVIA |
+  | `hr_payroll/` | 9 | Workday, SAP SuccessFactors, ADP |
+  | `hospital_operations/` | 5 | Staffing, OR Scheduling, Supply Chain |
+  | `telehealth/` | 5 | Teladoc, Amwell |
+  | `interoperability/` | 5 | InterSystems, Orion Health |
+  | `cross_workflow/` | 5 | Multi-agent coordination |
+  | `jira/` | 4 | Atlassian Jira Cloud/Server |
+
+  - `jira/jira_workflow_env.py` — encapsulates Jira workflows defined in `apps/workflow_definitions/jira_workflows.json`, maps numeric actions to named tool calls (`get_issue_summary_and_description`, `get_transitions`, `transition_issue`, etc.), and returns rich `transition_info` from `step()`.
 
 - **Environment registry (`portal/environment_registry.py`)**
-  - Discovers and describes all environments via a registry JSON.
-  - Backed by `list_all_environments()` and `get_environment_class()` used by the API and frontends.
+  - Discovers and describes all 113 environments via a registry JSON.
+  - `list_all_environments()` and `get_environment_class()` used by the API and frontends.
 
-- **Verifiers (`verifiers/`)**
-  - Encapsulate reward/verification logic:
-    - Clinical, operational, financial, compliance verifiers.
-    - Jira-specific verifiers and ensemble logic.
-  - `verifier_registry.py` provides a central registration point.
+- **Verifiers (`verifiers/`) — 7 types**
+
+  | Verifier | File | Purpose |
+  |----------|------|---------|
+  | Base | `base_verifier.py` | Abstract interface |
+  | Clinical | `clinical_verifier.py` | Clinical outcome quality |
+  | Operational | `operational_verifier.py` | Workflow efficiency |
+  | Financial | `financial_verifier.py` | Cost and revenue metrics |
+  | Compliance | `compliance_verifier.py` | Regulatory adherence |
+  | Jira | `jira_verifier.py` | Tool sequence and transition validation |
+  | Ensemble | `ensemble_verifier.py` | Multi-verifier aggregation |
+
+  - `verifier_registry.py` provides central registration and lookup.
 
 - **Observability (`observability/`)**
-  - `RewardLogger`, `ActionTraceLogger`, `EpisodeMetricsTracker`, `AuditLogger`.
-  - Used in `run_training` to capture episode-level traces and KPIs.
+  - `RewardLogger` — tracks reward signals per episode.
+  - `ActionTraceLogger` — logs action sequences.
+  - `EpisodeMetricsTracker` — captures episode-level KPIs.
+  - `AuditLogger` — records audit trail for governance.
 
 - **Governance (`governance/`)**
-  - `safety_guardrails.py`, `risk_thresholds.py`, `compliance_rules.py`.
-  - Wraps environment actions to enforce guardrails (e.g., safe ranges, risk thresholds).
-
-- **Frontends (`api/static/`)**
-  - **Catalog UI** (`index.html`, `app.js`, `styles.css`):
-    - Lists & filters environments (domain, category, system).
-    - Launches training via `/train/{env_name}`.
-    - Provides a **Training Monitor** and links to the **Human Evaluation Console**.
-  - **Simulation Console** (`simulation-console.html`, `simulation-console.js`, `test-console.css`):
-    - Runs client-side simulations for any environment.
-    - Has special logic for Jira environments (mock data + optional live Jira).
-    - Provides a local-only human evaluation widget for simulation runs.
-  - **Human Evaluation Console** (`human-eval.html`):
-    - Light-themed, two-column HITL console.
-    - Left: run/episode context & metadata.
-    - Right: reasoning steps (with per-step scoring), final output, and overall Yes/No decision.
+  - `safety_guardrails.py` — enforces safe action ranges.
+  - `risk_thresholds.py` — monitors risk boundaries.
+  - `compliance_rules.py` — regulatory rule enforcement.
 
 - **Workflow definitions & mock data (`apps/workflow_definitions/`)**
-  - `jira_workflows.json` – structure and tool orders for Jira workflows (issue_resolution, status_update, comment_management, subtask_management).
-  - `jira_mock_data.json` – Jira issues, transitions, reward config, and scenarios; used for training and simulation when not pointing at live Jira.
-  - `MOCK_DATA_CHANGES.md` – describes changes/dev notes for mock data.
+  - `jira_workflows.json` — structure and tool orders for Jira workflows.
+  - `jira_mock_data.json` — Jira issues, transitions, reward config, and scenarios.
 
 - **Models (`models/`)**
-  - `ppo/`, `slm/`, etc. – pre-trained model artifacts (by ID) and metadata JSONs.
-  - Used for download & reference; backend doesn’t yet persist training_runs beyond in-memory `training_jobs` plus saved model artifacts.
+  - `grpo/`, `ppo/`, `dpo/`, `a2c/` — saved model artifacts organized by algorithm.
+  - Runtime artifacts (`.zip`, `.pt`, `*_metadata.json`, `*_subtasks.json`) are gitignored.
 
 - **Tests (`tests/`)**
-  - `test_environment_registry_jira.py` – validates Jira envs are present in registry and instantiable.
-  - `test_jira_environments.py` – RL behavior of Jira envs (rewards, correct/wrong actions).
-  - `test_integration_jira_healthcare.py` – ensures Jira and healthcare envs co-exist and can run sequentially.
-  - `test_jira_status_update_scenario.py` – ensures Jira mock data and workflows support the “In Progress → Blocked” scenario and have reward weights.
-  - `test_jira_workflow_definition.py` – validates the Jira workflow definition JSON structure.
-  - `test_jira_slm_e2e.py` – end-to-end SLM training test for JiraIssueResolution. Skips in CI when the SLM model cannot be downloaded (e.g. 403 from Hugging Face).
+  - Pytest suite covering environment registry, Jira behavior, integration, workflow definitions, and E2E training.
 
-### 2.2 High-Level Architecture Diagram
+### 3.2 High-Level Architecture Diagram
 
 ```mermaid
 flowchart LR
     subgraph Browser
-        Catalog["Catalog UI (index.html + app.js)"]
-        SimConsole["Simulation Console (simulation-console.html + JS)"]
-        HumanEval["HITL Evaluation Console (human-eval.html)"]
+        Landing["Landing Page"]
+        Catalog["Catalog (index.html + app.js)"]
         Training["Training Console (training.html + JS)"]
+        SimConsole["Simulation Console"]
+        HumanEval["HITL Evaluation Console"]
+        Contact["Contact Form"]
     end
 
     Catalog -->|REST/JSON| API
+    Training -->|REST/JSON| API
     SimConsole -->|REST/JSON| API
     HumanEval -->|REST/JSON| API
-    Training -->|REST/JSON| API
 
-    subgraph Backend[FastAPI Backend (api/main.py)]
-        API["FastAPI app<br/>/train, /training, /environments,<br/>/human-eval, /jira/*, /kpis"]
+    subgraph Backend[FastAPI Backend - api/main.py]
+        API["FastAPI app<br/>/train, /training, /environments,<br/>/api/rollout-comparison, /api/rollouts,<br/>/human-eval, /jira/*, /kpis"]
         Registry["Environment Registry<br/>(portal/environment_registry)"]
-        Envs["Environments<br/>(environments/*)"]
-        Verifiers["Verifiers<br/>(verifiers/*)"]
-        Obs["Observability<br/>(reward_logger, action_trace_logger, episode_metrics, audit_logger)"]
-        Gov["Governance<br/>(safety_guardrails, risk_thresholds, compliance_rules)"]
-        Jobs["Training Jobs (in-memory dict)"]
-        Models["Saved Models (models/*)"]
+        Envs["113 Environments<br/>(environments/*)"]
+        Verifiers["7 Verifiers<br/>(verifiers/*)"]
+        Obs["Observability<br/>(reward, action, episode, audit)"]
+        Gov["Governance<br/>(safety, risk, compliance)"]
+        Jobs["Training Jobs<br/>(in-memory dict)"]
+        Rollouts["Rollout Store<br/>(in-memory dict)"]
+        Models["Saved Models<br/>(models/*)"]
     end
 
     API --> Registry
     API --> Jobs
+    API --> Rollouts
     API --> Models
     Registry --> Envs
     Envs --> Verifiers
@@ -135,537 +180,303 @@ flowchart LR
 
 ---
 
-## 3. Functional Requirements
+## 4. Pages & Routes
 
-### 3.1 Environment Catalog & Discovery
-
-1. **List environments**
-   - The system shall expose `GET /environments` returning a JSON list with:
-     - `name`, `category`, `system`, `description`, and other metadata from `environment_registry`.
-   - The catalog UI shall render all environments and show counts.
-
-2. **Filter environments**
-   - The catalog shall support filtering by:
-     - **Domain**: `All`, `Enterprise apps`, `Operational workflows`.
-     - **Category**: e.g. `jira`, `clinical`, `imaging`, etc.
-     - **System**: values derived from the registry (e.g. `Jira (Atlassian)`, `Epic`, etc.).
-
-3. **Environment detail view**
-   - Clicking “View details” opens an environment detail page (single-page overlay) with:
-     - Description, use cases, actions/feature summary from the registry + `app.js` maps.
-     - Link(s) to:
-       - Start training (opens Training panel).
-       - Launch Simulation Console for that environment (by query param `?env=EnvName`).
-
-### 3.2 Training Workflows
-
-1. **Start training**
-   - Endpoint: `POST /train/{environment_name}`.
-   - Request body:
-     - `algorithm`: `"PPO"`, `"DQN"`, `"A2C"`, `"SAC"`, `"SLM"`, etc.
-     - `num_episodes`: integer.
-     - `max_steps`: integer per episode.
-     - `config`: environment-specific configuration dict.
-   - Response body:
-     - `job_id`, initial status (`queued`/`running`), and any immediate metadata.
-
-2. **Run training**
-   - Server shall start training in a background task (`run_training` in `api/main.py`), using:
-     - `get_environment_class` + `HealthcareRLEnvironment` subclasses.
-     - Verifier registry for reward shaping.
-     - Observability loggers for rewards, actions, episode metrics, and audit logs.
-   - On completion:
-     - `training_jobs[job_id]` is updated with:
-       - `status` (`completed` or `failed`).
-       - `results` (mean/max/min reward, episodes, totals).
-       - For Jira SLM: `slm_training_context` & `slm_explainability` (if SLM model loads).
-       - For Jira Subtask Management PPO: `subtask_log_url` for episodic logs.
-       - `model_url` and `model_path` when models are saved.
-
-3. **Monitor training**
-   - Endpoint: `GET /training/{job_id}` shall return the current job snapshot from `training_jobs`.
-   - The Training Monitor (in `app.js`) shall:
-     - Poll for status.
-     - Render:
-       - Progress bar (episodes completed / total).
-       - Reward metrics.
-       - Model download section (if `model_url` present).
-       - Jira Subtask log section (`subtask_log_url`) for that env.
-       - Error box for `status="failed"` with `error` and `error_traceback`.
-       - SLM explainability panel when `algorithm === 'SLM'`.
-     - Show the **Human Evaluation** section with:
-       - “Open Human Evaluation” button linking to `/static/human-eval.html?job_id={job_id}`.
-       - Last human evaluation summary if `last_human_evaluation` is present.
-
-4. **Human evaluation (training jobs)**
-   - Endpoint: `POST /human-eval/{job_id}` with body:
-     - `decision: "yes" | "no"`.
-     - `comments?: string`.
-     - `step_scores?: [{ step_index: int, score: "correct" | "flawed" | "critical_error" }]`.
-   - Behavior:
-     - Persist eval into `training_jobs[job_id].human_evaluations` and `last_human_evaluation`.
-     - Return `{ success, job_id, evaluation, total_evaluations }`.
-
-### 3.3 Simulation Console
-
-1. **Initialize environment**
-   - Simulation Console uses:
-     - `GET /environments` and `portal` registry to populate the environment dropdown.
-     - `GET /kpis/{environment_name}` for KPI config + sample run initialization.
-   - User selects:
-     - Environment category/system.
-     - Environment-specific configuration fields (driven by `environmentConfigs` in `simulation-console.js`).
-     - Verifier type and optional weights.
-
-2. **Run simulation**
-   - All state and metrics are maintained **client-side** in JS.
-   - User can:
-     - Step manually.
-     - Auto-run at different speeds.
-   - Console shows:
-     - Current state (queues, items, tasks, Jira issues or subtasks).
-     - Current action.
-     - Action history.
-     - Metrics panel:
-       - **Step Count**.
-       - **Total Reward**.
-       - Bottom panel “Run Summary” and “Lagging Indicators”:
-         - Steps completed, total reward, episode completion.
-         - Average reward/step, steps to completion.
-
-3. **Jira-specific simulation**
-   - For Jira environments, simulation uses:
-     - `apps/workflow_definitions/jira_mock_data.json` as its data source (fetched via `GET /jira-mock-data`).
-     - Mapping between environment names and Jira workflows (`JIRA_ENV_TO_WORKFLOW` in `simulation-console.js`).
-     - Reward and scenario configuration consistent with Jira envs in Python.
-   - For Jira Subtask Management:
-     - Can create or delete subtasks in simulation against mock data.
-     - Can optionally call **live Jira** for subtasks if configured and enabled.
-     - Logs subtask episodes to a JSON log for download.
-
-4. **Human evaluation (simulation runs)**
-   - A **local “Human Evaluation” panel** allows:
-     - Yes/No decision and comment.
-     - Stored in `sessionStorage`, not the backend.
-   - Intended for quick feedback in simulation, not for RLHF data storage (which lives in `/human-eval/{job_id}`).
-
-### 3.4 Jira Integration
-
-1. **Mock data-based flows**
-   - Issue resolution, status update, comment management, and subtask flows are driven from:
-     - `jira_workflows.json` (tool sequences, scenarios).
-     - `jira_mock_data.json` (issues, transitions, reward configuration).
-   - Tests assert:
-     - At least one `In Progress` issue has a `Blocked` transition (e.g. PROJ-101).
-     - `reward_config.status_reward_weights` contains “Blocked”.
-     - Workflow `status_update` has `in_progress_to_blocked` scenario.
-
-2. **Live Jira flows**
-   - Controlled by `.env` keys:
-     - `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_PROJECT_KEY`, `JIRA_SUBTASK_ISSUE_TYPE_NAME`, etc.
-   - Endpoints:
-     - `POST /jira/subtasks` – create subtask for a given parent.
-     - `DELETE /jira/issues/{issue_key}/subtasks` – delete all subtasks under a parent issue (preserves parent).
-   - Training or simulation can toggle between mock and live via config flags (`JIRA_USE_LIVE_FOR_TRAINING`, environment config).
-
-### 3.5 Human Evaluation Console Details
-
-1. **Run context**
-   - Displays:
-     - Job ID.
-     - Environment name.
-     - Algorithm.
-     - Training status.
-
-2. **Episode summary & model metadata**
-   - Summarizes:
-     - How many episodes were run and completed.
-     - Mean reward.
-     - Basic training metadata (from `job.results`).
-
-3. **Reasoning steps**
-   - Derived from:
-     - SLM explainability (`job.slm_explainability`) when present:
-       - Prompt snippet, parsed tool, correct next tool, action, explanation.
-     - Training outcome (episodes completed, rewards).
-   - For each step, evaluator can select:
-     - **Correct**
-     - **Flawed**
-     - **Critical Error**
-   - Step scores are included in the `POST /human-eval/{job_id}` body and persisted in training jobs.
-
-4. **Final output & overall evaluation**
-   - Shows final outcome metrics (mean reward, episodes, algorithm).
-   - Evaluator records final Yes/No decision and comment.
-   - Step score summary is computed on save and shown as:
-     - “N Correct, M Flawed, K Critical Error”.
+| Route | Page | Description |
+|-------|------|-------------|
+| `/` | Landing | Hero section, feature highlights, call-to-action |
+| `/catalog` | Environment Catalog | Browse, filter, search 113 environments by domain/category/system |
+| `/training-console` | Training Console | Configure, run, monitor RL training with progress stepper |
+| `/test-console` | Simulation Console | Interactive step-by-step simulation engine |
+| `/human-eval` | Human Evaluation | Structured HITL evaluation with step scoring |
+| `/contact` | Contact | Feedback form |
 
 ---
 
-## 4. Non-Functional Requirements
+## 5. Training System
 
-### 4.1 Performance
+### 5.1 Supported Algorithms
 
-- Training should:
-  - Handle tens to low hundreds of episodes per job within minutes, depending on environment complexity.
-  - Use simple, CPU-friendly algorithms (PPO, DQN, etc. through stable-baselines or custom logic) – no GPU dependency assumed in this deployment.
-- API endpoints:
-  - `GET /environments`, `GET /training/{job_id}`, `GET /kpis/{env}` should respond within **<300ms** under normal load.
-  - `/jira/*` endpoints should be dominated by Jira API latency; backend overhead should be minimal.
-- Frontends:
-  - Static assets served by FastAPI only (no SSR), so perceived latency is primarily initial asset load + API calls.
-  - Simulation console updates are all local; step rendering should remain responsive (<50ms per step) for typical queues.
+| Algorithm | Description |
+|-----------|-------------|
+| **GRPO** | Group Relative Policy Optimization (recommended) |
+| **PPO** | Proximal Policy Optimization |
+| **DPO** | Direct Preference Optimization |
+| **A2C** | Advantage Actor-Critic |
 
-### 4.2 Scalability
+### 5.2 Supported Agents
 
-- **Backend**
-  - Stateless except for `training_jobs` (in-memory). For multi-instance or long-running production:
-    - Future requirement: move job store to a persistent DB or cache (Postgres, Redis).
-  - Designed as a monolith but with clear subpackages (environments, verifiers, observability, governance).
-  - Dockerized for horizontal scaling behind a load balancer; training jobs would need sticky sessions or shared job store.
+| Agent | Base Model | Trainable |
+|-------|-----------|-----------|
+| Qwen 1.7B Instruct | qwen-1.7b-instruct | Yes |
+| LLaMA 3.2 1B | llama-3.2-1b | Yes |
+| Mistral 7B Instruct | mistral-7b-instruct-v0.3 | Yes |
+| GPT-4o (Baseline) | gpt-4o | No |
 
-- **Frontends**
-  - Pure static assets; trivial to host behind a CDN.
-  - Catalog & simulation console rely on REST APIs; scaling is primarily backend-side.
+### 5.3 Training Console Features
 
-### 4.3 Reliability & Availability
+- **5-step progress stepper**: Configuration → Baseline Eval → Training → Evaluation → Complete
+  - Visual stepper with green checkmarks (completed), purple active indicator, gray pending states
+  - Progress percentage shown on active step
+- **Rollout comparison**: Side-by-side pre/post training comparison with:
+  - Named tool calls (e.g. `get_issue_summary_and_description`, `transition_issue`)
+  - Tool arguments (`issue_key`, `transition_id`)
+  - SYSTEM events with task context
+  - Verifier results (pass/fail checks for tool sequence, transitions, resolution)
+  - Final environment state (issue key, tool sequence, status, resolved flag)
+- **Real-time progress**: Polling-based status updates with reward charts
+- **Model artifact panel**: Algorithm, base model, episodes, format, saved-at timestamp, copy-path button
+- **19 pre-configured training scenarios** across all environment categories
+- **Catalog integration**: "Start Training" button in catalog navigates to training console with environment pre-selected via `?env=` query parameter
 
-- Container deployment:
-  - Healthcheck at `/` (or root FastAPI health) ensures container restarts on failure.
-  - Tests are run in Docker build (`pytest tests/`), failing build if:
-    - Jira mock data or workflow definitions are inconsistent.
-    - Jira environments can’t load.
-    - Integration tests between Jira and healthcare envs fail.
-  - Jira SLM E2E test skips in CI when the model can’t load (403/network), ensuring builds can pass with fallback.
+### 5.4 Enriched Rollout Data Pipeline
 
-### 4.4 Security
+The backend enriches raw training step data into rich rollout events:
 
-- Jira credentials:
-  - Loaded via `.env` at startup using `_load_local_env_file`; `.env` is not committed and is ignored in VCS.
-  - For Jira settings, `.env` values override environment variables to simplify configuration inside app repo.
-  - Jira API tokens must not be logged or returned to the client.
-- CORS:
-  - `fastapi.middleware.cors` configured with explicit development/deployment origins, with optional extension via `CORS_ORIGINS` env var.
-  - Current implementation effectively allows all origins but is structured to be tightened for production.
-- Attack surface:
-  - No direct DB exposure (DB not active); primary risk area is Jira proxy endpoints (/jira/*).
-  - Input validation via Pydantic models and explicit request schemas (e.g. `HumanEvalRequest`).
+1. `env.step(action)` returns `(state, reward, terminated, truncated, info)` where `info["transition_info"]` contains: `tool_used`, `valid_step`, `current_issue_key`, `tool_sequence_after`, `valid_transition_ids`, `achieved_status`
+2. `_build_step_timeline()` maps numeric actions to named tool calls with `TOOL_CALL` and `TOOL_RESULT` events
+3. `_build_verifier_results()` generates pass/fail checks (tool sequence order, valid transitions, issue resolved)
+4. `_build_final_env_state()` extracts final issue state from the last step
+5. Events use `event_type`/`content` format matching the rollout-comparison.js renderer
 
-### 4.5 Maintainability
+### 5.5 Reward Function
 
-- Code organization:
-  - Backend (api), domain logic (environments), registry (portal), verifiers, governance, observability, workflows (apps/workflow_definitions), tests.
-  - Frontends are separated under `api/static/` and are self-contained JS/HTML.
-- Patterns:
-  - Environment registry centralizes discovery.
-  - Verifier registry decouples reward logic from environments.
-  - Observability and governance are layered onto environments, not hard-coded inside.
-  - Tests are domain-specific and succinct, focusing on invariants.
-- Documentation:
-  - `README.md`, usage guides, and environment creation docs.
-  - This `architect.md` serves as the system-level architecture and requirements document.
+All environments use a weighted reward function:
+
+```
+Reward = w_clinical * clinical_score
+       + w_efficiency * efficiency_score
+       + w_financial * financial_score
+       - w_risk * risk_penalty
+       - w_compliance * compliance_penalty
+```
+
+Weights are configurable per environment.
 
 ---
 
-## 5. Key API Contracts (Selected)
+## 6. Functional Requirements
 
-### 5.1 Environment Registry & KPIs
+### 6.1 Environment Catalog & Discovery
 
-- `GET /environments`
-  - **Response:** `{ "environments": [ { "name": str, "category": str, "system": str, ... }, ... ] }`
+1. **List environments** — `GET /environments` returns all 113 environments with name, category, system, description metadata.
+2. **Filter environments** — filter by domain (All, Enterprise apps, Operational workflows), category, and system.
+3. **Environment detail view** — overlay with description, use cases, actions summary, and buttons for "Open Simulation" and "Start Training".
+4. **Catalog → Training flow** — "Start Training" navigates to `/training-console?env={envName}` with environment pre-selected.
 
-- `GET /kpis/{environment_name}`
-  - **Query params:** optional `episode_id`, `verifier_type`, `verifier_config`.
-  - **Response:** `{ "kpis": { "clinical_outcomes": {...}, "operational_efficiency": {...}, "financial_metrics": {...} }, "episode_summary": {...} }`
+### 6.2 Training Workflows
 
-### 5.2 Training & Jobs
+1. **Start training** — `POST /train/{environment_name}` with algorithm, num_episodes, max_steps, config.
+2. **Run training** — background task using environment classes, verifier registry, and observability loggers. Produces enriched rollout data with named tool calls.
+3. **Monitor training** — `GET /training/{job_id}` returns job status, progress, metrics, and rollout data. Training console polls and renders progress stepper, reward charts, and rollout comparison.
+4. **Rollout comparison** — `GET /api/rollout-comparison/{env}` returns side-by-side baseline vs trained rollouts with enriched events.
+5. **Model artifacts** — saved to `models/{algorithm}/` with metadata; model artifact panel shows info and copy-path button.
 
-- `POST /train/{environment_name}`
-  - **Body:**
-    ```json
-    {
-      "algorithm": "PPO",
-      "num_episodes": 100,
-      "max_steps": 1000,
-      "config": { "...": "..." }
-    }
-    ```
-  - **Response:** `{ "job_id": "uuid", "status": "queued" | "running", ... }`
+### 6.3 Simulation Console
 
-- `GET /training/{job_id}`
-  - **Response example (simplified):**
-    ```json
-    {
-      "job_id": "uuid",
-      "environment_name": "JiraIssueResolution",
-      "algorithm": "PPO",
-      "status": "completed",
-      "num_episodes": 100,
-      "results": {
-        "total_episodes": 100,
-        "episodes_completed": 100,
-        "mean_reward": 0.42,
-        "max_reward": 0.9,
-        "min_reward": -0.1
-      },
-      "slm_training_context": { "...": "..." },
-      "slm_explainability": { "...": "..." },
-      "subtask_log_url": "/models/ppo/.../subtasks.json",
-      "model_url": "/models/ppo/.../model.zip",
-      "human_evaluations": [ ... ],
-      "last_human_evaluation": { ... }
-    }
-    ```
+1. **Initialize** — select environment from dropdown, configure environment-specific settings, choose verifier.
+2. **Run simulation** — client-side state machine with manual step or auto-run at configurable speed.
+3. **Jira-specific simulation** — uses mock data from `jira_mock_data.json` with optional live Jira integration.
+4. **Metrics** — step count, total reward, run summary, lagging indicators.
 
-### 5.3 Jira API
+### 6.4 Human Evaluation
 
-- `POST /jira/subtasks`
-  - **Body:** includes parent key, summary, description, etc.
-  - **Behavior:** creates a subtask under given parent in live Jira (if configured).
+1. **HITL console** — two-column layout with run context (left) and evaluation form (right).
+2. **Step scoring** — per-step Correct/Flawed/Critical Error scores.
+3. **Final decision** — Yes/No overall evaluation with comments.
+4. **API** — `POST /human-eval/{job_id}` persists evaluation in training job store.
 
-- `DELETE /jira/issues/{issue_key}/subtasks`
-  - Deletes all subtasks under the specified parent issue in live Jira; preserves the parent.
+### 6.5 Jira Integration
 
-### 5.4 Human Evaluation
-
-- `POST /human-eval/{job_id}`
-  - **Request:**
-    ```json
-    {
-      "decision": "yes",
-      "comments": "Looks good",
-      "step_scores": [
-        { "step_index": 0, "score": "correct" },
-        { "step_index": 1, "score": "flawed" }
-      ]
-    }
-    ```
-  - **Response:**
-    ```json
-    {
-      "success": true,
-      "job_id": "uuid",
-      "evaluation": {
-        "decision": "yes",
-        "comments": "Looks good",
-        "timestamp": "2026-02-27T08:30:00Z",
-        "step_scores": [...]
-      },
-      "total_evaluations": 3
-    }
-    ```
+1. **Mock data flows** — issue resolution, status update, comment management, subtask flows driven from `jira_workflows.json` and `jira_mock_data.json`.
+2. **Live Jira flows** — controlled by `.env` keys (`JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, etc.). Endpoints: `POST /jira/subtasks`, `DELETE /jira/issues/{issue_key}/subtasks`.
 
 ---
 
-## 6. Test Cases & UAT Scenarios
+## 7. API Endpoints
 
-### 6.1 Automated Tests (Pytest)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/environments` | List all 113 environments |
+| POST | `/train/{env_name}` | Start training run |
+| GET | `/training/{job_id}` | Training job status + metrics |
+| GET | `/api/training/jobs` | List all training jobs |
+| GET | `/api/rollout-comparison/{env}` | Rollout comparison data (baseline vs trained) |
+| GET | `/api/rollouts/{env}` | Rollout history |
+| GET | `/kpis/{env_name}` | KPI metrics |
+| POST | `/human-eval/{job_id}` | Submit human evaluation |
+| GET | `/jira-mock-data` | Jira mock data |
+| POST | `/jira/subtasks` | Create Jira subtask (live) |
+| DELETE | `/jira/issues/{key}/subtasks` | Delete subtasks (live) |
 
-The `tests/` directory covers:
-
-- **Environment registry & Jira presence** – registry consistency, environment classes load correctly.
-- **Jira environment behavior** – reset, rewards for correct vs wrong actions, workflow order enforcement.
-- **Integration** – Jira and healthcare envs can both be discovered and run without conflict.
-- **Jira workflow definitions & mock data** – JSON structure, presence of specific scenarios (“In Progress → Blocked”) and reward weights.
-- **Jira SLM E2E** – training flow and SLM loading (skipped when network/SLM unavailable; see test).
-
-### 6.2 Recommended UAT Scenarios
-
-Below are high-value manual test scenarios for UAT before deployment.
-
-#### 6.2.1 Catalog & Discovery
-
-- **UAT-001 – Environment listing**
-  - Steps:
-    1. Open `/` (catalog).
-    2. Confirm total environment count matches `GET /environments`.
-    3. Filter by `Enterprise apps` domain and `Jira` category.
-    4. Confirm only Jira environments appear (Issue Resolution, Status Update, Comment Management, Subtask Management).
-  - Expected:
-    - Counts and filters match backend.
-
-- **UAT-002 – Environment detail view**
-  - Steps:
-    1. Click “View details” on `JiraSubtaskManagement`.
-    2. Verify description, use-case text, and actions summary.
-    3. Confirm buttons/links to Training and Simulation present.
-  - Expected:
-    - Detail content matches `portal` registry metadata.
-
-#### 6.2.2 Training & Monitoring
-
-- **UAT-010 – PPO training for JiraIssueResolution**
-  - Steps:
-    1. From catalog, start PPO training for `JiraIssueResolution` with ~20 episodes.
-    2. Open Training Monitor and track job until completion.
-  - Expected:
-    - Job reaches `completed`.
-    - Reward stats visible.
-    - Model download & info visible if model-saving enabled.
-
-- **UAT-011 – JiraSubtaskManagement training & subtask log**
-  - Steps:
-    1. Start PPO training for `JiraSubtaskManagement`.
-    2. After completion, locate Subtask Action Log section.
-    3. Download JSON log and inspect episodes where `create_subtask` was used.
-  - Expected:
-    - Log URL is valid and serves a well-formed JSON log.
-
-- **UAT-012 – SLM training (online)**
-  - Steps:
-    1. Ensure environment has network and correct Hugging Face credentials (if needed).
-    2. Train `JiraIssueResolution` with `algorithm: SLM`.
-    3. Monitor for `slm_training_context.uses_slm = true`.
-  - Expected:
-    - SLM model loads successfully.
-    - Explainability panel shows a prompt, parsed tool, and explanation.
-
-#### 6.2.3 Simulation Console
-
-- **UAT-020 – Generic simulation**
-  - Steps:
-    1. Open `/test-console`.
-    2. Select a healthcare environment (e.g. `ImagingOrderPrioritization`).
-    3. Initialize environment and run a few steps.
-  - Expected:
-    - State, current action, and metrics update each step.
-    - Run Summary & Lagging Indicators reflect step count and total reward.
-
-- **UAT-021 – Jira Status Update scenario**
-  - Steps:
-    1. In Simulation Console, choose `JiraStatusUpdate`.
-    2. Select scenario “Change from in-progress to blocked”.
-    3. Run steps until completion.
-  - Expected:
-    - At least one issue with `In Progress → Blocked` path is simulated.
-    - Run Summary indicates completion; relevant KPIs update.
-
-- **UAT-022 – Jira Subtask Management (mock)**
-  - Steps:
-    1. Choose `JiraSubtaskManagement`, “Create sub task” scenario.
-    2. Initialize and run steps; simulate subtask creation in mock data.
-    3. Use “Download” button for Jira subtask log in Simulation panel.
-  - Expected:
-    - JSON log of created subtasks is downloaded (mock; no live Jira calls unless enabled).
-
-#### 6.2.4 Human Evaluation
-
-- **UAT-030 – HITL eval from Training Monitor**
-  - Steps:
-    1. After a training job completes, open that job in Training Monitor.
-    2. Confirm Human Evaluation section appears with “Open Human Evaluation”.
-    3. Click the button, go to `human-eval.html?job_id=...`.
-    4. Score reasoning steps (Correct/Flawed/Critical Error) as appropriate.
-    5. Select Yes/No decision and submit.
-  - Expected:
-    - API returns success.
-    - HITL console shows “Saved” with step score summary.
-    - Refreshing Training Monitor shows updated Last Evaluation + count.
-
-- **UAT-031 – Simulation human eval panel**
-  - Steps:
-    1. In Simulation Console, run any environment.
-    2. Use the Human Evaluation panel on the right to mark Yes/No and optional comments.
-  - Expected:
-    - Panel displays “Recorded: Yes/No …”.
-    - Page reload clears local status; data is not sent to backend (local-only).
+Full API docs at `http://localhost:8000/docs` (Swagger UI).
 
 ---
 
-## 7. Key Architectural Decisions & Trade-Offs
+## 8. Non-Functional Requirements
 
-### 7.1 Monolith vs Microservices
+### 8.1 Performance
 
-- **Decision:** Use a single FastAPI monolith that:
-  - Serves REST APIs and static files.
-  - Owns environment registry, training orchestration, Jira integration, and human evaluation.
-- **Pros:**
-  - Simple deployment (single Docker image).
-  - Lower operational overhead.
-  - Easier for contributors to understand the entire system.
-- **Cons:**
-  - All features share the same release cadence.
-  - Scaling independently by component (e.g. training vs catalog) requires additional logic (e.g. separate workers in the future).
-- **Future:** If usage grows, we can split training workers into a separate service that consumes jobs from a queue while the main FastAPI app becomes a thin control-plane API.
+- Training handles tens to hundreds of episodes per job within minutes (CPU-friendly, no GPU required).
+- API endpoints respond within **<300ms** under normal load.
+- Simulation console updates are client-side; step rendering stays responsive (<50ms per step).
 
-### 7.2 In-Memory Job Store vs Persistent DB
+### 8.2 Scalability
 
-- **Decision:** Store training job state in an in-memory dict `training_jobs` for now.
-- **Pros:**
-  - Very simple to implement and reason about.
-  - Fast lookups with no DB overhead.
-  - Fine for single-instance deployments and short-lived jobs.
-- **Cons:**
-  - Jobs are lost on restart.
-  - Multiple instances would not share job state (harder to scale out horizontally).
-  - No historical analytics without exporting or persisting results.
-- **Future:** Introduce a persistent backing store (Postgres or Redis) and treat `training_jobs` as a cache view.
+- **Backend**: Stateless except for in-memory stores (`training_jobs`, `rollout_store`). Dockerized for horizontal scaling behind a load balancer. Future: persistent DB (Postgres/Redis) for job and rollout storage.
+- **Frontends**: Pure static assets; trivial to host behind a CDN.
 
-### 7.3 Static Frontends vs SPA Everywhere
+### 8.3 Reliability
 
-- **Decision:** Keep all UIs as vanilla HTML + JS (`index.html`, `simulation-console.html`, `human-eval.html`, `training.html`) served from FastAPI’s static file mount.
-- **Pros:**
-  - Minimal bundle size; zero build step for frontend.
-  - Low build complexity; no Node.js dependency.
-  - All pages share the same global nav, CSS variables, and toast system.
-- **Cons:**
-  - Less code sharing across pages without a component framework.
-  - Complex UI interactions require more manual DOM management.
+- Healthcheck at root endpoint ensures container restarts on failure.
+- Tests run in Docker build; failing tests fail the build.
+- Jira SLM E2E test skips gracefully when model unavailable.
 
-### 7.4 SLM Integration
+### 8.4 Security
 
-- **Decision:** Integrate SLM (sequence-learning model) for Jira workflow tool selection, but allow a **rule-based fallback** when the model cannot be loaded (e.g. network/403).
-- **Pros:**
-  - Environments remain functional without external dependencies.
-  - Enables CI in locked-down environments (tests pass with fallback).
-  - Allows gradual rollout of SLM capabilities.
-- **Cons:**
-  - Behavior differs between “SLM loaded” and fallback.
-  - Requires careful instrumentation and documentation for users to know whether SLM is active.
+- Jira credentials loaded via `.env` (gitignored), never returned to client.
+- CORS configured with development/deployment origins, extendable via `CORS_ORIGINS` env var.
+- Input validation via Pydantic models.
+
+### 8.5 Maintainability
+
+- Clear package separation: `api/`, `environments/`, `portal/`, `verifiers/`, `observability/`, `governance/`, `apps/`, `tests/`.
+- Environment registry centralizes discovery; verifier registry decouples reward logic.
+- Observability and governance layered onto environments.
+- Frontends share global nav, CSS variables, and toast notification system.
 
 ---
 
-## 8. Operations & Deployment Notes
+## 9. Key Architectural Decisions
 
-- **Deployment target:** Azure (Docker)
-  - Dockerfile:
-    - Single-stage Python build: installs dependencies, copies code, runs `pytest tests/` as part of the build, then defines the run command (`python -m api.main`).
-  - Healthcheck configured to call root endpoint periodically.
+### 9.1 Monolith Architecture
 
-- **Environment configuration:**
-  - `.env` in project root is loaded at startup; Jira-related keys override process env for ease of configuration in app repos.
-  - CORS origins may be extended via `CORS_ORIGINS`.
+Single FastAPI monolith serving APIs and static files. Simple deployment (one Docker image), low operational overhead. Future option to split training workers into a separate queue-based service.
 
-- **Monitoring & logs:**
-  - Training logs are printed to stdout in the container.
-  - Reward, action, and audit logs can be extended to send to external observability stacks in the future.
+### 9.2 In-Memory Job & Rollout Store
+
+Training jobs and rollouts stored in-memory dicts. Simple, fast, adequate for single-instance deployments. Future: persistent backing store for multi-instance and historical analytics.
+
+### 9.3 Vanilla HTML/JS Frontend
+
+No build step, no framework dependency. Minimal bundle size. All pages share global nav, CSS variables, and toast system. Trade-off: more manual DOM management for complex interactions.
+
+### 9.4 Enriched Rollout Pipeline
+
+Backend transforms raw numeric actions from `env.step()` into named tool calls with verifier results and final environment state. This enables the rollout comparison renderer to show meaningful tool names, arguments, and pass/fail indicators without changing the RL environment interface.
+
+### 9.5 Gymnasium-Compatible Environments
+
+All 113 environments inherit from `HealthcareRLEnvironment` and implement the standard Gymnasium interface (`reset`, `step`, `action_space`, `observation_space`). This ensures compatibility with Stable-Baselines3 and standard RL tooling.
 
 ---
 
-## 9. System Design Checklist (for future changes)
+## 10. Repository Structure
 
-When adding new features or environments, ensure:
+```
+agentwork-simulator/
+├── api/                        # FastAPI backend + static frontend
+│   ├── main.py                 # REST API, training loop, rollout store
+│   └── static/                 # Frontend (6 HTML pages, 10 JS, 7 CSS, 4 SVG)
+│       ├── landing.html/css    # Landing page
+│       ├── index.html          # Environment catalog
+│       ├── app.js + styles.css # Catalog logic + styles
+│       ├── training.html/js/css # Training console
+│       ├── training-config-data.js  # Scenarios, agents, algorithms
+│       ├── simulation-console.html/js  # Simulation engine
+│       ├── human-eval.html/css # HITL evaluation
+│       ├── rollout-comparison.js  # Side-by-side rollout renderer
+│       ├── contact.html        # Feedback form
+│       ├── global-nav.css      # Shared nav styles
+│       ├── toast.js/css        # Toast notification system
+│       └── verifier-data.js    # Verifier configuration
+├── environments/               # 113 Gymnasium RL environments
+│   ├── base_environment.py     # HealthcareRLEnvironment base class
+│   ├── clinical/               # 20 environments (Epic, Cerner, Allscripts)
+│   ├── imaging/                # 15 environments (Philips, GE Healthcare)
+│   ├── population_health/      # 15 environments (Health Catalyst, Innovaccer)
+│   ├── revenue_cycle/          # 15 environments (Change Healthcare)
+│   ├── clinical_trials/        # 15 environments (Veeva, IQVIA)
+│   ├── hr_payroll/             # 9 environments (Workday, SAP, ADP)
+│   ├── hospital_operations/    # 5 environments
+│   ├── telehealth/             # 5 environments (Teladoc, Amwell)
+│   ├── interoperability/       # 5 environments (InterSystems, Orion Health)
+│   ├── cross_workflow/         # 5 multi-agent environments
+│   └── jira/                   # 4 Jira workflow environments
+├── apps/workflow_definitions/  # Jira workflows and mock data
+├── portal/                     # Environment registry (discovery + metadata)
+├── verifiers/                  # 7 verifier types
+├── observability/              # Reward, action, episode, audit loggers
+├── governance/                 # Safety guardrails, risk thresholds, compliance
+├── models/                     # Saved model artifacts (grpo/, ppo/, dpo/, a2c/)
+├── tests/                      # Pytest suite
+├── docs/                       # Additional documentation
+├── Dockerfile                  # Single-stage Python build
+└── requirements.txt
+```
+
+---
+
+## 11. Test Cases & UAT Scenarios
+
+### 11.1 Automated Tests (Pytest)
+
+- **Environment registry** — registry consistency, all 113 environments discoverable and instantiable.
+- **Jira environment behavior** — reset, rewards for correct vs wrong actions, workflow order enforcement.
+- **Integration** — Jira and healthcare envs co-exist and run without conflict.
+- **Jira workflow definitions** — JSON structure, scenarios, reward weights.
+- **Jira SLM E2E** — training flow (skipped when model unavailable).
+
+### 11.2 Key UAT Scenarios
+
+#### Catalog & Discovery
+- **UAT-001**: Open catalog, confirm 113 environments, filter by domain/category/system.
+- **UAT-002**: View environment details, verify description and action buttons.
+- **UAT-003**: Click "Start Training" in catalog → verify redirect to `/training-console?env=EnvName` with pre-selected environment.
+
+#### Training & Monitoring
+- **UAT-010**: Start GRPO training for JiraIssueResolution (~20 episodes). Verify progress stepper advances through all 5 steps.
+- **UAT-011**: Verify rollout comparison shows named tool calls, verifier results, and final environment state.
+- **UAT-012**: Verify model artifact panel shows metadata and copy-path button (no 404 on export).
+
+#### Simulation Console
+- **UAT-020**: Select healthcare environment, run simulation, verify metrics update each step.
+- **UAT-021**: Select Jira environment, run specific scenario, verify completion.
+
+#### Human Evaluation
+- **UAT-030**: After training completes, open HITL console, score steps, submit evaluation.
+- **UAT-031**: Verify evaluation persists and appears in training job detail.
+
+---
+
+## 12. Operations & Deployment
+
+- **Deployment**: Azure via Docker. Single-stage Python build: install deps, copy code, run pytest, define run command.
+- **Configuration**: `.env` loaded at startup for Jira credentials and optional settings. CORS origins extendable via `CORS_ORIGINS`.
+- **Monitoring**: Training logs to stdout. Observability loggers extensible to external stacks.
+- **CI**: GitHub Actions workflow for automated testing.
+
+---
+
+## 13. System Design Checklist (for future changes)
+
+When adding new features or environments:
 
 - **Functional**
-  - [ ] New environment is defined in `environments/*` and registered via the portal registry.
-  - [ ] Tests cover its registration and at least one happy-path episode.
-  - [ ] UI descriptions and use-cases are added to the catalog in `app.js`.
-  - [ ] If needed, Simulation Console config is extended in `simulation-console.js`.
+  - [ ] New environment defined in `environments/*` and registered via portal registry.
+  - [ ] Tests cover registration and at least one happy-path episode.
+  - [ ] UI descriptions added to catalog in `app.js`.
+  - [ ] Simulation console config extended in `simulation-console.js` if needed.
+  - [ ] Training scenario added to `training-config-data.js` if applicable.
 
 - **Non-Functional**
-  - [ ] Reward/verification logic is added via verifiers where appropriate.
-  - [ ] Governance (safety/risk/compliance) is respected for high-risk environments.
-  - [ ] New Jira or external integrations validate input and handle partial failures.
+  - [ ] Reward/verification logic added via verifiers where appropriate.
+  - [ ] Governance (safety/risk/compliance) respected for high-risk environments.
+  - [ ] New external integrations validate input and handle partial failures.
 
 - **Testing**
-  - [ ] Pytest tests added to `tests/` (do not leave one-off test_*.py at repo root).
-  - [ ] E2E tests avoid hard dependence on external model downloads or services; use skip logic where necessary.
+  - [ ] Pytest tests added to `tests/`.
+  - [ ] E2E tests avoid hard dependence on external downloads; use skip logic.
 
 - **Docs**
-  - [ ] README and, where needed, `architect.md` updated with new flows, endpoints, or decisions.
-
-This document should be kept current as the system evolves, especially when:
-- New domains are added (beyond healthcare and Jira).
-- Training storage moves from in-memory to a persistent store.
-- Frontend pages are refactored or a component framework is introduced.
-
+  - [ ] README and `architect.md` updated with new flows, endpoints, or decisions.
