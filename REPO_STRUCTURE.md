@@ -1,6 +1,6 @@
 # AgentWork Simulator — Repository Structure
 
-**For new AI engineers:** This document describes the unified AgentWork Simulator repository, including the merged **RL-Env-Studio** React app, Python backend, RL environments, and how everything fits together.
+**For new AI engineers:** This document describes the unified AgentWork Simulator repository, including the Python backend, vanilla JS frontend, RL environments, and how everything fits together.
 
 ---
 
@@ -9,17 +9,18 @@
 AgentWork Simulator is a **single monorepo** with:
 
 1. **Python backend** — FastAPI API, RL environments, verifiers, training
-2. **Vanilla JS UIs** — Catalog and simulation console (served from `api/static/`)
-3. **RL-Env-Studio** — React/Vite SPA (scenarios, verifiers, gym, training UI) merged and served at `/studio`
-4. **Workflow definitions** — Jira workflows, mock data (JSON)
+2. **Vanilla JS frontend** — Catalog, simulation console, training console, dashboard (served from `api/static/`)
+3. **Workflow definitions** — Jira workflows, mock data (JSON)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                AgentWork Simulator (port 8000)                   │
 ├─────────────────────────────────────────────────────────────────┤
-│  /           → Catalog (vanilla JS)                              │
-│  /test-console → Simulation Console (vanilla JS)                 │
-│  /studio      → RL-Env-Studio (React SPA)                        │
+│  /              → Landing page                                   │
+│  /catalog       → Catalog (vanilla JS)                           │
+│  /test-console  → Simulation Console (vanilla JS)                │
+│  /training-console → Training Console (vanilla JS)               │
+│  /dashboard     → Analytics Dashboard (vanilla JS)               │
 │  /environments, /train, /kpis, ... → REST API                    │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -37,20 +38,19 @@ agentwork-simulator/
 │       ├── app.js               # Catalog logic
 │       ├── simulation-console.html
 │       ├── simulation-console.js
+│       ├── training.html        # Training console
+│       ├── training.js          # Training logic
+│       ├── training.css         # Training styles
+│       ├── training-config-data.js  # Training config (hardcoded, future: API)
+│       ├── dashboard.html
+│       ├── dashboard.js
+│       ├── human-eval.html
 │       ├── styles.css
-│       └── studio/              # RL-Env-Studio build output (generated)
-│           ├── index.html
-│           └── assets/
+│       ├── global-nav.css
+│       ├── verifier-data.js     # Verifier definitions
+│       └── rollout-comparison.js
 │
 ├── apps/                        # Applications and definitions
-│   ├── RL-Env-Studio/           # React SPA (Dashboard, Scenarios, Verifiers, Gym)
-│   │   ├── src/
-│   │   │   ├── App.tsx
-│   │   │   ├── main.tsx
-│   │   │   └── components/      # Dashboard, Scenarios, Verifiers, Training, etc.
-│   │   ├── package.json
-│   │   ├── vite.config.ts
-│   │   └── index.html
 │   └── workflow_definitions/    # JSON workflow and mock data
 │       ├── jira_workflows.json
 │       ├── jira_mock_data.json
@@ -74,7 +74,7 @@ agentwork-simulator/
 │
 ├── verifiers/                   # Reward verifiers
 │   ├── base_verifier.py
-│   ├── jira_verifier.py         # Aligns with apps/RL-Env-Studio Verifiers.tsx
+│   ├── jira_verifier.py
 │   ├── verifier_registry.py
 │   └── ...
 │
@@ -97,10 +97,10 @@ agentwork-simulator/
 ├── tests/                       # pytest tests
 ├── scripts/
 │
-├── package.json                 # Root: npm run build:studio
+├── package.json                 # Root: npm start
 ├── requirements.txt
-├── Dockerfile                   # Multi-stage: Node build + Python API
-├── .github/workflows/ci.yml     # CI: test, install, build-studio, lint
+├── Dockerfile                   # Python API
+├── .github/workflows/ci.yml     # CI: test, install, lint
 ├── README.md
 └── REPO_STRUCTURE.md            # This file
 ```
@@ -111,37 +111,16 @@ agentwork-simulator/
 
 | Path | Role |
 |------|------|
-| `api/main.py` | FastAPI app; serves `/`, `/test-console`, `/studio`, `/studio/*`, REST API |
-| `apps/RL-Env-Studio/` | React SPA source; build output → `api/static/studio/` |
+| `api/main.py` | FastAPI app; serves `/catalog`, `/test-console`, `/training-console`, `/dashboard`, REST API |
+| `api/static/training.js` | Training console logic (vanilla JS) |
+| `api/static/training-config-data.js` | Hardcoded training config (`window.TRAINING_CONFIG`); future: replace with API |
 | `apps/workflow_definitions/jira_workflows.json` | Jira tool order, workflows; used by envs + verifiers |
 | `apps/workflow_definitions/jira_mock_data.json` | Mock issues, comments; used by simulation console |
 | `environments/jira/jira_workflow_env.py` | Jira RL env; uses workflow definitions |
-| `verifiers/jira_verifier.py` | Jira reward verifier; aligns with Verifiers.tsx |
+| `verifiers/jira_verifier.py` | Jira reward verifier |
 | `portal/environment_registry.py` | Registers all envs; `get_environment_class()`, `list_all_environments()` |
 | `portal/environment_registry.json` | Env metadata (name, category, system) |
 | `docs/TRAINING_FRAMEWORK.md` | Training frameworks (Gymnasium, stable-baselines3, SLM) |
-
----
-
-## RL-Env-Studio Merge
-
-**Before:** RL-Env-Studio lived as a separate app, typically run with `npm run dev` on port 3000.
-
-**After:** RL-Env-Studio is built and served by the FastAPI API at `/studio`.
-
-### Build Flow
-
-1. `npm run build:studio` (root) → `cd apps/RL-Env-Studio && npm install && npm run build`
-2. Vite outputs to `api/static/studio/` (see `vite.config.ts`: `base: '/studio/'`, `outDir: '../../api/static/studio'`)
-3. API serves:
-   - `GET /studio` → `api/static/studio/index.html`
-   - `GET /studio/{path}` → file if exists, else SPA fallback (index.html)
-
-### Development
-
-- **API only:** `python -m api.main` → Catalog at `/`, Simulation at `/test-console`, Studio at `/studio` (if built)
-- **Studio dev server:** `npm run dev:studio` → Vite dev on port 3000; API on 8000
-- **Full stack:** Run API + Studio dev; point Studio to `http://localhost:8000` for API calls
 
 ---
 
@@ -149,9 +128,11 @@ agentwork-simulator/
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /` | Catalog UI (index.html) |
+| `GET /` | Landing page |
+| `GET /catalog` | Catalog UI |
 | `GET /test-console` | Simulation console |
-| `GET /studio` | RL-Env-Studio SPA |
+| `GET /training-console` | Training console |
+| `GET /dashboard` | Analytics dashboard |
 | `GET /environments` | List environments with metadata |
 | `GET /jira-mock-data` | Mock Jira issues and comments |
 | `POST /train/{env_name}` | Start training |
@@ -180,11 +161,6 @@ Tests cover:
 
 ## Docker Build
 
-Multi-stage Dockerfile:
-
-1. **Stage 1 (Node):** Build RL-Env-Studio → `api/static/studio/`
-2. **Stage 2 (Python):** Copy studio build, run pytest, start API
-
 ```bash
 docker build -t agentwork-simulator .
 docker run -p 8000:8000 agentwork-simulator
@@ -198,8 +174,7 @@ docker run -p 8000:8000 agentwork-simulator
 
 1. **test** — pytest, env registry validation, Jira env load
 2. **install** — deps, server startup
-3. **build-studio** — `npm run build:studio`, verify `api/static/studio/index.html`
-4. **lint** — black, flake8
+3. **lint** — black, flake8
 
 ---
 
@@ -209,9 +184,8 @@ docker run -p 8000:8000 agentwork-simulator
 2. **Mock data:** `apps/workflow_definitions/jira_mock_data.json` (issues, comments)
 3. **Environment:** `environments/jira/jira_workflow_env.py` (Gymnasium env)
 4. **Verifier:** `verifiers/jira_verifier.py` (reward for correct sequence)
-5. **Studio UI:** `apps/RL-Env-Studio/src/components/Scenarios.tsx`, `Verifiers.tsx`
-6. **Simulation:** `api/static/simulation-console.js` (loads mock data, runs Jira workflows)
-7. **API:** `/jira-mock-data`, `/train/JiraIssueResolution`, `/kpis/JiraIssueResolution`
+5. **Frontend:** `api/static/` (catalog, simulation console, training console)
+6. **API:** `/jira-mock-data`, `/train/JiraIssueResolution`, `/kpis/JiraIssueResolution`
 
 ---
 
@@ -227,13 +201,12 @@ pip install -r requirements.txt
 python -m pytest tests/ -v --tb=short
 python -m api.main
 
-# 3. (Optional) Build RL-Env-Studio
-npm run build:studio
-
-# 4. Open
-# http://localhost:8000          — Catalog
+# 3. Open
+# http://localhost:8000              — Landing page
+# http://localhost:8000/catalog      — Catalog
 # http://localhost:8000/test-console — Simulation
-# http://localhost:8000/studio   — RL-Env-Studio
+# http://localhost:8000/training-console — Training
+# http://localhost:8000/dashboard    — Dashboard
 ```
 
 ---
@@ -246,6 +219,7 @@ npm run build:studio
 | Add mock Jira data | `apps/workflow_definitions/jira_mock_data.json` |
 | Change Jira env logic | `environments/jira/jira_workflow_env.py` |
 | Change reward for Jira | `verifiers/jira_verifier.py` |
-| Change Studio UI | `apps/RL-Env-Studio/src/components/` |
+| Change training UI | `api/static/training.js`, `training.html` |
+| Change catalog UI | `api/static/app.js`, `index.html` |
 | Add API endpoint | `api/main.py` |
 | Add env to registry | `portal/environment_registry.json` + env module |

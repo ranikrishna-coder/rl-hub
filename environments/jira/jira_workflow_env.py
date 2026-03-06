@@ -260,7 +260,7 @@ class JiraWorkflowEnv(HealthcareRLEnvironment):
             RewardComponent.RISK_PENALTY: 0.0,
         }
         if self._verifier is not None:
-            # Use Jira verifier from app definition (Verifiers.tsx / workflow_definitions)
+            # Use Jira verifier from workflow_definitions
             transition_info = info.get("transition_info") or info
             reward, breakdown = self._verifier.evaluate(
                 state, action, self._get_state_features(), info={"transition_info": transition_info}

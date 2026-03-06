@@ -10,8 +10,7 @@ This platform provides comprehensive reinforcement learning environments modelin
 
 ```
 agentwork-simulator/
-├── apps/                   # RL Env Studio + workflow definitions
-│   ├── RL-Env-Studio/    # Jira/Confluence UI (scenarios, verifiers)
+├── apps/                   # Workflow definitions
 │   └── workflow_definitions/  # Jira workflows (jira_workflows.json)
 ├── environments/          # RL environment implementations
 │   ├── clinical/        # Clinical environments
@@ -112,9 +111,10 @@ Once the server is running, open your browser to:
 
 **🌐 http://localhost:8000**
 
-- **Catalog** — `/` — Interactive catalog of all environments
+- **Catalog** — `/catalog` — Interactive catalog of all environments
 - **Simulation Console** — `/test-console` — Run simulations for any environment
-- **RL-Env-Studio** — `/studio` — React SPA (Dashboard, Scenarios, Verifiers, Gym, Training). Build with `npm run build:studio` first.
+- **Training Console** — `/training-console` — Configure and monitor RL training runs
+- **Dashboard** — `/dashboard` — Analytics and activity history
 
 This displays a **beautiful interactive catalog** of all 50 environments with:
 - Visual environment cards

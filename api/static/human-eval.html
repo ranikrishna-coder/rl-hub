@@ -20,7 +20,7 @@
     <ul class="gn-links">
         <li><a href="/catalog" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Catalog</a></li>
         <li><a href="/test-console" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Simulation</a></li>
-        <li><a href="/dashboard" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="14" y="6" width="3" height="12"/></svg> Dashboard</a></li>
+        <li><a href="/training-console" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg> Training</a></li>
     </ul>
   </nav>
 
@@ -363,7 +363,7 @@
         const data = await resp.json().catch(() => ({}));
         if (!resp.ok) throw new Error((data && data.detail) || 'HTTP ' + resp.status);
 
-        statusEl.textContent = data.training_completed ? 'Saved — Training marked complete' : 'Saved';
+        statusEl.textContent = data.training_completed ? 'Saved \u2014 Training marked complete' : 'Saved';
         statusEl.classList.add('saved');
         if (data.training_completed && document.getElementById('awaiting-eval-banner')) {
           document.getElementById('awaiting-eval-banner').style.display = 'none';
@@ -380,12 +380,32 @@
         }
         document.getElementById('eval-meta').textContent = metaText;
         document.getElementById('eval-count').textContent = String(data.total_evaluations ?? (jobData.human_evaluations?.length ?? 0) + 1);
+
+        // Show success banner and disable form when training is completed
+        if (data.training_completed) {
+          const successBanner = document.createElement('div');
+          successBanner.className = 'he-success-banner';
+          successBanner.innerHTML = '<div class="he-success-icon">\u2713</div>' +
+            '<div class="he-success-text">' +
+            '<strong>Training Complete</strong>' +
+            '<p>Your evaluation has been submitted and the training run is now marked as complete.</p>' +
+            '</div>' +
+            '<a href="/training-console" class="he-btn he-btn-primary" style="flex:none;white-space:nowrap;">Return to Training Console</a>';
+          const evalActions = document.querySelector('.eval-actions');
+          evalActions.parentNode.insertBefore(successBanner, evalActions);
+          document.querySelectorAll('input[name="decision"]').forEach(function(r) { r.disabled = true; });
+          document.getElementById('comments').disabled = true;
+          document.getElementById('btn-submit').disabled = true;
+          document.getElementById('btn-submit').style.display = 'none';
+        }
       } catch (e) {
         statusEl.textContent = 'Error';
         statusEl.classList.add('error');
         document.getElementById('eval-meta').textContent = 'Failed: ' + String(e);
       } finally {
-        document.getElementById('btn-submit').disabled = false;
+        if (!document.getElementById('btn-submit').style.display || document.getElementById('btn-submit').style.display !== 'none') {
+          document.getElementById('btn-submit').disabled = false;
+        }
       }
     }
 
@@ -394,7 +414,7 @@
         if (document.referrer && new URL(document.referrer).origin === window.location.origin) {
             window.location.href = document.referrer;
         } else {
-            window.location.href = '/dashboard';
+            window.location.href = '/training-console';
         }
     });
 

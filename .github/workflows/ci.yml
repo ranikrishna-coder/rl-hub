@@ -113,25 +113,6 @@ jobs:
         curl -f http://localhost:8000/ || exit 1
         echo "✓ Server started successfully"
 
-  build-studio:
-    runs-on: ubuntu-latest
-    name: Build RL-Env-Studio
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Node
-      uses: actions/setup-node@v4
-      with:
-        node-version: "20"
-
-    - name: Build RL-Env-Studio
-      run: npm run build:studio
-
-    - name: Verify build output
-      run: |
-        test -f api/static/studio/index.html || (echo "❌ api/static/studio/index.html not found" && exit 1)
-        echo "✓ RL-Env-Studio build successful"
-
   lint:
     runs-on: ubuntu-latest
     name: Code Quality

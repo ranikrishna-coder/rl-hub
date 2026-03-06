@@ -15,47 +15,91 @@
         return '[ ' + (ms / 1000).toFixed(3) + 's ]';
     }
 
+    function _hasRealContent(rollout) {
+        if (!rollout || !rollout.steps || rollout.steps.length === 0) return false;
+        // Only consider "real" content if steps have actual timeline events (not just numeric actions)
+        for (var i = 0; i < rollout.steps.length; i++) {
+            var evts = rollout.steps[i].timeline_events || [];
+            for (var j = 0; j < evts.length; j++) {
+                if (evts[j].event_type === 'TOOL_CALL' || evts[j].event_type === 'TOOL_RESULT') return true;
+                if (evts[j].event_type === 'SYSTEM' || evts[j].event_type === 'MODEL_THOUGHT') return true;
+                if (evts[j].content && evts[j].content.length > 0) return true;
+            }
+        }
+        return false;
+    }
+
+    function _hasNumericActions(rollout) {
+        if (!rollout || !rollout.steps) return false;
+        for (var i = 0; i < rollout.steps.length; i++) {
+            if (rollout.steps[i].action != null) return true;
+        }
+        return false;
+    }
+
+    function _renderEmptyTimeline(stepsCount) {
+        return '<div class="rc-empty-state">' +
+            '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text-secondary);opacity:0.5">' +
+            '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>' +
+            '<p>No timeline events recorded</p>' +
+            (stepsCount > 0 ? '<span>' + stepsCount + ' step' + (stepsCount === 1 ? '' : 's') + ' completed</span>' : '') +
+            '</div>';
+    }
+
     function _renderColumn(rollout, title, cssClass) {
         if (!rollout) {
             return '<div class="rc-column ' + cssClass + '">' +
                 '<h4 class="rc-col-title">' + _esc(title) + '</h4>' +
-                '<p class="rc-empty">No rollout data available.</p></div>';
+                '<div class="rc-empty-state">' +
+                '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text-secondary);opacity:0.5">' +
+                '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>' +
+                '<p>No rollout data available</p>' +
+                '</div></div>';
         }
 
         var html = '<div class="rc-column ' + cssClass + '">';
         html += '<h4 class="rc-col-title">' + _esc(title) + '</h4>';
 
-        // Policy info
+        // Policy info — compact inline
         html += '<div class="rc-policy-info">';
         html += '<span>Policy: <strong>' + _esc(rollout.policy_name || rollout.source || 'unknown') + '</strong></span>';
         html += '<span>Checkpoint: <code>' + _esc(rollout.checkpoint_label || '—') + '</code></span>';
+        if (rollout.total_reward != null) {
+            html += '<span>Reward: <strong>' + Number(rollout.total_reward).toFixed(2) + '</strong></span>';
+        }
         html += '</div>';
 
-        // Timeline
-        html += '<h5 style="font-size:0.85rem;margin:0.5rem 0 0.35rem;">Timeline</h5>';
-        html += '<div class="rc-timeline">';
+        var hasContent = _hasRealContent(rollout);
+        var hasActions = _hasNumericActions(rollout);
 
-        if (rollout.steps && rollout.steps.length > 0) {
+        if (!hasContent && !hasActions) {
+            // No data at all
+            html += _renderEmptyTimeline(rollout.steps ? rollout.steps.length : 0);
+        } else if (!hasContent && hasActions) {
+            // Numeric actions only (RL env) — show clean summary instead of fake timeline
+            html += '<div class="rc-action-summary">';
+            var totalReward = 0;
+            var stepCount = 0;
+            rollout.steps.forEach(function(step) {
+                if (step.action != null) {
+                    stepCount++;
+                    totalReward += (step.reward || 0);
+                }
+            });
+            html += '<div class="rc-summary-stat"><span class="rc-summary-label">Steps</span><span class="rc-summary-value">' + stepCount + '</span></div>';
+            html += '<div class="rc-summary-stat"><span class="rc-summary-label">Total Reward</span><span class="rc-summary-value">' + totalReward.toFixed(4) + '</span></div>';
+            if (rollout.steps.length > 0) {
+                html += '<div class="rc-summary-stat"><span class="rc-summary-label">Avg Reward/Step</span><span class="rc-summary-value">' + (totalReward / (stepCount || 1)).toFixed(4) + '</span></div>';
+            }
+            html += '</div>';
+        } else {
+            // Rich timeline — render events
+            html += '<div class="rc-timeline">';
             rollout.steps.forEach(function(step) {
                 var events = step.timeline_events || [];
                 if (events.length === 0) {
-                    // Fallback: synthesize events from basic step data
-                    events = [];
-                    if (step.step === 1) {
-                        events.push({ timestamp_ms: 0, event_type: 'SYSTEM', content: 'Episode started' });
-                    }
-                    events.push({
-                        timestamp_ms: (step.step || 0) * 100,
-                        event_type: 'TOOL_CALL',
-                        tool_name: String(step.action || 'action_' + step.step),
-                        tool_args: null
-                    });
-                    events.push({
-                        timestamp_ms: (step.step || 0) * 100 + 10,
-                        event_type: 'TOOL_RESULT',
-                        content: 'reward: ' + (step.reward || 0).toFixed(4),
-                        reward: step.reward
-                    });
+                    // Skip steps with no timeline events
+                    return;
                 }
                 events.forEach(function(evt) {
                     var evtType = (evt.event_type || 'unknown').toLowerCase().replace(/_/g, '-');
@@ -86,55 +130,63 @@
                     html += '</div></div>';
                 });
             });
-        } else {
-            html += '<p class="rc-empty"><em>— none —</em></p>';
-        }
-        html += '</div>';
-
-        // Tool calls summary
-        if (rollout.steps && rollout.steps.length > 0) {
-            var toolCounts = {};
-            rollout.steps.forEach(function(s) {
-                var name = String(s.action == null ? 'unknown' : s.action);
-                toolCounts[name] = (toolCounts[name] || 0) + 1;
-            });
-            html += '<div class="rc-summary"><h5>Tool calls</h5>';
-            var toolKeys = Object.keys(toolCounts);
-            if (toolKeys.length === 0 || (toolKeys.length === 1 && toolKeys[0] === 'null')) {
-                html += '<em class="rc-empty">— none —</em>';
-            } else {
-                toolKeys.forEach(function(k) {
-                    if (k !== 'null') html += '<span class="rc-tool-badge">' + _esc(k) + ' ×' + toolCounts[k] + '</span> ';
-                });
-            }
             html += '</div>';
+        }
+
+        // Tool calls summary — only show for named actions (not numeric indices)
+        if (hasContent && rollout.steps && rollout.steps.length > 0) {
+            var toolCounts = {};
+            var hasNamedActions = false;
+            rollout.steps.forEach(function(s) {
+                if (s.action != null) {
+                    var name = String(s.action);
+                    // Skip purely numeric action indices
+                    if (/^\d+$/.test(name)) return;
+                    hasNamedActions = true;
+                    toolCounts[name] = (toolCounts[name] || 0) + 1;
+                }
+            });
+            var toolKeys = Object.keys(toolCounts);
+            if (hasNamedActions && toolKeys.length > 0) {
+                html += '<div class="rc-summary"><h5>Tool calls</h5>';
+                toolKeys.forEach(function(k) {
+                    html += '<span class="rc-tool-badge">' + _esc(k) + ' \u00d7' + toolCounts[k] + '</span> ';
+                });
+                html += '</div>';
+            }
         }
 
         // Final environment state
         if (rollout.final_environment_state || rollout.final_outcome) {
             var stateObj = rollout.final_environment_state || rollout.final_outcome;
-            html += '<div class="rc-summary"><h5>Final environment state</h5>';
+            html += '<div class="rc-summary"><h5>Final state</h5>';
             html += '<pre class="rc-code">';
             Object.keys(stateObj).forEach(function(k) {
-                html += '  ' + _esc(k) + ': ' + _esc(JSON.stringify(stateObj[k])) + '\n';
+                var val = stateObj[k];
+                // Format long floating point numbers
+                if (typeof val === 'number' && !Number.isInteger(val)) {
+                    val = val.toFixed(4);
+                } else {
+                    val = JSON.stringify(val);
+                }
+                html += '  ' + _esc(k) + ': ' + _esc(val) + '\n';
             });
             html += '</pre></div>';
         }
 
-        // Verifier results
+        // Verifier results — compact chip layout
         if (rollout.verifier_results && rollout.verifier_results.length > 0) {
-            html += '<div class="rc-summary"><h5>Verifier results</h5>';
+            html += '<div class="rc-summary"><h5>Verifier results</h5><div class="rc-verifier-list">';
             rollout.verifier_results.forEach(function(vr) {
                 var passed = vr.passed;
                 var cls = passed ? 'rc-verifier-pass' : 'rc-verifier-fail';
-                var icon = passed ? '✓' : '✗';
-                html += '<div class="rc-verifier-check ' + cls + '">';
+                var icon = passed ? '\u2713' : '\u2717';
+                html += '<div class="rc-verifier-chip ' + cls + '" title="' + _esc(vr.detail || vr.reason || '') + '">';
                 html += '<span>' + icon + '</span> ';
-                html += '<strong>' + _esc(vr.check || vr.name || '') + '</strong>';
-                if (vr.detail || vr.reason) html += '<br><span style="font-size:0.78rem;color:var(--text-secondary);">Reason: ' + _esc(vr.detail || vr.reason) + '</span>';
+                html += _esc(vr.check || vr.name || '');
                 html += '</div>';
             });
-            html += '</div>';
+            html += '</div></div>';
         }
 
         html += '</div>';

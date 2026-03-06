@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centific AgentWork Simulator - Training</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/global-nav.css">
+    <link rel="stylesheet" href="/static/toast.css">
+    <link rel="stylesheet" href="/static/training.css">
+    <script>
+        (function() {
+            var hostname = window.location.hostname;
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                window.API_BASE = window.API_BASE || 'http://localhost:8000';
+            } else {
+                window.API_BASE = window.API_BASE || window.location.origin;
+            }
+        })();
+    </script>
+    <script src="/config.js" onerror="(function(){})()"></script>
+    <script>
+        (function() {
+            document.documentElement.setAttribute('data-theme', 'light');
+        })();
+    </script>
+</head>
+<body data-page="training">
+    <nav class="gn-bar">
+        <a href="/" class="gn-logo">
+            <img src="/static/logo.svg" alt="" width="28" height="28">
+            <span class="gn-logo-text">Centific <span class="gn-logo-sub">AgentWork Simulator</span></span>
+        </a>
+        <button type="button" class="gn-toggle" aria-label="Toggle menu" onclick="document.querySelector('.gn-links').classList.toggle('gn-open')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <ul class="gn-links">
+            <li><a href="/catalog" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Catalog</a></li>
+            <li><a href="/test-console" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Simulation</a></li>
+            <li><a href="/training-console" class="gn-link gn-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg> Training</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <!-- ═══════ View: Training List (default) ═══════ -->
+        <div id="training-list-view" class="training-view active">
+            <div class="training-list-header">
+                <div>
+                    <h1>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg>
+                        Training Runs
+                    </h1>
+                    <p>Manage and monitor reinforcement learning training runs</p>
+                </div>
+                <button type="button" class="btn btn-primary" id="btn-new-run">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    New Training Run
+                </button>
+            </div>
+
+            <div class="training-info-banner">
+                <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <div>
+                    <h4>About Training Runs</h4>
+                    <p>Training runs use reinforcement learning to improve agent performance on specific tasks. Configure scenarios, verifiers, and training parameters, then monitor progress in real time.</p>
+                </div>
+            </div>
+
+            <div class="training-runs-card">
+                <div class="card-header">
+                    <h3>Recent Runs</h3>
+                    <span id="run-count" style="font-size:0.85rem;color:var(--text-secondary)"></span>
+                </div>
+                <div id="training-runs-body"></div>
+            </div>
+        </div>
+
+        <!-- ═══════ View: New Training Run ═══════ -->
+        <div id="training-new-view" class="training-view">
+            <button type="button" class="training-back-btn" id="btn-back-list">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                Back to Training
+            </button>
+            <h1 class="training-page-title">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.15em"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                New Training Run
+            </h1>
+            <p class="training-page-subtitle">Configure a new reinforcement learning training run</p>
+
+            <div class="sample-data-banner">
+                <button type="button" class="btn btn-outline btn-small" id="btn-prefill-sample">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    Load Sample Data
+                </button>
+                <span class="sample-hint">Pre-fill with test values for Jira Issue Resolution</span>
+            </div>
+
+            <!-- Row 1: Name/Desc + Environment side by side -->
+            <div class="training-form-row">
+                <!-- Section A: Name & Description -->
+                <div class="training-section training-section--compact">
+                    <h3>A. Name &amp; Description</h3>
+                    <div class="t-field">
+                        <label class="t-label" for="tr-name">Run Name</label>
+                        <input type="text" id="tr-name" placeholder="e.g. train_jira_grpo_2026_03">
+                    </div>
+                    <div class="t-field">
+                        <label class="t-label" for="tr-desc">Description</label>
+                        <textarea id="tr-desc" rows="1" placeholder="Brief description of the training objective"></textarea>
+                    </div>
+                </div>
+
+                <!-- Section B: Environment -->
+                <div class="training-section training-section--compact">
+                    <h3>B. Environment</h3>
+                    <div class="t-field">
+                        <label class="t-label" for="tr-env-category">Category</label>
+                        <select id="tr-env-category">
+                            <option value="">— All categories —</option>
+                        </select>
+                    </div>
+                    <div class="t-field">
+                        <label class="t-label" for="tr-env">Environment <span class="t-hint-inline" id="env-count-hint"></span></label>
+                        <select id="tr-env">
+                            <option value="">— Select environment —</option>
+                        </select>
+                    </div>
+                    <div id="env-preview-panel" class="env-preview" style="display:none">
+                        <div class="ep-row"><span class="ep-label">Category</span><span class="ep-value" id="ep-category"></span></div>
+                        <div class="ep-row"><span class="ep-label">System</span><span class="ep-value" id="ep-system"></span></div>
+                        <div class="ep-row"><span class="ep-label">Action Space</span><span class="ep-value" id="ep-action-space"></span></div>
+                        <div class="ep-row"><span class="ep-label">State Features</span><span class="ep-value" id="ep-state-features"></span></div>
+                        <div class="ep-row"><span class="ep-label">Actions</span></div>
+                        <div class="ep-tools" id="ep-tools"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Training Data + Agent side by side -->
+            <div class="training-form-row">
+                <!-- Section C: Training Data & Evaluation -->
+                <div class="training-section training-section--compact">
+                    <h3>C. Training Data &amp; Evaluation</h3>
+                    <p class="t-hint" style="margin-bottom:0.5rem">Filtered by the selected environment</p>
+
+                    <div class="t-field">
+                        <label class="t-label" for="tr-scenario">Scenario</label>
+                        <select id="tr-scenario">
+                            <option value="">— Select scenario —</option>
+                        </select>
+                    </div>
+
+                    <div class="t-field">
+                        <label class="t-label">Verifier</label>
+                        <div class="verifier-toggle" id="verifier-toggle">
+                            <button type="button" class="active" data-mode="existing">Select Existing</button>
+                            <button type="button" data-mode="create">Create New</button>
+                        </div>
+
+                        <!-- Existing verifier dropdown -->
+                        <div id="verifier-existing-panel">
+                            <select id="tr-verifier-existing">
+                                <option value="">— Select verifier —</option>
+                            </select>
+                            <!-- Condition/weight editor shown when existing HIL verifier is selected -->
+                            <div id="existing-hil-panel" style="display:none;margin-top:0.5rem;">
+                                <div class="t-field">
+                                    <label class="t-label">Conditions &amp; Weights</label>
+                                    <div class="condition-table-header">
+                                        <span>Condition</span><span>Weight</span><span></span>
+                                    </div>
+                                    <div id="existing-condition-rows"></div>
+                                    <button type="button" class="add-condition-btn" id="btn-add-existing-condition">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                        Add condition
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Create new verifier inline form -->
+                        <div id="verifier-create-panel" style="display:none">
+                            <div class="verifier-inline-form">
+                                <div class="t-row">
+                                    <div class="t-field">
+                                        <label class="t-label" for="tr-verifier-name">Name</label>
+                                        <input type="text" id="tr-verifier-name" placeholder="e.g. My Custom Verifier">
+                                    </div>
+                                    <div class="t-field">
+                                        <label class="t-label" for="tr-verifier-type">Type</label>
+                                        <select id="tr-verifier-type">
+                                            <option value="rule_based">Rule-based</option>
+                                            <option value="trajectory">Trajectory-based</option>
+                                            <option value="llm_judge">LLM Judge</option>
+                                            <option value="human_eval">Human Eval (HIL)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="t-field" id="verifier-system-field">
+                                    <label class="t-label" for="tr-verifier-system">System</label>
+                                    <input type="text" id="tr-verifier-system" readonly>
+                                </div>
+                                <!-- Fields for rule_based, trajectory, llm_judge -->
+                                <div id="verifier-standard-panel">
+                                    <div class="t-field">
+                                        <label class="t-label" for="tr-verifier-desc">Description</label>
+                                        <textarea id="tr-verifier-desc" rows="2" placeholder="What does this verifier check?"></textarea>
+                                    </div>
+                                    <div class="t-field">
+                                        <label class="t-label" for="tr-verifier-logic">Logic (JSON)</label>
+                                        <textarea id="tr-verifier-logic" rows="3" placeholder='{"checks": {}, "scoring": {}}'></textarea>
+                                    </div>
+                                    <div class="t-field">
+                                        <label class="t-label">Failure Policy</label>
+                                        <div style="display:flex;gap:1.5rem;align-items:center;margin-bottom:0.4rem;">
+                                            <label style="font-weight:400;font-size:0.82rem;display:flex;align-items:center;gap:0.3rem;cursor:pointer;">
+                                                <input type="checkbox" id="tr-verifier-hardfail"> Hard fail
+                                            </label>
+                                            <label style="font-weight:400;font-size:0.82rem;display:flex;align-items:center;gap:0.3rem;cursor:pointer;">
+                                                <input type="checkbox" id="tr-verifier-logfail" checked> Log failure
+                                            </label>
+                                        </div>
+                                        <div class="t-field" style="margin-bottom:0;">
+                                            <label class="t-label" for="tr-verifier-penalty">Penalty</label>
+                                            <input type="number" id="tr-verifier-penalty" value="-0.5" step="0.1">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Human eval condition/weight table (shown when type=human_eval) -->
+                                <div id="human-eval-panel" style="display:none">
+                                    <div class="t-field">
+                                        <label class="t-label">Conditions &amp; Weights</label>
+                                        <div class="condition-table-header">
+                                            <span>Condition</span><span>Weight</span><span></span>
+                                        </div>
+                                        <div id="condition-rows"></div>
+                                        <button type="button" class="add-condition-btn" id="btn-add-condition">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                            Add condition
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="t-row">
+                        <div class="t-field">
+                            <label class="t-label" for="tr-episodes">Episodes</label>
+                            <input type="number" id="tr-episodes" placeholder="320" min="1">
+                        </div>
+                        <div class="t-field">
+                            <label class="t-label" for="tr-steps">Max Steps / Episode</label>
+                            <input type="number" id="tr-steps" placeholder="50" min="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section D: Agent & Training Method -->
+                <div class="training-section training-section--compact">
+                    <h3>D. Agent &amp; Training Method</h3>
+                    <div class="t-field">
+                        <label class="t-label" for="tr-agent">Agent</label>
+                        <p class="t-hint">Trainable agents for selected environment</p>
+                        <select id="tr-agent">
+                            <option value="">— Select agent —</option>
+                        </select>
+                    </div>
+                    <div class="t-field">
+                        <label class="t-label">Algorithm</label>
+                        <div class="algo-group" id="algo-group"></div>
+                    </div>
+                    <div class="t-field">
+                        <button type="button" class="lora-toggle" id="lora-toggle">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                            LoRA Parameters
+                        </button>
+                        <div class="lora-params" id="lora-params">
+                            <div class="t-row">
+                                <div class="t-field">
+                                    <label class="t-label" for="lora-r">r (rank)</label>
+                                    <input type="number" id="lora-r" value="32" min="1">
+                                </div>
+                                <div class="t-field">
+                                    <label class="t-label" for="lora-alpha">lora_alpha</label>
+                                    <input type="number" id="lora-alpha" value="16" min="1">
+                                </div>
+                            </div>
+                            <div class="t-row">
+                                <div class="t-field">
+                                    <label class="t-label" for="lora-dropout">lora_dropout</label>
+                                    <input type="number" id="lora-dropout" value="0.05" min="0" max="1" step="0.01">
+                                </div>
+                                <div class="t-field">
+                                    <label class="t-label" for="lora-bias">bias</label>
+                                    <select id="lora-bias">
+                                        <option value="none" selected>none</option>
+                                        <option value="all">all</option>
+                                        <option value="lora_only">lora_only</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="t-row">
+                                <div class="t-field">
+                                    <label class="t-label" for="lora-task-type">task_type</label>
+                                    <select id="lora-task-type">
+                                        <option value="CAUSAL_LM" selected>CAUSAL_LM</option>
+                                        <option value="SEQ_2_SEQ_LM">SEQ_2_SEQ_LM</option>
+                                        <option value="TOKEN_CLS">TOKEN_CLS</option>
+                                    </select>
+                                </div>
+                                <div class="t-field">
+                                    <label class="t-label" for="lora-target">target_modules</label>
+                                    <input type="text" id="lora-target" value="q_proj, v_proj">
+                                </div>
+                            </div>
+                            <p class="lora-hint">Defaults follow standard QLoRA practices. Adjust only if needed.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="training-footer">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-new">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btn-start-training">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    Start Training
+                </button>
+            </div>
+        </div>
+
+        <!-- ═══════ View: Training Run Details ═══════ -->
+        <div id="training-details-view" class="training-view">
+            <button type="button" class="training-back-btn" id="btn-back-list-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                Back to Training
+            </button>
+
+            <div class="details-header">
+                <h1 id="detail-title">Training Run Details</h1>
+                <span class="status-badge" id="detail-status"></span>
+            </div>
+            <div class="details-actions" id="detail-actions"></div>
+
+            <!-- Training Progress Stepper -->
+            <div id="detail-stepper" class="training-stepper"></div>
+
+            <!-- Metric cards row -->
+            <div class="metric-cards" id="detail-metrics"></div>
+
+            <!-- Info panels 2-col -->
+            <div class="details-grid-2">
+                <div class="info-panel" id="detail-training-info"></div>
+                <div class="info-panel" id="detail-model-config"></div>
+            </div>
+
+            <!-- Rollout comparison full-width -->
+            <div class="details-full">
+                <div class="info-panel">
+                    <div id="detail-rollout"></div>
+                </div>
+            </div>
+
+            <!-- Model Artifact -->
+            <div class="details-full" id="detail-model-artifact-wrap" style="display:none">
+                <div class="info-panel" id="detail-model-artifact"></div>
+            </div>
+
+            <!-- Charts 2-col -->
+            <div class="details-grid-2">
+                <div class="info-panel">
+                    <h3>Training Progress</h3>
+                    <canvas id="chart-progress" style="width:100%;height:220px;"></canvas>
+                </div>
+                <div class="info-panel">
+                    <h3>Failure Modes</h3>
+                    <canvas id="chart-failures" style="width:100%;height:220px;"></canvas>
+                </div>
+            </div>
+
+            <!-- Performance 2-col -->
+            <div class="details-grid-2">
+                <div class="info-panel" id="detail-performance"></div>
+                <div class="info-panel" id="detail-efficiency"></div>
+            </div>
+
+            <!-- Trade-off note -->
+            <div class="tradeoff-note" id="detail-tradeoff" style="display:none"></div>
+        </div>
+    </div>
+
+    <script src="/static/toast.js"></script>
+    <script src="/static/verifier-data.js"></script>
+    <script src="/static/training-config-data.js"></script>
+    <script src="/static/rollout-comparison.js?v=2"></script>
+    <script src="/static/training.js"></script>
+</body>
+</html>

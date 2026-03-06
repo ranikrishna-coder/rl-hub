@@ -7,7 +7,6 @@ Thanks for your interest in contributing! This guide will help you get set up an
 ### Prerequisites
 
 - **Python 3.9+** (3.11 recommended)
-- **Node.js 18+** (for RL-Env-Studio frontend)
 - **Git**
 - **PostgreSQL 15+** (optional, for full database features)
 
@@ -38,19 +37,7 @@ cp .env.example .env
 
 You will need Jira credentials if working on Jira-related environments. Ask the team lead for the shared development credentials or create your own Jira Cloud API token at https://id.atlassian.com/manage-profile/security/api-tokens.
 
-### 4. Build the Frontend (RL-Env-Studio)
-
-```bash
-npm run build:studio
-```
-
-For live development with hot reload:
-
-```bash
-npm run dev:studio
-```
-
-### 5. Run the Test Suite
+### 4. Run the Test Suite
 
 Always run tests before submitting changes:
 
@@ -58,13 +45,13 @@ Always run tests before submitting changes:
 python -m pytest tests/ -v --tb=short
 ```
 
-### 6. Start the Dev Server
+### 5. Start the Dev Server
 
 ```bash
 python -m api.main
 ```
 
-Then open http://localhost:8000 to access the web catalog, simulation console, and RL-Env-Studio.
+Then open http://localhost:8000 to access the web catalog, simulation console, training console, and dashboard.
 
 ## Development Workflow
 
@@ -92,7 +79,7 @@ We use a feature-branch workflow:
 - Keep PRs focused — one feature or fix per PR.
 - Write a clear title and description of what changed and why.
 - Reference any related issues (e.g., "Closes #42").
-- Make sure CI passes (tests, lint, Studio build) before requesting review.
+- Make sure CI passes (tests, lint) before requesting review.
 - Request review from at least one team member.
 
 ### Code Style
@@ -102,7 +89,7 @@ We use a feature-branch workflow:
   black .                        # auto-format
   flake8 . --select=E9,F63,F7,F82  # check for critical issues
   ```
-- **JavaScript/React** (RL-Env-Studio): Follow the existing patterns in `apps/RL-Env-Studio/`.
+- **JavaScript** (frontend): Follow the existing patterns in `api/static/`.
 - Write docstrings for public classes and functions.
 
 ## Adding a New RL Environment
@@ -133,7 +120,7 @@ If you prefer Docker:
 docker compose up --build
 ```
 
-This builds the full stack (Studio + API) and serves at http://localhost:8000.
+This builds the full stack and serves at http://localhost:8000.
 
 ## Project Structure at a Glance
 
@@ -141,7 +128,7 @@ This builds the full stack (Studio + API) and serves at http://localhost:8000.
 environments/    — RL environment implementations (8 categories, 50 envs)
 simulator/       — Simulation engines (patient, hospital, financial, clinical trial)
 api/             — FastAPI backend + static web assets
-apps/            — RL-Env-Studio React SPA + workflow definitions
+apps/            — Workflow definitions
 portal/          — Environment registry
 training/        — PPO/DQN training scripts
 tests/           — Test suite
@@ -156,7 +143,6 @@ Our GitHub Actions pipeline runs automatically on push/PR to `main`:
 
 - **Test** — pytest across Python 3.9–3.12
 - **Lint** — black + flake8 checks
-- **Build Studio** — verifies the React SPA builds
 - **Install Test** — confirms clean install + server startup
 
 All checks must pass before merging.

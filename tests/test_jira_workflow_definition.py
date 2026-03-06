@@ -1,7 +1,7 @@
 """
 Validate Jira workflow definition in apps folder.
 Ensures apps/workflow_definitions/jira_workflows.json exists and matches
-the workflow definition expected by RL-Env-Studio (Scenarios.tsx, Verifiers.tsx).
+the workflow definition expected by the training and simulation consoles.
 """
 
 import json
@@ -12,7 +12,7 @@ import pytest
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORKFLOW_DEF_PATH = os.path.join(REPO_ROOT, "apps", "workflow_definitions", "jira_workflows.json")
 
-# Expected workflows from apps/RL-Env-Studio (Scenarios.tsx)
+# Expected workflows from apps/workflow_definitions
 EXPECTED_WORKFLOWS = {
     "issue_resolution": [
         "get_issue_summary_and_description",
@@ -57,7 +57,7 @@ def test_jira_workflow_definition_workflow_ids():
 
 
 def test_jira_workflow_definition_tool_orders():
-    """Each workflow's expected_tool_order must match apps Scenarios.tsx."""
+    """Each workflow's expected_tool_order must match jira_workflows.json definitions."""
     with open(WORKFLOW_DEF_PATH, "r") as f:
         data = json.load(f)
     for w in data["workflows"]:

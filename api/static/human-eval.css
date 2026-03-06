@@ -238,3 +238,41 @@ pre, .code-block {
     font-size: 0.9rem;
     color: #92400e;
 }
+
+.he-success-banner {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+.he-success-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #22c55e;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.he-success-text {
+    flex: 1;
+}
+.he-success-text strong {
+    display: block;
+    font-size: 1rem;
+    color: #166534;
+    margin-bottom: 0.25rem;
+}
+.he-success-text p {
+    font-size: 0.85rem;
+    color: #15803d;
+    margin: 0;
+}

@@ -1,6 +1,6 @@
 """
 Jira Workflow Verifier
-Aligns with apps/RL-Env-Studio Verifiers.tsx (Jira Issue Resolution, Jira Comment Management).
+Scores Jira Issue Resolution and Jira Comment Management workflows.
 Scores trajectories by tool sequence and argument validity per workflow definition.
 """
 
@@ -24,7 +24,7 @@ def _load_jira_workflow_definition() -> Dict[str, Any]:
 
 class JiraWorkflowVerifier(BaseVerifier):
     """
-    Verifier for Jira workflows. Matches app Verifiers.tsx logic:
+    Verifier for Jira workflows. Matches jira_workflows.json definitions:
     - Jira Issue Resolution: expected_order get_issue_summary_and_description → get_transitions → transition_issue
     - Jira Status Update: get_transitions → transition_issue
     - Jira Comment Management: add_comment → get_comments
@@ -40,7 +40,7 @@ class JiraWorkflowVerifier(BaseVerifier):
             workflows[0] if workflows else {},
         )
         self._expected_order = self._workflow.get("expected_tool_order", [])
-        # Scoring weights from apps/workflow_definitions/jira_workflows.json (aligned with Verifiers.tsx)
+        # Scoring weights from apps/workflow_definitions/jira_workflows.json
         scoring = self._workflow.get("scoring", {})
         self._usage_weight = float(scoring.get("tool_usage_weight", 0.2))
         self._sequence_weight = float(scoring.get("sequence_weight", 0.4))

@@ -33,7 +33,7 @@ The near-term deployment target is **Azure** (Dockerized FastAPI backend serving
       - Environment catalog (`index.html`, `app.js`, `styles.css`).
       - Simulation Console (`simulation-console.html`, `simulation-console.js`, `test-console.css`).
       - Human Evaluation Console (`human-eval.html`).
-      - Optional RL-Env-Studio build at `/static/studio`.
+      - Training Console (`training.html`, `training.js`).
   - Manages in-memory training jobs (`training_jobs` dict).
   - Exposes a healthcheck endpoint.
 
@@ -99,13 +99,13 @@ flowchart LR
         Catalog["Catalog UI (index.html + app.js)"]
         SimConsole["Simulation Console (simulation-console.html + JS)"]
         HumanEval["HITL Evaluation Console (human-eval.html)"]
-        Studio["RL-Env-Studio (optional React SPA build)"]
+        Training["Training Console (training.html + JS)"]
     end
 
     Catalog -->|REST/JSON| API
     SimConsole -->|REST/JSON| API
     HumanEval -->|REST/JSON| API
-    Studio -->|REST/JSON| API
+    Training -->|REST/JSON| API
 
     subgraph Backend[FastAPI Backend (api/main.py)]
         API["FastAPI app<br/>/train, /training, /environments,<br/>/human-eval, /jira/*, /kpis"]
@@ -603,14 +603,14 @@ Below are high-value manual test scenarios for UAT before deployment.
 
 ### 7.3 Static Frontends vs SPA Everywhere
 
-- **Decision:** Keep primary UIs as vanilla HTML + JS (`index.html`, `simulation-console.html`, `human-eval.html`) with an optional React SPA (RL-Env-Studio) for advanced workflows.
+- **Decision:** Keep all UIs as vanilla HTML + JS (`index.html`, `simulation-console.html`, `human-eval.html`, `training.html`) served from FastAPI’s static file mount.
 - **Pros:**
-  - Minimal bundle size; easy to host from FastAPI’s static file mount.
-  - Low build complexity for the main UI.
-  - RL-Env-Studio can evolve independently as an advanced UI layer.
+  - Minimal bundle size; zero build step for frontend.
+  - Low build complexity; no Node.js dependency.
+  - All pages share the same global nav, CSS variables, and toast system.
 - **Cons:**
-  - Less code sharing across frontends.
-  - Harder to reuse complex components without a component framework.
+  - Less code sharing across pages without a component framework.
+  - Complex UI interactions require more manual DOM management.
 
 ### 7.4 SLM Integration
 
@@ -629,8 +629,7 @@ Below are high-value manual test scenarios for UAT before deployment.
 
 - **Deployment target:** Azure (Docker)
   - Dockerfile:
-    - **Stage 1:** Optionally builds RL-Env-Studio if `apps/RL-Env-Studio/package.json` exists; otherwise logs a message and leaves `api/static/studio` empty.
-    - **Stage 2:** Installs Python dependencies, copies code, copies Studio build (empty or real), runs `pytest tests/` as part of the build, then defines the run command (`python -m api.main`).
+    - Single-stage Python build: installs dependencies, copies code, runs `pytest tests/` as part of the build, then defines the run command (`python -m api.main`).
   - Healthcheck configured to call root endpoint periodically.
 
 - **Environment configuration:**
@@ -668,5 +667,5 @@ When adding new features or environments, ensure:
 This document should be kept current as the system evolves, especially when:
 - New domains are added (beyond healthcare and Jira).
 - Training storage moves from in-memory to a persistent store.
-- RL-Env-Studio becomes the primary UI instead of the current static pages.
+- Frontend pages are refactored or a component framework is introduced.
 

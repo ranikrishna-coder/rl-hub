@@ -338,6 +338,8 @@ function showAdvancedDetails() {
             handleVerifierAction(btn.getAttribute('data-vaction'), v.id);
         });
     });
+    // Wire up HIL condition row add/remove events
+    _initSimHilConditionEvents(content);
 }
 
 // ── Expanded Verifier View (reused in Advanced Details) ─────────────
@@ -354,12 +356,41 @@ function renderVerifierExpanded(v) {
             '<div class="verifier-meta-item"><span class="label">Version: </span><span class="value">v' + v.version + '</span></div>' +
             '<div class="verifier-meta-item"><span class="label">System: </span><span class="value">' + esc(v.system) + '</span></div>' +
         '</div></div>';
-    html += '<div class="verifier-detail-section"><h4>Verifier Logic</h4>' +
-        '<div class="verifier-code-block">' + esc(JSON.stringify(v.logic, null, 2)) + '</div></div>';
-    html += '<div class="verifier-detail-section"><h4>Example Input</h4>' +
-        '<div class="verifier-code-block">' + esc(JSON.stringify(v.exampleInput, null, 2)) + '</div></div>';
-    html += '<div class="verifier-detail-section"><h4>Example Output</h4>' +
-        '<div class="verifier-code-block">' + esc(JSON.stringify(v.exampleOutput, null, 2)) + '</div></div>';
+    var isHil = v.type === 'human-eval' || v.type === 'human_evaluation' ||
+        (v.logic && v.logic.type === 'human_evaluation');
+
+    if (isHil) {
+        // Editable Evaluation Conditions & Weights for HIL verifiers
+        var criteria = (v.logic && v.logic.criteria) || [];
+        var equalWeight = criteria.length ? (Math.round((1 / criteria.length) * 100) / 100) : 0;
+        html += '<div class="verifier-detail-section"><h4>Evaluation Conditions &amp; Weights</h4>';
+        html += '<div style="display:flex;justify-content:space-between;padding:0 0 0.35rem;border-bottom:1px solid var(--border-color,#e8e4ef);margin-bottom:0.4rem;">' +
+            '<span style="font-size:0.72rem;text-transform:uppercase;font-weight:600;color:var(--text-secondary);">Condition</span>' +
+            '<span style="font-size:0.72rem;text-transform:uppercase;font-weight:600;color:var(--text-secondary);">Weight</span>' +
+        '</div>';
+        html += '<div id="sim-hil-condition-rows">';
+        if (criteria.length) {
+            criteria.forEach(function (c) {
+                html += _buildSimHilCondRow(c, String(equalWeight));
+            });
+        } else {
+            html += _buildSimHilCondRow('Correct resolution', '0.4');
+            html += _buildSimHilCondRow('Proper status transitions', '0.3');
+            html += _buildSimHilCondRow('', '0.0');
+        }
+        html += '</div>';
+        html += '<button type="button" class="add-condition-btn" id="btn-sim-hil-add-cond" style="margin-top:0.5rem;">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+            ' Add condition</button>';
+        html += '</div>';
+    } else {
+        html += '<div class="verifier-detail-section"><h4>Verifier Logic</h4>' +
+            '<div class="verifier-code-block">' + esc(JSON.stringify(v.logic, null, 2)) + '</div></div>';
+        html += '<div class="verifier-detail-section"><h4>Example Input</h4>' +
+            '<div class="verifier-code-block">' + esc(JSON.stringify(v.exampleInput, null, 2)) + '</div></div>';
+        html += '<div class="verifier-detail-section"><h4>Example Output</h4>' +
+            '<div class="verifier-code-block">' + esc(JSON.stringify(v.exampleOutput, null, 2)) + '</div></div>';
+    }
     html += '<div class="verifier-detail-section"><h4>Used by Scenarios</h4>' +
         '<ul class="verifier-scenario-list">' +
         v.usedInScenarios.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') +
@@ -373,6 +404,58 @@ function renderVerifierExpanded(v) {
         '</div>';
     html += '</div>';
     return html;
+}
+
+// ── HIL Condition Row Helpers (Simulation Expanded View) ──────────
+
+function _buildSimHilCondRow(cond, weight) {
+    return '<div class="condition-row" style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.4rem;">' +
+        '<input type="text" class="sim-hil-cond-name" placeholder="Condition" value="' + esc(cond || '') + '" ' +
+            'style="flex:1;padding:0.45rem 0.6rem;border:1px solid var(--border-color,#e8e4ef);border-radius:6px;font-size:0.85rem;">' +
+        '<input type="number" class="sim-hil-cond-weight" placeholder="0.0" step="0.1" min="0" max="1" value="' + esc(weight || '') + '" ' +
+            'style="width:70px;padding:0.45rem 0.6rem;border:1px solid var(--border-color,#e8e4ef);border-radius:6px;font-size:0.85rem;text-align:center;">' +
+        '<button type="button" class="sim-hil-cond-remove" title="Remove" ' +
+            'style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:1.1rem;padding:0 0.3rem;">&times;</button>' +
+    '</div>';
+}
+
+function _initSimHilConditionEvents(container) {
+    // Add condition button
+    var addBtn = container.querySelector('#btn-sim-hil-add-cond');
+    if (addBtn) {
+        addBtn.addEventListener('click', function () {
+            var rows = container.querySelector('#sim-hil-condition-rows');
+            if (rows) {
+                rows.insertAdjacentHTML('beforeend', _buildSimHilCondRow('', '0.0'));
+                _updateSimHilRemoveButtons(rows);
+            }
+        });
+    }
+    // Remove buttons (delegated)
+    var rowsContainer = container.querySelector('#sim-hil-condition-rows');
+    if (rowsContainer) {
+        rowsContainer.addEventListener('click', function (e) {
+            var btn = e.target.closest('.sim-hil-cond-remove');
+            if (btn) {
+                var rows = rowsContainer.querySelectorAll('.condition-row');
+                if (rows.length > 1) {
+                    btn.closest('.condition-row').remove();
+                    _updateSimHilRemoveButtons(rowsContainer);
+                }
+            }
+        });
+        _updateSimHilRemoveButtons(rowsContainer);
+    }
+}
+
+function _updateSimHilRemoveButtons(container) {
+    var rows = container.querySelectorAll('.condition-row');
+    rows.forEach(function (r) {
+        var btn = r.querySelector('.sim-hil-cond-remove');
+        if (btn) {
+            btn.style.visibility = rows.length <= 1 ? 'hidden' : 'visible';
+        }
+    });
 }
 
 // ── Lifecycle Actions ──────────────────────────────────────────────
@@ -438,14 +521,28 @@ function _openCreateVerifierModal() {
             '<div class="form-group"><label>Name</label><input type="text" id="new-v-name" placeholder="e.g. My Custom Verifier"></div>' +
             '<div class="form-group"><label>Type</label><select id="new-v-type"><option value="rule-based">Rule-based</option><option value="trajectory-based">Trajectory-based</option><option value="llm-judge">LLM Judge</option><option value="human-eval">Human Eval (HIL)</option></select></div>' +
             '<div class="form-group"><label>System</label><input type="text" id="new-v-system" value="' + escAttr(_verifierActiveSystem || '') + '" readonly></div>' +
-            '<div class="form-group"><label>Description</label><textarea id="new-v-desc" rows="2" placeholder="What does this verifier check?"></textarea></div>' +
-            '<div class="form-group"><label>Logic (JSON)</label><textarea id="new-v-logic" rows="4" placeholder=\'{"checks": {}, "scoring": {}}\'></textarea></div>' +
-            '<div class="form-group"><label>Failure Policy</label>' +
-                '<div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.3rem;">' +
-                    '<label style="font-weight:400;font-size:0.8rem;"><input type="checkbox" id="new-v-hardfail"> Hard fail</label>' +
-                    '<label style="font-weight:400;font-size:0.8rem;"><input type="checkbox" id="new-v-logfail" checked> Log failure</label>' +
+            /* Standard fields for rule-based, trajectory, llm-judge */
+            '<div id="new-v-standard-panel">' +
+                '<div class="form-group"><label>Description</label><textarea id="new-v-desc" rows="2" placeholder="What does this verifier check?"></textarea></div>' +
+                '<div class="form-group"><label>Logic (JSON)</label><textarea id="new-v-logic" rows="4" placeholder=\'{"checks": {}, "scoring": {}}\'></textarea></div>' +
+                '<div class="form-group"><label>Failure Policy</label>' +
+                    '<div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.3rem;">' +
+                        '<label style="font-weight:400;font-size:0.8rem;"><input type="checkbox" id="new-v-hardfail"> Hard fail</label>' +
+                        '<label style="font-weight:400;font-size:0.8rem;"><input type="checkbox" id="new-v-logfail" checked> Log failure</label>' +
+                    '</div>' +
+                    '<div class="form-group" style="margin-bottom:0;"><label style="font-size:0.78rem;">Penalty</label><input type="number" id="new-v-penalty" value="-0.5" step="0.1"></div>' +
                 '</div>' +
-                '<div class="form-group" style="margin-bottom:0;"><label style="font-size:0.78rem;">Penalty</label><input type="number" id="new-v-penalty" value="-0.5" step="0.1"></div>' +
+            '</div>' +
+            /* Condition/weight panel for human-eval */
+            '<div id="new-v-hil-panel" style="display:none">' +
+                '<div class="form-group">' +
+                    '<label>Evaluation Conditions &amp; Weights</label>' +
+                    '<div style="display:flex;justify-content:space-between;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.03em;color:#5a5568;padding:0.3rem 0;border-bottom:1px solid #e8e4ef;margin-bottom:0.5rem;">' +
+                        '<span>Condition</span><span>Weight</span>' +
+                    '</div>' +
+                    '<div id="new-v-condition-rows"></div>' +
+                    '<button type="button" id="new-v-add-condition" style="background:none;border:none;color:#9333ea;font-size:0.82rem;cursor:pointer;padding:0.4rem 0;font-weight:500;">+ Add condition</button>' +
+                '</div>' +
             '</div>' +
             '<div class="verifier-modal-actions">' +
                 '<button class="btn btn-secondary" id="new-v-cancel">Cancel</button>' +
@@ -456,22 +553,70 @@ function _openCreateVerifierModal() {
     document.body.appendChild(overlay);
     overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
     document.getElementById('new-v-cancel').addEventListener('click', function () { overlay.remove(); });
+
+    // Type toggle: show standard fields or condition/weight panel
+    var typeSelect = document.getElementById('new-v-type');
+    var stdPanel = document.getElementById('new-v-standard-panel');
+    var hilPanel = document.getElementById('new-v-hil-panel');
+    typeSelect.addEventListener('change', function () {
+        var isHil = typeSelect.value === 'human-eval';
+        stdPanel.style.display = isHil ? 'none' : '';
+        hilPanel.style.display = isHil ? '' : 'none';
+        // Pre-populate default conditions if empty
+        if (isHil && !document.querySelector('#new-v-condition-rows .new-v-cond-row')) {
+            _addModalConditionRow('Correct resolution', '0.4');
+            _addModalConditionRow('Proper status transitions', '0.3');
+            _addModalConditionRow('Communication quality', '0.3');
+        }
+    });
+
+    // Condition row management
+    document.getElementById('new-v-add-condition').addEventListener('click', function () {
+        _addModalConditionRow('', '0.0');
+    });
+    document.getElementById('new-v-condition-rows').addEventListener('click', function (e) {
+        var btn = e.target.closest('.new-v-cond-remove');
+        if (btn) {
+            btn.closest('.new-v-cond-row').remove();
+            _updateModalConditionRemoveButtons();
+        }
+    });
+
     document.getElementById('new-v-save').addEventListener('click', function () {
         var name = document.getElementById('new-v-name').value.trim();
         if (!name) { if (window.showToast) window.showToast('Verifier name is required', 'warning'); return; }
         var type = document.getElementById('new-v-type').value;
         var system = document.getElementById('new-v-system').value;
-        var desc = document.getElementById('new-v-desc').value.trim();
-        var logicRaw = document.getElementById('new-v-logic').value.trim();
-        var logic = {};
-        if (logicRaw) { try { logic = JSON.parse(logicRaw); } catch (e) { if (window.showToast) window.showToast('Invalid JSON in Logic field', 'error'); return; } }
-        var penalty = parseFloat(document.getElementById('new-v-penalty').value) || -0.5;
-        var hardFail = document.getElementById('new-v-hardfail').checked;
-        var logFail = document.getElementById('new-v-logfail').checked;
         var category = '';
         window.VERIFIER_DATA.systems.forEach(function (s) { if (s.system === system) category = s.category; });
         var onFailure = type === 'human-eval' ? 'block_training' : 'log_and_continue';
         var timeout = type === 'human-eval' ? 'manual' : '30s';
+
+        var desc = '';
+        var logic = {};
+        var hardFail = false;
+        var logFail = true;
+        var penalty = -0.5;
+
+        if (type === 'human-eval') {
+            // Collect conditions
+            var conditions = [];
+            document.querySelectorAll('#new-v-condition-rows .new-v-cond-row').forEach(function (row) {
+                var cond = row.querySelector('.new-v-cond-name').value.trim();
+                var wt = parseFloat(row.querySelector('.new-v-cond-weight').value) || 0;
+                if (cond) conditions.push({ condition: cond, weight: wt });
+            });
+            logic = { type: 'human_evaluation', criteria: conditions.map(function (c) { return c.condition; }), conditions: conditions, scoring: 'manual', output_range: [0, 1] };
+            hardFail = true;
+            penalty = 0;
+        } else {
+            desc = document.getElementById('new-v-desc').value.trim();
+            var logicRaw = document.getElementById('new-v-logic').value.trim();
+            if (logicRaw) { try { logic = JSON.parse(logicRaw); } catch (e) { if (window.showToast) window.showToast('Invalid JSON in Logic field', 'error'); return; } }
+            penalty = parseFloat(document.getElementById('new-v-penalty').value) || -0.5;
+            hardFail = document.getElementById('new-v-hardfail').checked;
+            logFail = document.getElementById('new-v-logfail').checked;
+        }
 
         var newV = {
             id: window.VERIFIER_DATA.generateId(),
@@ -500,6 +645,24 @@ function _openCreateVerifierModal() {
         showSubVerifierFilter();
         showHilNotice();
         showAdvancedDetails();
+    });
+}
+
+function _addModalConditionRow(cond, weight) {
+    var container = document.getElementById('new-v-condition-rows');
+    var html = '<div class="new-v-cond-row" style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;">' +
+        '<input type="text" class="new-v-cond-name" placeholder="Condition" value="' + escAttr(cond || '') + '" style="flex:1;padding:0.5rem;border:1px solid #e8e4ef;border-radius:6px;font-size:0.85rem;">' +
+        '<input type="number" class="new-v-cond-weight" value="' + escAttr(weight || '0.0') + '" step="0.1" min="0" max="1" style="width:70px;padding:0.5rem;border:1px solid #e8e4ef;border-radius:6px;font-size:0.85rem;text-align:center;">' +
+        '<button type="button" class="new-v-cond-remove" style="background:none;border:none;cursor:pointer;color:#999;font-size:1.1rem;padding:0 0.3rem;" title="Remove">&times;</button>' +
+        '</div>';
+    container.insertAdjacentHTML('beforeend', html);
+    _updateModalConditionRemoveButtons();
+}
+
+function _updateModalConditionRemoveButtons() {
+    var rows = document.querySelectorAll('#new-v-condition-rows .new-v-cond-row');
+    rows.forEach(function (r) {
+        r.querySelector('.new-v-cond-remove').style.visibility = rows.length <= 1 ? 'hidden' : 'visible';
     });
 }
 
@@ -886,28 +1049,6 @@ async function initializeEnvironment() {
         updateDisplay();
         updateMetrics();
 
-        // Dashboard: record simulation initialized with rich config for execution trajectory
-        try {
-            const _vConfig = getSelectedVerifierConfig();
-            const metadata = {
-                step_count: 0,
-                agent_strategy: config.agentStrategy,
-                agent_model: config.agentModel || 'N/A',
-                verifier_type: _vConfig.type || 'default',
-                system_integrated: currentEnvironment && currentEnvironment.startsWith('Jira') ? 'Jira' : 'Simulation',
-                config_summary: Object.keys(config).filter(k => !['verifier_config'].includes(k)).reduce((o, k) => { o[k] = config[k]; return o; }, {}),
-            };
-            fetch(`${API_BASE}/api/dashboard/activity`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    event_type: 'simulation_initialized',
-                    environment_name: currentEnvironment,
-                    metadata
-                })
-            }).catch(() => {});
-        } catch (e) { /* ignore */ }
-        
         document.getElementById('btn-step').disabled = false;
         document.getElementById('btn-auto').disabled = false;
         const humanEvalStatusEl = document.getElementById('human-eval-status');

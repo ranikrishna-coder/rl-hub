@@ -20,7 +20,7 @@ This document describes the frameworks, libraries, and pipelines used for reinfo
 
 ### 1. API Training (`POST /train/{environment_name}`)
 
-Triggered via the web catalog, RL-Env-Studio, or REST API. Uses a **custom episode loop** in `api/main.py` (`run_training`).
+Triggered via the web catalog, training console, or REST API. Uses a **custom episode loop** in `api/main.py` (`run_training`).
 
 - **Episodes:** Configurable (e.g. 100 default, 320 for Jira envs)
 - **Max steps per episode:** Configurable (e.g. 1000 default, 50 for Jira)

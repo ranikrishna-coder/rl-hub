@@ -22,8 +22,6 @@ wheels/
 
 # Node
 node_modules/
-apps/RL-Env-Studio/
-api/static/studio/
 
 # Virtual Environment
 venv/

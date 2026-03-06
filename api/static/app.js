@@ -1861,7 +1861,6 @@ function showEnvironmentDetails(envName) {
             <div class="detail-action-bar">
                 <button class="btn btn-primary" onclick="window.location.href='/test-console?env=${encodeURIComponent(envName)}'" title="Open simulation console">🧪 Open Simulation</button>
                 <button class="btn btn-secondary" onclick="openTrainingConfig('${envName}')" title="Start PPO training">🎓 Start Training</button>
-                <button class="btn btn-outline" onclick="openTrainingMonitor()" title="View training jobs" style="background: var(--card-bg); border-color: var(--border-color); color: var(--text-primary);">📊 Monitor Training</button>
             </div>
         </div>
 
@@ -1909,18 +1908,6 @@ function showEnvironmentDetails(envName) {
     document.getElementById('catalog-container').style.display = 'none';
     document.getElementById('env-detail-page').style.display = 'block';
 
-    // Dashboard: record environment viewed
-    try {
-        fetch(`${API_BASE}/api/dashboard/activity`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                event_type: 'environment_viewed',
-                environment_name: envName,
-                metadata: { category: env.category, system: env.system }
-            })
-        }).catch(() => {});
-    } catch (e) { /* ignore */ }
 }
 
 async function testEnvironment(envName) {
@@ -1946,6 +1933,11 @@ const JIRA_ENVS = ['JiraIssueResolution', 'JiraStatusUpdate', 'JiraCommentManage
 const JIRA_ENV_TO_WORKFLOW = { JiraIssueResolution: 'issue_resolution', JiraStatusUpdate: 'status_update', JiraCommentManagement: 'comment_management', JiraSubtaskManagement: 'subtask_management' };
 
 function openTrainingConfig(envName) {
+    // Navigate to Training Console with environment pre-selected
+    window.location.href = '/training-console?env=' + encodeURIComponent(envName);
+}
+
+function _openTrainingConfigModal(envName) {
     const env = allEnvironments.find(e => e.name === envName);
     const exampleConfig = getExampleConfig(envName);
     const systemStr = (env && env.system) ? env.system : 'Multiple';
@@ -3011,7 +3003,7 @@ function displayTrainingJob(jobData) {
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                 <div>
                     <h3 style="margin-bottom: 0.5rem; color: var(--text-primary);">
-                        ${statusIcon} ${formatEnvironmentName(jobData.environment_name || 'Unknown')}
+                        ${formatEnvironmentName(jobData.environment_name || 'Unknown')}
                     </h3>
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-secondary);">
                         <span><strong>Job ID:</strong> <code style="background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 4px;">${jobData.job_id}</code></span>

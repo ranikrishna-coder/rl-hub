@@ -95,7 +95,6 @@ if os.path.exists(static_dir):
 # In production, you may want to restrict this to specific domains
 allowed_origins = [
     "http://localhost:8000",
-    "http://localhost:3000",
     "http://127.0.0.1:8000",
     "https://ranikrishna-coder.github.io",
 ]
@@ -116,7 +115,7 @@ app.add_middleware(
 )
 
 # Training jobs storage (in production, use database)
-training_jobs: Dict[str, Dict[str, Any]] = {}
+training_jobs: Dict[str, Dict[str, Any]] = {}  # Clean slate — populated by POST /train
 
 # Observability storage (in production, use database)
 reward_loggers: Dict[str, RewardLogger] = {}
@@ -127,17 +126,154 @@ audit_loggers: Dict[str, AuditLogger] = {}
 # Governance storage
 governance_configs: Dict[str, Dict[str, Any]] = {}
 
-# Dashboard / BI: activity log (in-memory; for production use a database)
-dashboard_activities: List[Dict[str, Any]] = []
-
 # Rollout storage: { environment_name: [ rollout_dict, ... ] }
-rollout_store: Dict[str, List[Dict[str, Any]]] = {}
+rollout_store: Dict[str, List[Dict[str, Any]]] = {}  # Clean slate — populated during training
+
+_archived_seed_rollouts = {
+    "JiraIssueResolution": [
+        {
+            "id": "bl_seed_001",
+            "environment_name": "JiraIssueResolution",
+            "episode_number": 0,
+            "total_reward": 0.12,
+            "total_steps": 3,
+            "status": "completed",
+            "source": "training",
+            "policy_name": "qwen-1.7b-instruct",
+            "checkpoint_label": "base",
+            "scenario_name": "Resolve Jira ticket ISK2",
+            "timestamp": "2026-01-16T08:00:00Z",
+            "steps": [
+                {"step": 1, "action": None, "reward": 0.02, "timeline_events": [
+                    {"timestamp_ms": 0, "event_type": "SYSTEM", "content": "User request received: \"Resolve Jira ticket ISK2\""},
+                    {"timestamp_ms": 412, "event_type": "MODEL_THOUGHT", "content": "Need to resolve the ticket."}
+                ]},
+                {"step": 2, "action": None, "reward": 0.05, "timeline_events": [
+                    {"timestamp_ms": 913, "event_type": "MODEL_THOUGHT", "content": "Should check possible transitions."}
+                ]},
+                {"step": 3, "action": None, "reward": 0.05, "timeline_events": [
+                    {"timestamp_ms": 1284, "event_type": "MODEL_THOUGHT", "content": "No further action taken."}
+                ]},
+            ],
+            "final_outcome": {"reward": 0.12, "steps": 3, "resolved": False},
+            "final_environment_state": {"issue_key": "ISK2", "status": "In Progress"},
+            "verifier_results": [
+                {"check": "Tool Sequence Validator", "passed": False, "detail": "No tool calls observed"},
+                {"check": "Transition Validator", "passed": False, "detail": "transition_issue was never invoked"},
+            ],
+        },
+        {
+            "id": "tr_seed_001",
+            "environment_name": "JiraIssueResolution",
+            "episode_number": 287,
+            "total_reward": 0.91,
+            "total_steps": 3,
+            "status": "completed",
+            "source": "training",
+            "policy_name": "qwen-1.7b-instruct",
+            "checkpoint_label": "jira_grpo_step_300",
+            "scenario_name": "Resolve Jira ticket ISK2",
+            "timestamp": "2026-01-16T08:42:00Z",
+            "steps": [
+                {"step": 1, "action": "get_issue_summary_and_description", "reward": 0.15, "timeline_events": [
+                    {"timestamp_ms": 0, "event_type": "SYSTEM", "content": "User request received: \"Resolve Jira ticket ISK2\""},
+                    {"timestamp_ms": 88, "event_type": "TOOL_CALL", "tool_name": "get_issue_summary_and_description", "tool_args": {"issue_key": "ISK2"}},
+                    {"timestamp_ms": 168, "event_type": "TOOL_RESULT", "content": "ISK-2: \"Login page error\" — Status: Open, Priority: High"},
+                ]},
+                {"step": 2, "action": "get_transitions", "reward": 0.20, "timeline_events": [
+                    {"timestamp_ms": 248, "event_type": "TOOL_CALL", "tool_name": "get_transitions", "tool_args": {"issue_key": "ISK2"}},
+                    {"timestamp_ms": 338, "event_type": "TOOL_RESULT", "content": "valid_transitions:\n  - id: 61\n    name: Done"},
+                ]},
+                {"step": 3, "action": "transition_issue", "reward": 0.56, "timeline_events": [
+                    {"timestamp_ms": 418, "event_type": "TOOL_CALL", "tool_name": "transition_issue", "tool_args": {"issue_key": "ISK2", "transition_id": "61"}},
+                    {"timestamp_ms": 508, "event_type": "TOOL_RESULT", "content": "Status changed: Open → Done"},
+                ]},
+            ],
+            "final_outcome": {"reward": 0.91, "steps": 3, "resolved": True},
+            "final_environment_state": {"issue_status": "Done", "resolution": "Fixed", "comments": 0},
+            "verifier_results": [
+                {"check": "Tool sequence order", "passed": True, "detail": "get_issue → get_transitions → transition_issue — correct order"},
+                {"check": "Valid transitions only", "passed": True, "detail": "All transition_ids from get_transitions result"},
+                {"check": "Issue resolved", "passed": True, "detail": "Issue moved to Done status"},
+            ],
+        },
+    ],
+    "TreatmentPathwayOptimization": [
+        {
+            "id": "bl_seed_003",
+            "environment_name": "TreatmentPathwayOptimization",
+            "episode_number": 0,
+            "total_reward": 0.15,
+            "total_steps": 3,
+            "status": "completed",
+            "source": "training",
+            "policy_name": "mistral-7b-instruct-v0.3",
+            "checkpoint_label": "base",
+            "scenario_name": "Optimize treatment pathway",
+            "timestamp": "2026-01-12T10:00:00Z",
+            "steps": [
+                {"step": 1, "action": None, "reward": 0.03, "timeline_events": [
+                    {"timestamp_ms": 0, "event_type": "SYSTEM", "content": "Patient case loaded: chronic condition management"},
+                    {"timestamp_ms": 350, "event_type": "MODEL_THOUGHT", "content": "Reviewing patient history for treatment options."},
+                ]},
+                {"step": 2, "action": None, "reward": 0.06, "timeline_events": [
+                    {"timestamp_ms": 780, "event_type": "MODEL_THOUGHT", "content": "Multiple pathways available but unclear which to select."},
+                ]},
+                {"step": 3, "action": None, "reward": 0.06, "timeline_events": [
+                    {"timestamp_ms": 1100, "event_type": "MODEL_THOUGHT", "content": "No treatment action taken — session ended."},
+                ]},
+            ],
+            "final_outcome": {"reward": 0.15, "steps": 3, "resolved": False},
+            "final_environment_state": {"pathway_status": "Incomplete", "interventions": 0},
+            "verifier_results": [
+                {"check": "Treatment Selection", "passed": False, "detail": "No treatment pathway selected"},
+                {"check": "Protocol Compliance", "passed": False, "detail": "No clinical actions observed"},
+            ],
+        },
+        {
+            "id": "tr_seed_003",
+            "environment_name": "TreatmentPathwayOptimization",
+            "episode_number": 180,
+            "total_reward": 0.78,
+            "total_steps": 3,
+            "status": "completed",
+            "source": "training",
+            "policy_name": "mistral-7b-instruct-v0.3",
+            "checkpoint_label": "treatment_ppo_step_200",
+            "scenario_name": "Optimize treatment pathway",
+            "timestamp": "2026-01-12T11:30:00Z",
+            "steps": [
+                {"step": 1, "action": "get_patient_summary", "reward": 0.18, "timeline_events": [
+                    {"timestamp_ms": 0, "event_type": "SYSTEM", "content": "Patient case loaded: chronic condition management"},
+                    {"timestamp_ms": 95, "event_type": "TOOL_CALL", "tool_name": "get_patient_summary", "tool_args": {"patient_id": "PT-4421"}},
+                    {"timestamp_ms": 180, "event_type": "TOOL_RESULT", "content": "Patient PT-4421: Age 58, Dx: Type 2 Diabetes, HbA1c: 8.2%"},
+                ]},
+                {"step": 2, "action": "list_treatment_options", "reward": 0.22, "timeline_events": [
+                    {"timestamp_ms": 260, "event_type": "TOOL_CALL", "tool_name": "list_treatment_options", "tool_args": {"condition": "Type 2 Diabetes", "hba1c": 8.2}},
+                    {"timestamp_ms": 350, "event_type": "TOOL_RESULT", "content": "Options: 1) Metformin + lifestyle, 2) Add GLP-1 agonist, 3) Insulin therapy"},
+                ]},
+                {"step": 3, "action": "select_pathway", "reward": 0.38, "timeline_events": [
+                    {"timestamp_ms": 430, "event_type": "TOOL_CALL", "tool_name": "select_pathway", "tool_args": {"pathway": "Metformin + GLP-1 agonist", "rationale": "HbA1c > 7.5, oral therapy preferred"}},
+                    {"timestamp_ms": 520, "event_type": "TOOL_RESULT", "content": "Treatment pathway selected and scheduled. Follow-up in 3 months."},
+                ]},
+            ],
+            "final_outcome": {"reward": 0.78, "steps": 3, "resolved": True},
+            "final_environment_state": {"pathway_status": "Active", "interventions": 2, "follow_up": "3 months"},
+            "verifier_results": [
+                {"check": "Treatment Selection", "passed": True, "detail": "Appropriate pathway selected for HbA1c level"},
+                {"check": "Protocol Compliance", "passed": True, "detail": "All clinical guidelines followed"},
+                {"check": "Patient Safety", "passed": True, "detail": "No contraindicated treatments selected"},
+            ],
+        },
+    ],
+}
 
 
 class TrainingRequest(BaseModel):
     environment_name: Optional[str] = None
     config: Optional[Dict[str, Any]] = None
     algorithm: str = "PPO"
+    model: Optional[str] = None
     num_episodes: int = 100
     max_steps: int = 1000
     dataset_url: Optional[str] = None
@@ -181,66 +317,6 @@ class RolloutRecord(BaseModel):
     final_environment_state: Optional[Dict[str, Any]] = None
 
 
-class DashboardActivityRequest(BaseModel):
-    """Request body for recording a dashboard activity event."""
-    event_type: str  # e.g. environment_viewed, training_started, simulation_initialized
-    environment_name: Optional[str] = None
-    job_id: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
-
-
-def _record_dashboard_activity(
-    event_type: str,
-    environment_name: Optional[str] = None,
-    job_id: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
-):
-    """Append an activity to the dashboard log. Thread-safe for single-process."""
-    import uuid
-    from datetime import datetime, timezone
-    entry = {
-        "id": str(uuid.uuid4()),
-        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "event_type": event_type,
-        "environment_name": environment_name,
-        "job_id": job_id,
-        "metadata": metadata or {},
-    }
-    dashboard_activities.append(entry)
-    # Keep last 10k activities to avoid unbounded growth
-    if len(dashboard_activities) > 10000:
-        dashboard_activities[:] = dashboard_activities[-9000:]
-
-
-# RL-Env-Studio SPA: serve built React app at /studio
-_studio_dir = os.path.join(static_dir, "studio")
-_studio_index = os.path.join(_studio_dir, "index.html")
-
-
-@app.get("/studio")
-async def studio_root():
-    """Serve RL-Env-Studio SPA (Dashboard, Scenarios, Verifiers, Gym, Training, etc.)"""
-    if os.path.isfile(_studio_index):
-        return FileResponse(_studio_index)
-    raise HTTPException(
-        status_code=404,
-        detail="RL-Env-Studio not built. Run: npm run build:studio",
-    )
-
-
-@app.get("/studio/{full_path:path}")
-async def studio_spa(full_path: str):
-    """Serve RL-Env-Studio static assets or SPA fallback for client-side routes"""
-    file_path = os.path.join(_studio_dir, full_path)
-    if os.path.isfile(file_path):
-        return FileResponse(file_path)
-    if os.path.isfile(_studio_index):
-        return FileResponse(_studio_index)  # SPA fallback for /studio/verifiers etc.
-    raise HTTPException(
-        status_code=404,
-        detail="RL-Env-Studio not built. Run: npm run build:studio",
-    )
-
 
 @app.get("/")
 async def root():
@@ -262,14 +338,15 @@ async def catalog_page():
     raise HTTPException(status_code=404, detail="Catalog not found")
 
 
-@app.get("/dashboard")
-async def dashboard_page():
-    """Serve the BI / Analytics dashboard UI."""
+
+@app.get("/training-console")
+async def training_console_page():
+    """Serve the Training Console UI."""
     static_dir = os.path.join(os.path.dirname(__file__), "static")
-    path = os.path.join(static_dir, "dashboard.html")
+    path = os.path.join(static_dir, "training.html")
     if os.path.exists(path):
         return FileResponse(path)
-    raise HTTPException(status_code=404, detail="Dashboard not found")
+    raise HTTPException(status_code=404, detail="Training console not found")
 
 
 @app.get("/contact")
@@ -298,7 +375,6 @@ async def api_info():
         "endpoints": {
             "landing": "/",
             "catalog": "/catalog",
-            "dashboard": "/dashboard",
             "simulation_console": "/test-console",
             "studio": "/studio",
             "environments": "/environments",
@@ -400,208 +476,6 @@ async def api_contact_submit(body: ContactSubmissionRequest, background_tasks: B
         )
     background_tasks.add_task(_send_contact_email, body)
     return {"ok": True, "message": "Thank you. Your message has been submitted."}
-
-
-# ---------- Dashboard / BI API ----------
-
-@app.post("/api/dashboard/activity")
-async def api_dashboard_record_activity(body: DashboardActivityRequest):
-    """Record a dashboard activity event (e.g. environment_viewed, simulation_initialized)."""
-    _record_dashboard_activity(
-        body.event_type,
-        environment_name=body.environment_name,
-        job_id=body.job_id,
-        metadata=body.metadata,
-    )
-    last = dashboard_activities[-1] if dashboard_activities else {}
-    return {"success": True, "id": last.get("id"), "timestamp": last.get("timestamp")}
-
-
-@app.get("/api/dashboard/activities")
-async def api_dashboard_activities(
-    from_date: Optional[str] = None,
-    to_date: Optional[str] = None,
-    group_by: Optional[str] = None,  # "day" | "week" | "month"
-    environment_name: Optional[str] = None,
-):
-    """List dashboard activities with optional date range and grouping."""
-    from datetime import datetime
-
-    activities = list(dashboard_activities)
-
-    def parse_ts(ts: str):
-        try:
-            return datetime.fromisoformat(ts.replace("Z", "+00:00"))
-        except Exception:
-            return None
-
-    if from_date:
-        try:
-            from_dt = datetime.fromisoformat(from_date.replace("Z", "+00:00"))
-            activities = [a for a in activities if parse_ts(a.get("timestamp", "")) and parse_ts(a["timestamp"]) >= from_dt]
-        except Exception:
-            pass
-    if to_date:
-        try:
-            to_dt = datetime.fromisoformat(to_date.replace("Z", "+00:00"))
-            activities = [a for a in activities if parse_ts(a.get("timestamp", "")) and parse_ts(a["timestamp"]) <= to_dt]
-        except Exception:
-            pass
-    if environment_name:
-        activities = [a for a in activities if (a.get("environment_name") or "") == environment_name]
-
-    # Sort newest first
-    activities.sort(key=lambda a: a.get("timestamp", ""), reverse=True)
-
-    if group_by in ("day", "week", "month"):
-        grouped = {}
-        for a in activities:
-            ts = parse_ts(a.get("timestamp", ""))
-            if not ts:
-                key = "unknown"
-            elif group_by == "day":
-                key = ts.strftime("%Y-%m-%d")
-            elif group_by == "week":
-                # ISO week
-                key = ts.strftime("%Y-W%W")
-            else:
-                key = ts.strftime("%Y-%m")
-            grouped.setdefault(key, []).append(a)
-        return {"activities": activities, "grouped": grouped}
-
-    return {"activities": activities}
-
-
-@app.get("/api/dashboard/summary")
-async def api_dashboard_summary(
-    from_date: Optional[str] = None,
-    to_date: Optional[str] = None,
-):
-    """Summary of dashboard activity: by environment, total count."""
-    from datetime import datetime
-
-    activities = list(dashboard_activities)
-    if from_date or to_date:
-        def parse_ts(ts):
-            try:
-                return datetime.fromisoformat(ts.replace("Z", "+00:00"))
-            except Exception:
-                return None
-        if from_date:
-            try:
-                from_dt = datetime.fromisoformat(from_date.replace("Z", "+00:00"))
-                activities = [a for a in activities if parse_ts(a.get("timestamp", "")) and parse_ts(a["timestamp"]) >= from_dt]
-            except Exception:
-                pass
-        if to_date:
-            try:
-                to_dt = datetime.fromisoformat(to_date.replace("Z", "+00:00"))
-                activities = [a for a in activities if parse_ts(a.get("timestamp", "")) and parse_ts(a["timestamp"]) <= to_dt]
-            except Exception:
-                pass
-
-    by_environment = {}
-    for a in activities:
-        env = a.get("environment_name") or "unknown"
-        by_environment[env] = by_environment.get(env, 0) + 1
-    return {
-        "total_activities": len(activities),
-        "by_environment": by_environment,
-        "environments_used": list(by_environment.keys()),
-    }
-
-
-@app.get("/api/dashboard/job/{job_id}/execution-story")
-async def api_dashboard_job_execution_story(job_id: str):
-    """Return a structured step-by-step execution story for a training job (for BI dashboard)."""
-    job = training_jobs.get(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
-
-    env_name = job.get("environment_name", "unknown")
-    system_integrated = "Jira" if (env_name or "").startswith("Jira") else (job.get("metadata", {}).get("system") or "N/A")
-    verifier_config = job.get("verifier_config") or {}
-    verifier_type = verifier_config.get("verifier_type") or "none"
-    steps = [
-        {
-            "step": 1,
-            "name": "Environment selection",
-            "icon": "target",
-            "input": {"environment_name": env_name},
-            "output": {"loaded": True, "ready": "Environment instantiated and ready"},
-        },
-        {
-            "step": 2,
-            "name": "Input parameters",
-            "icon": "sliders",
-            "input": {
-                "algorithm": job.get("algorithm"),
-                "num_episodes": job.get("num_episodes"),
-                "max_steps": job.get("max_steps"),
-                "config": job.get("config"),
-                "verifier_config": verifier_config,
-            },
-            "output": {"validated": True, "params_applied": "Parameters validated and applied"},
-        },
-        {
-            "step": 3,
-            "name": "Training / simulation",
-            "icon": "play",
-            "input": {"num_episodes": job.get("num_episodes"), "max_steps": job.get("max_steps")},
-            "output": {
-                "status": job.get("status"),
-                "progress": job.get("progress"),
-                "results": job.get("results"),
-                "episode_errors": job.get("episode_errors", [])[:5],
-            },
-        },
-        {
-            "step": 4,
-            "name": "What happened during training",
-            "icon": "activity",
-            "input": {},
-            "output": {
-                "results": job.get("results"),
-                "slm_explainability": job.get("slm_explainability"),
-                "slm_training_context": job.get("slm_training_context"),
-                "error": job.get("error"),
-            },
-        },
-        {
-            "step": 5,
-            "name": "System integrated",
-            "icon": "plug",
-            "input": {"system": system_integrated},
-            "output": {"connected": True, "jira_live_training": job.get("jira_live_training")},
-        },
-        {
-            "step": 6,
-            "name": "Verifier",
-            "icon": "shield",
-            "input": {"verifier_config": verifier_config},
-            "output": {"verifier_type": verifier_type, "configured": bool(verifier_config)},
-        },
-        {
-            "step": 7,
-            "name": "Output generation",
-            "icon": "package",
-            "input": {},
-            "output": {"model_url": job.get("model_url"), "model_metadata": job.get("model_metadata")},
-        },
-        {
-            "step": 8,
-            "name": "Send output to HIL (Human-in-the-Loop)",
-            "icon": "users",
-            "input": {},
-            "output": {"human_evaluations": job.get("human_evaluations"), "count": len(job.get("human_evaluations") or []), "last_human_evaluation": job.get("last_human_evaluation")},
-        },
-    ]
-    return {
-        "job_id": job_id,
-        "environment_name": env_name,
-        "status": job.get("status"),
-        "steps": steps,
-    }
 
 
 def _load_jira_mock_data() -> Dict[str, Any]:
@@ -1145,6 +1019,7 @@ async def start_training(
             "environment_name": final_env_name,
             "status": "running",
             "algorithm": req.algorithm,
+            "model": req.model or "",
             "num_episodes": req.num_episodes,
             "progress": 0,
             "results": None,
@@ -1153,21 +1028,10 @@ async def start_training(
             "dataset_url": req.dataset_url,
             "verifier_config": req.verifier_config,
             "hil_required": _hil_required,
+            "started_at": datetime.now().isoformat(),
         }
         
-        # Dashboard: record training started
-        _record_dashboard_activity(
-            "training_started",
-            environment_name=final_env_name,
-            job_id=job_id,
-            metadata={
-                "algorithm": req.algorithm,
-                "num_episodes": req.num_episodes,
-                "max_steps": req.max_steps,
-                "config": req.config,
-                "verifier_config": req.verifier_config,
-            },
-        )
+
 
         # Start training in background
         background_tasks.add_task(
@@ -1274,7 +1138,7 @@ def run_training(
             jira_env_workflow = jira_envs_workflow_map.get(environment_name)
 
         if jira_env_workflow and environment_name in jira_envs_workflow_map:
-            # Jira environments: use Jira verifier from apps folder (Verifiers.tsx / workflow_definitions)
+            # Jira environments: use Jira verifier from workflow_definitions
             try:
                 verifier_config_obj = VerifierConfig(
                     weights=((verifier_config or {}).get("weights")) or {},
@@ -1670,35 +1534,9 @@ def run_training(
         requires_human_eval = (job.get("verifier_config") or {}).get("type") == "human_evaluation"
         if requires_human_eval:
             job["status"] = "awaiting_human_eval"
-            _record_dashboard_activity(
-                "training_awaiting_human_eval",
-                environment_name=environment_name,
-                job_id=job_id,
-                metadata={
-                    "status": "awaiting_human_eval",
-                    "results": job.get("results"),
-                    "model_url": job.get("model_url"),
-                    "algorithm": job.get("algorithm"),
-                    "message": "Training finished. Complete human evaluation to finalize.",
-                },
-            )
         else:
             job["status"] = "completed"
-            _record_dashboard_activity(
-                "training_completed",
-                environment_name=environment_name,
-                job_id=job_id,
-                metadata={
-                    "status": "completed",
-                    "results": job.get("results"),
-                    "model_url": job.get("model_url"),
-                    "algorithm": job.get("algorithm"),
-                    "verifier_config": job.get("verifier_config"),
-                    "slm_explainability": job.get("slm_explainability"),
-                    "human_evaluations_count": len(job.get("human_evaluations") or []),
-                },
-            )
-        
+
     except Exception as e:
         import traceback
         error_trace = traceback.format_exc()
@@ -1706,16 +1544,6 @@ def run_training(
         training_jobs[job_id]["error"] = str(e)
         training_jobs[job_id]["error_traceback"] = error_trace
         print(f"Training failed for {environment_name}: {error_trace}")
-        # Dashboard: record training failed
-        _record_dashboard_activity(
-            "training_completed",
-            environment_name=environment_name,
-            job_id=job_id,
-            metadata={
-                "status": "failed",
-                "error": str(e),
-            },
-        )
 
 
 @app.get("/training/{job_id}")
@@ -1723,8 +1551,31 @@ async def get_training_status(job_id: str):
     """Get training job status"""
     if job_id not in training_jobs:
         raise HTTPException(status_code=404, detail="Job not found")
-    
+
     return training_jobs[job_id]
+
+
+@app.get("/api/training/jobs")
+async def list_training_jobs():
+    """Return all training jobs (summary view for the training runs table)."""
+    jobs = []
+    for jid, job in training_jobs.items():
+        jobs.append({
+            "job_id": jid,
+            "status": job.get("status", "unknown"),
+            "environment_name": job.get("environment_name", ""),
+            "algorithm": job.get("algorithm", ""),
+            "model": job.get("model", ""),
+            "progress": job.get("progress", 0),
+            "results": job.get("results"),
+            "baseline_results": job.get("baseline_results"),
+            "hil_required": job.get("hil_required", False),
+            "model_saved": job.get("model_saved", False),
+            "model_url": job.get("model_url"),
+            "model_metadata": job.get("model_metadata"),
+            "started_at": job.get("started_at"),
+        })
+    return {"jobs": jobs}
 
 
 class StepScore(BaseModel):
@@ -1777,28 +1628,6 @@ async def submit_human_eval(job_id: str, req: HumanEvalRequest):
         job["status"] = "completed"
         job["human_eval_decision"] = entry["decision"]
         job["human_eval_completed_at"] = entry["timestamp"]
-        _record_dashboard_activity(
-            "training_completed",
-            environment_name=job.get("environment_name"),
-            job_id=job_id,
-            metadata={
-                "status": "completed",
-                "human_eval_completed": True,
-                "decision": entry["decision"],
-                "human_evaluations_count": len(evals),
-            },
-        )
-
-    # Dashboard: record human eval submitted (HIL step)
-    _record_dashboard_activity(
-        "human_eval_submitted",
-        environment_name=job.get("environment_name"),
-        job_id=job_id,
-        metadata={
-            "decision": entry["decision"],
-            "total_evaluations": len(evals),
-        },
-    )
 
     return {
         "success": True,
