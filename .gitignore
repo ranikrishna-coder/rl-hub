@@ -42,15 +42,14 @@ ENV/
 .env
 .env.local
 
-# Model files (large, should be downloaded separately)
-models/*.zip
-models/*.pkl
-models/*.h5
-models/*.pt
-models/*.pth
-
-# Keep metadata files
-!models/*/metadata.json
+# Model files & runtime training artifacts
+models/**/*.zip
+models/**/*.pkl
+models/**/*.h5
+models/**/*.pt
+models/**/*.pth
+models/**/*_metadata.json
+models/**/*_subtasks.json
 
 # Logs
 *.log

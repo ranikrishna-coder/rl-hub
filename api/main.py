@@ -963,6 +963,114 @@ async def list_environments():
     }
 
 
+def _build_step_timeline(action, reward: float, transition_info: dict, step_idx: int) -> list:
+    """Build rich timeline events from env transition_info for rollout comparison.
+
+    Uses ``event_type`` / ``content`` keys to match the mock-data format that
+    rollout-comparison.js already renders.
+    """
+    events: list[dict] = []
+    tool_used = transition_info.get("tool_used")
+    valid_step = transition_info.get("valid_step", False)
+    issue_key = transition_info.get("current_issue_key")
+    # Approximate timestamp (ms) using step index
+    ts_base = (step_idx - 1) * 400
+
+    if tool_used:
+        # Named tool call
+        args = {}
+        if issue_key:
+            args["issue_key"] = issue_key
+        tids = transition_info.get("valid_transition_ids")
+        if tool_used == "transition_issue" and tids:
+            args["transition_id"] = str(tids[0]) if tids else ""
+        events.append({
+            "timestamp_ms": ts_base,
+            "event_type": "TOOL_CALL",
+            "tool_name": tool_used,
+            "tool_args": args,
+            "content": tool_used,
+        })
+        # Result
+        if valid_step:
+            result_content = f"Step {step_idx} completed: {tool_used}"
+            achieved = transition_info.get("achieved_status")
+            if achieved:
+                result_content += f" → status: {achieved}"
+        else:
+            result_content = f"Invalid step: {tool_used} (wrong order)"
+        events.append({
+            "timestamp_ms": ts_base + 200,
+            "event_type": "TOOL_RESULT",
+            "content": result_content,
+        })
+    else:
+        # Numeric action (no tool mapping available)
+        events.append({"timestamp_ms": ts_base, "event_type": "TOOL_CALL", "content": f"action={action}"})
+        events.append({"timestamp_ms": ts_base + 200, "event_type": "TOOL_RESULT", "content": f"reward={reward:.4f}"})
+    return events
+
+
+def _build_final_env_state(env, info: dict, environment_name: str) -> Optional[dict]:
+    """Extract final environment state from the last step info."""
+    ti = info.get("transition_info", {})
+    state: dict = {}
+    # Jira-specific fields
+    issue_key = ti.get("current_issue_key")
+    if issue_key:
+        state["issue_key"] = issue_key
+    tool_seq = ti.get("tool_sequence_after", [])
+    if tool_seq:
+        state["tool_sequence"] = tool_seq
+    achieved = ti.get("achieved_status")
+    if achieved:
+        state["status"] = achieved
+    resolved = ti.get("valid_step") and ti.get("tool_used") in ("transition_issue", "create_subtask")
+    if "issue_key" in state:
+        state["resolved"] = bool(resolved)
+    # KPI info
+    kpis = info.get("kpis", {})
+    eff = kpis.get("operational_efficiency", {})
+    if eff:
+        state["steps_completed"] = eff.get("steps_completed", 0)
+        state["expected_steps"] = eff.get("expected_steps", 0)
+    return state if state else None
+
+
+def _build_verifier_results(env, info: dict, environment_name: str) -> Optional[list]:
+    """Build verifier results from the final episode info."""
+    ti = info.get("transition_info", {})
+    tool_seq = ti.get("tool_sequence_after", [])
+    expected_order = getattr(env, "_expected_order", None)
+    if not expected_order:
+        return None
+    results = []
+    # Check 1: Tool sequence order
+    seq_correct = tool_seq == expected_order[:len(tool_seq)] and len(tool_seq) >= len(expected_order)
+    results.append({
+        "check": "Tool sequence order",
+        "passed": seq_correct,
+        "detail": " → ".join(tool_seq) + (" — correct order" if seq_correct else " — incomplete or wrong order")
+    })
+    # Check 2: Valid transitions
+    has_transition = "transition_issue" in tool_seq
+    results.append({
+        "check": "Valid transitions only",
+        "passed": has_transition and ti.get("valid_step", False),
+        "detail": "transition_issue invoked" if has_transition else "transition_issue was never invoked"
+    })
+    # Check 3: Issue resolved
+    resolved = ti.get("achieved_status") in ("Done", "Resolved", "Closed") or (
+        ti.get("tool_used") in ("transition_issue", "create_subtask") and ti.get("valid_step", False)
+    )
+    results.append({
+        "check": "Issue resolved",
+        "passed": resolved,
+        "detail": f"Status: {ti.get('achieved_status', 'unknown')}" if resolved else "Issue not resolved"
+    })
+    return results
+
+
 @app.post("/train/{environment_name}", response_model=TrainingResponse)
 async def start_training(
     environment_name: str,
@@ -1223,29 +1331,37 @@ def run_training(
                     state = reset_result
                 ep_rew = 0.0
                 _bl_step_idx = 0
+                _bl_last_info: Dict[str, Any] = {}
                 for _ in range(max_steps):
                     action = env.action_space.sample()
                     step_result = env.step(action)
                     if len(step_result) == 5:
-                        state, reward, terminated, truncated, _ = step_result
+                        state, reward, terminated, truncated, _bl_info = step_result
                     else:
-                        state, reward, done, _ = step_result
+                        state, reward, done, _bl_info = step_result
                         terminated = done
                         truncated = False
+                    _bl_last_info = _bl_info if isinstance(_bl_info, dict) else {}
                     ep_rew += float(reward)
                     _bl_step_idx += 1
                     # Capture per-step data for the first baseline episode only
                     if be == 0:
+                        _bl_ti = _bl_last_info.get("transition_info", {})
+                        _bl_events = _build_step_timeline(action, float(reward), _bl_ti, _bl_step_idx)
+                        # Add SYSTEM event on first step
+                        if _bl_step_idx == 1:
+                            _issue_key = _bl_ti.get("current_issue_key", "")
+                            _sys_msg = f"Environment: {environment_name}"
+                            if _issue_key:
+                                _sys_msg = f"Task: Resolve {_issue_key} in {environment_name}"
+                            _bl_events.insert(0, {"timestamp_ms": 0, "event_type": "SYSTEM", "content": _sys_msg})
                         _baseline_steps.append({
                             "step": _bl_step_idx,
-                            "action": int(action) if hasattr(action, '__int__') else action,
+                            "action": _bl_ti.get("tool_used") or (int(action) if hasattr(action, '__int__') else action),
                             "reward": float(reward),
                             "state_summary": None,
                             "reward_breakdown": None,
-                            "timeline_events": [
-                                {"type": "TOOL_CALL", "detail": f"action={action}"},
-                                {"type": "TOOL_RESULT", "detail": f"reward={float(reward):.4f}"},
-                            ],
+                            "timeline_events": _bl_events,
                         })
                     if terminated or truncated:
                         break
@@ -1277,8 +1393,8 @@ def run_training(
                     "policy_name": "Random Baseline",
                     "checkpoint_label": "base",
                     "scenario_name": None,
-                    "verifier_results": None,
-                    "final_environment_state": None,
+                    "verifier_results": _build_verifier_results(env, _bl_last_info, environment_name),
+                    "final_environment_state": _build_final_env_state(env, _bl_last_info, environment_name),
                 }
                 if environment_name not in rollout_store:
                     rollout_store[environment_name] = []
@@ -1368,16 +1484,23 @@ def run_training(
                     # Capture per-step data for sampled episodes
                     _sample_interval_check = max(1, num_episodes // 10)
                     if episode == 0 or episode == num_episodes - 1 or (episode + 1) % _sample_interval_check == 0:
+                        _step_info = info if isinstance(info, dict) else {}
+                        _step_ti = _step_info.get("transition_info", {})
+                        _step_events = _build_step_timeline(action, float(reward), _step_ti, episode_steps)
+                        # Add SYSTEM event on first step
+                        if episode_steps == 1:
+                            _issue_key = _step_ti.get("current_issue_key", "")
+                            _sys_msg = f"Environment: {environment_name}"
+                            if _issue_key:
+                                _sys_msg = f"Task: Resolve {_issue_key} in {environment_name}"
+                            _step_events.insert(0, {"timestamp_ms": 0, "event_type": "SYSTEM", "content": _sys_msg})
                         _sampled_steps.append({
                             "step": episode_steps,
-                            "action": int(action) if hasattr(action, '__int__') else action,
+                            "action": _step_ti.get("tool_used") or (int(action) if hasattr(action, '__int__') else action),
                             "reward": float(reward),
                             "state_summary": None,
                             "reward_breakdown": None,
-                            "timeline_events": [
-                                {"type": "TOOL_CALL", "detail": f"action={action}"},
-                                {"type": "TOOL_RESULT", "detail": f"reward={float(reward):.4f}"},
-                            ],
+                            "timeline_events": _step_events,
                         })
 
                     # JiraSubtaskManagement: log when create_subtask is used
@@ -1429,8 +1552,8 @@ def run_training(
                         "policy_name": algorithm,
                         "checkpoint_label": f"step_{episode+1}",
                         "scenario_name": None,
-                        "verifier_results": None,
-                        "final_environment_state": None,
+                        "verifier_results": _build_verifier_results(env, info if isinstance(info, dict) else {}, environment_name),
+                        "final_environment_state": _build_final_env_state(env, info if isinstance(info, dict) else {}, environment_name),
                     }
                     if environment_name not in rollout_store:
                         rollout_store[environment_name] = []
