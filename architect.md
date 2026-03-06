@@ -43,7 +43,7 @@ The deployment target is **Azure** (Dockerized FastAPI backend serving static fr
 | `landing.html` + `landing.css` | Landing page with hero, features, CTA |
 | `index.html` + `app.js` + `styles.css` | Environment catalog with filtering and detail overlays |
 | `training.html` + `training.js` + `training.css` | Training console (stepper, charts, rollout comparison) |
-| `training-config-data.js` | 19 pre-configured training scenarios, agents, algorithms |
+| `training-config-data.js` | Training scenarios, agents, algorithms, 2 sample training runs |
 | `simulation-console.html` + `simulation-console.js` + `test-console.css` | Interactive simulation engine |
 | `human-eval.html` + `human-eval.css` | Human-in-the-loop evaluation console |
 | `rollout-comparison.js` | Side-by-side rollout renderer with tool calls and verifier results |
@@ -69,7 +69,7 @@ Single FastAPI application handling:
 - **FastAPI backend (`api/main.py`)**
   - REST API for training, monitoring, KPIs, Jira operations, rollout comparison, and human evaluation.
   - Serves static assets for 6 HTML pages.
-  - Manages in-memory training jobs (`training_jobs` dict) and rollout store (`rollout_store` dict).
+  - Manages in-memory training jobs (`training_jobs` dict) and rollout store (`rollout_store` dict, seeded with demo rollouts at startup).
   - Enriches training step data with named tool calls, verifier results, and final environment state for rollout comparison rendering.
 
 - **Environments (`environments/`) — 113 across 12 packages**
@@ -185,7 +185,7 @@ flowchart LR
 | Route | Page | Description |
 |-------|------|-------------|
 | `/` | Landing | Hero section, feature highlights, call-to-action |
-| `/catalog` | Environment Catalog | Browse, filter, search 113 environments by domain/category/system |
+| `/catalog` | Environment Catalog | Industry journey (fin-sim, healthcare-sim, Enterprise-sim, HR-sim), browse/filter/search 113 environments |
 | `/training-console` | Training Console | Configure, run, monitor RL training with progress stepper |
 | `/test-console` | Simulation Console | Interactive step-by-step simulation engine |
 | `/human-eval` | Human Evaluation | Structured HITL evaluation with step scoring |
@@ -226,8 +226,12 @@ flowchart LR
   - Final environment state (issue key, tool sequence, status, resolved flag)
 - **Real-time progress**: Polling-based status updates with reward charts
 - **Model artifact panel**: Algorithm, base model, episodes, format, saved-at timestamp, copy-path button
-- **19 pre-configured training scenarios** across all environment categories
+- **Training scenarios** across all environment categories (113 RL environments used as scenarios)
 - **Catalog integration**: "Start Training" button in catalog navigates to training console with environment pre-selected via `?env=` query parameter
+- **2 sample training runs** for demo purposes (Jira GRPO + Clinical PPO) with full detail pages, charts, and rollout comparison. Protected via `MOCK_RUN_IDS` from API overwrite.
+- **Rollouts tab**: Browse all rollouts across environments with filtering, detail view with Messages/Tool Calls/Full JSON tabs. Seeded with 4 demo rollouts at startup.
+- **LLM Judge verifier**: Create new verifiers with Prompt, Model, Examples, and Failure Policy tabs
+- **Agent & Training Method API**: `GET /api/training/config` endpoint (future backend); graceful fallback to hardcoded sample agents and algorithms
 
 ### 5.4 Enriched Rollout Data Pipeline
 
@@ -266,11 +270,16 @@ Weights are configurable per environment.
 
 ### 6.2 Training Workflows
 
-1. **Start training** — `POST /train/{environment_name}` with algorithm, num_episodes, max_steps, config.
-2. **Run training** — background task using environment classes, verifier registry, and observability loggers. Produces enriched rollout data with named tool calls.
-3. **Monitor training** — `GET /training/{job_id}` returns job status, progress, metrics, and rollout data. Training console polls and renders progress stepper, reward charts, and rollout comparison.
-4. **Rollout comparison** — `GET /api/rollout-comparison/{env}` returns side-by-side baseline vs trained rollouts with enriched events.
-5. **Model artifacts** — saved to `models/{algorithm}/` with metadata; model artifact panel shows info and copy-path button.
+1. **Configure training** — New Training Run form with four sections:
+   - **A. Name & Description** — run name and objective
+   - **B. Environment** — system selector (22 systems) with environment preview panel
+   - **C. Training Data & Evaluation** — scenario selector (113 RL environments, filtered by system), verifier (select existing or create new including LLM Judge), episodes/max steps
+   - **D. Agent & Training Method** — agent and algorithm selection (fetched from `/api/training/config` with fallback to hardcoded defaults)
+2. **Start training** — `POST /train/{environment_name}` with algorithm, num_episodes, max_steps, config.
+3. **Run training** — background task using environment classes, verifier registry, and observability loggers. Produces enriched rollout data with named tool calls.
+4. **Monitor training** — `GET /training/{job_id}` returns job status, progress, metrics, and rollout data. Training console polls and renders progress stepper, reward charts, and rollout comparison.
+5. **Rollout comparison** — `GET /api/rollout-comparison/{env}` returns side-by-side baseline vs trained rollouts with enriched events.
+6. **Model artifacts** — saved to `models/{algorithm}/` with metadata; model artifact panel shows info and copy-path button.
 
 ### 6.3 Simulation Console
 
@@ -303,6 +312,9 @@ Weights are configurable per environment.
 | GET | `/api/training/jobs` | List all training jobs |
 | GET | `/api/rollout-comparison/{env}` | Rollout comparison data (baseline vs trained) |
 | GET | `/api/rollouts/{env}` | Rollout history |
+| GET | `/api/rollouts/{env}/{id}` | Rollout detail (full step data) |
+| GET | `/api/rollouts-all` | All rollouts across environments |
+| GET | `/api/training/config` | Agent & algorithm configuration (future) |
 | GET | `/kpis/{env_name}` | KPI metrics |
 | POST | `/human-eval/{job_id}` | Submit human evaluation |
 | GET | `/jira-mock-data` | Jira mock data |

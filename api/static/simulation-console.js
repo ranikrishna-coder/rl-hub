@@ -522,7 +522,7 @@ function _openCreateVerifierModal() {
             '<div class="form-group"><label>Name</label><input type="text" id="new-v-name" placeholder="e.g. My Custom Verifier"></div>' +
             '<div class="form-group"><label>Type</label><select id="new-v-type"><option value="rule-based">Rule-based</option><option value="trajectory-based">Trajectory-based</option><option value="llm-judge">LLM Judge</option><option value="human-eval">Human Eval (HIL)</option></select></div>' +
             '<div class="form-group"><label>System</label><input type="text" id="new-v-system" value="' + escAttr(_verifierActiveSystem || '') + '" readonly></div>' +
-            /* Standard fields for rule-based, trajectory, llm-judge */
+            /* Standard fields for rule-based, trajectory */
             '<div id="new-v-standard-panel">' +
                 '<div class="form-group"><label>Description</label><textarea id="new-v-desc" rows="2" placeholder="What does this verifier check?"></textarea></div>' +
                 '<div class="form-group"><label>Logic (JSON)</label><textarea id="new-v-logic" rows="4" placeholder=\'{"checks": {}, "scoring": {}}\'></textarea></div>' +
@@ -532,6 +532,36 @@ function _openCreateVerifierModal() {
                         '<label style="font-weight:400;font-size:0.8rem;"><input type="checkbox" id="new-v-logfail" checked> Log failure</label>' +
                     '</div>' +
                     '<div class="form-group" style="margin-bottom:0;"><label style="font-size:0.78rem;">Penalty</label><input type="number" id="new-v-penalty" value="-0.5" step="0.1"></div>' +
+                '</div>' +
+            '</div>' +
+            /* LLM Judge panel */
+            '<div id="new-v-llm-panel" style="display:none">' +
+                '<div class="llm-judge-tabs" id="new-v-lj-tabs">' +
+                    '<button type="button" class="llm-judge-tab active" data-ljtab="prompt">Prompt</button>' +
+                    '<button type="button" class="llm-judge-tab" data-ljtab="model">Model</button>' +
+                    '<button type="button" class="llm-judge-tab" data-ljtab="examples">Examples</button>' +
+                    '<button type="button" class="llm-judge-tab" data-ljtab="failure">Failure policy</button>' +
+                '</div>' +
+                '<div class="llm-judge-tab-content active" data-ljtab-content="prompt">' +
+                    '<div class="form-group"><label>Judge Prompt <span style="font-weight:400;font-size:0.75rem;color:#888;">use {{output}} and {{expected}}</span></label>' +
+                    '<textarea id="new-v-lj-prompt" rows="6" class="code-textarea" placeholder="You are an expert evaluator.\nAgent output: {{output}}\nExpected: {{expected}}\n\nScore 0.0–1.0: how well does the output satisfy the task?\nReturn JSON only: { &quot;score&quot;: float, &quot;rationale&quot;: string }"></textarea></div>' +
+                '</div>' +
+                '<div class="llm-judge-tab-content" data-ljtab-content="model">' +
+                    '<div style="display:flex;gap:0.75rem;">' +
+                        '<div class="form-group" style="flex:2"><label>Judge Model</label>' +
+                            '<select id="new-v-lj-model"><option value="claude-sonnet-4-6" selected>claude-sonnet-4-6</option><option value="claude-opus-4-6">claude-opus-4-6</option><option value="claude-haiku-4-5">claude-haiku-4-5</option><option value="gpt-4o">gpt-4o</option><option value="gpt-4o-mini">gpt-4o-mini</option></select></div>' +
+                        '<div class="form-group" style="flex:1"><label>Temp</label><input type="number" id="new-v-lj-temp" value="0" min="0" max="2" step="0.1"></div>' +
+                    '</div>' +
+                    '<div class="form-group"><label>Scoring Field <span style="font-weight:400;font-size:0.75rem;color:#888;">JSON key in judge response</span></label><input type="text" id="new-v-lj-scoring-field" value="score" placeholder="score"></div>' +
+                '</div>' +
+                '<div class="llm-judge-tab-content" data-ljtab-content="examples">' +
+                    '<div class="form-group"><label>Example Input</label><textarea id="new-v-lj-example-input" rows="3" class="code-textarea" placeholder=\'{ "output": "Agent response", "expected": "Ground truth" }\'></textarea></div>' +
+                    '<div class="form-group"><label>Example Judge Output</label><textarea id="new-v-lj-example-output" rows="3" class="code-textarea" placeholder=\'{ "score": 0.9, "rationale": "Output captures key terms but misses X" }\'></textarea></div>' +
+                '</div>' +
+                '<div class="llm-judge-tab-content" data-ljtab-content="failure">' +
+                    '<div class="form-group"><label>Failure Policy <span style="font-weight:400;font-size:0.75rem;color:#888;">JSON</span></label>' +
+                    '<textarea id="new-v-lj-failure" rows="5" class="code-textarea">{\n  "hard_fail": false,\n  "penalty": 0.5,\n  "log_failure": true\n}</textarea></div>' +
+                    '<p style="font-size:0.75rem;color:#888;margin-top:0.25rem;">hard_fail &middot; penalty (0-1) &middot; log_failure</p>' +
                 '</div>' +
             '</div>' +
             /* Condition/weight panel for human-eval */
@@ -555,20 +585,36 @@ function _openCreateVerifierModal() {
     overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
     document.getElementById('new-v-cancel').addEventListener('click', function () { overlay.remove(); });
 
-    // Type toggle: show standard fields or condition/weight panel
+    // Type toggle: show appropriate panel
     var typeSelect = document.getElementById('new-v-type');
     var stdPanel = document.getElementById('new-v-standard-panel');
     var hilPanel = document.getElementById('new-v-hil-panel');
+    var llmPanel = document.getElementById('new-v-llm-panel');
     typeSelect.addEventListener('change', function () {
         var isHil = typeSelect.value === 'human-eval';
-        stdPanel.style.display = isHil ? 'none' : '';
+        var isLLM = typeSelect.value === 'llm-judge';
+        stdPanel.style.display = (isHil || isLLM) ? 'none' : '';
         hilPanel.style.display = isHil ? '' : 'none';
+        llmPanel.style.display = isLLM ? '' : 'none';
         // Pre-populate default conditions if empty
         if (isHil && !document.querySelector('#new-v-condition-rows .new-v-cond-row')) {
             _addModalConditionRow('Correct resolution', '0.4');
             _addModalConditionRow('Proper status transitions', '0.3');
             _addModalConditionRow('Communication quality', '0.3');
         }
+    });
+
+    // LLM Judge tab switching in modal
+    var ljTabs = document.querySelectorAll('#new-v-lj-tabs .llm-judge-tab');
+    ljTabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            ljTabs.forEach(function (t) { t.classList.remove('active'); });
+            tab.classList.add('active');
+            var target = tab.getAttribute('data-ljtab');
+            document.querySelectorAll('#new-v-llm-panel .llm-judge-tab-content').forEach(function (c) {
+                c.classList.toggle('active', c.getAttribute('data-ljtab-content') === target);
+            });
+        });
     });
 
     // Condition row management
@@ -610,6 +656,31 @@ function _openCreateVerifierModal() {
             logic = { type: 'human_evaluation', criteria: conditions.map(function (c) { return c.condition; }), conditions: conditions, scoring: 'manual', output_range: [0, 1] };
             hardFail = true;
             penalty = 0;
+        } else if (type === 'llm-judge') {
+            // Collect LLM Judge fields
+            var ljPrompt = (document.getElementById('new-v-lj-prompt').value || '').trim();
+            var ljModel = document.getElementById('new-v-lj-model').value;
+            var ljTemp = parseFloat(document.getElementById('new-v-lj-temp').value) || 0;
+            var ljScoringField = (document.getElementById('new-v-lj-scoring-field').value || 'score').trim();
+            var ljExampleInput = (document.getElementById('new-v-lj-example-input').value || '').trim();
+            var ljExampleOutput = (document.getElementById('new-v-lj-example-output').value || '').trim();
+            var ljFailureRaw = (document.getElementById('new-v-lj-failure').value || '').trim();
+            logic = { type: 'llm_judge', judge_prompt: ljPrompt, judge_model: ljModel, judge_temperature: ljTemp, scoring_field: ljScoringField };
+            desc = ljPrompt ? ljPrompt.substring(0, 100) : 'LLM Judge verifier';
+            if (ljExampleInput) { try { logic.example_input = JSON.parse(ljExampleInput); } catch (e) {} }
+            if (ljExampleOutput) { try { logic.example_output = JSON.parse(ljExampleOutput); } catch (e) {} }
+            if (ljFailureRaw) {
+                try {
+                    var fp = JSON.parse(ljFailureRaw);
+                    hardFail = fp.hard_fail || false;
+                    penalty = fp.penalty != null ? fp.penalty : 0.5;
+                    logFail = fp.log_failure != null ? fp.log_failure : true;
+                } catch (e) { if (window.showToast) window.showToast('Invalid JSON in Failure Policy', 'error'); return; }
+            } else {
+                hardFail = false;
+                penalty = 0.5;
+                logFail = true;
+            }
         } else {
             desc = document.getElementById('new-v-desc').value.trim();
             var logicRaw = document.getElementById('new-v-logic').value.trim();
@@ -716,7 +787,7 @@ function populateEnvironmentSelect() {
     if (!envSelect) return;
     const filtered = getFilteredEnvironmentsForSystem();
     const currentVal = envSelect.value;
-    envSelect.innerHTML = '<option value="">Select an environment...</option>' +
+    envSelect.innerHTML = '<option value="">Select a scenario...</option>' +
         filtered.map(env => {
             const displayName = formatEnvironmentName(env.name);
             const systemLabel = env.system ? ` (${env.system})` : '';
@@ -750,11 +821,14 @@ async function loadEnvironments() {
             });
         });
         const systemList = Array.from(systems).sort((a, b) => a.localeCompare(b));
-        
+
         const systemSelect = document.getElementById('system-select');
         if (systemSelect) {
             systemSelect.innerHTML = '<option value="all">All systems</option>' +
-                systemList.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('');
+                systemList.map(s => {
+                    const count = allEnvironments.filter(e => (e.system || '').split(',').map(x => x.trim()).includes(s)).length;
+                    return `<option value="${s.replace(/"/g, '&quot;')}">${s} (${count})</option>`;
+                }).join('');
             systemSelect.addEventListener('change', () => {
                 populateEnvironmentSelect();
                 updateSimulationVerifierForSystem();

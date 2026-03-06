@@ -14,10 +14,11 @@
     // Environments loaded from API — populated by loadEnvironments()
     var ALL_ENVIRONMENTS = [];
     var CATEGORY_MAP = {}; // { category: [env, ...] }
+    var SYSTEM_MAP = {}; // { system: [env, ...] }
 
     // ─── Fetch live training jobs from backend ─────────────────
     // Set of hardcoded mock IDs that should not be overwritten by API
-    var MOCK_RUN_IDS = {};
+    var MOCK_RUN_IDS = { 'run_grpo_001': true, 'run_ppo_003': true };
 
     function fetchLiveJobs() {
         var apiBase = window.API_BASE || '';
@@ -91,6 +92,28 @@
             });
     }
 
+    // ─── Fetch agents & algorithms from backend (future API) ───
+    // Falls back to hardcoded TRAINING_CONFIG data if API not available
+    function fetchAgentsAndAlgorithms() {
+        var apiBase = window.API_BASE || '';
+        return fetch(apiBase + '/api/training/config')
+            .then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function (data) {
+                if (data.agents && data.agents.length) {
+                    CFG.agents = data.agents;
+                }
+                if (data.algorithms && data.algorithms.length) {
+                    CFG.algorithms = data.algorithms;
+                }
+            })
+            .catch(function () {
+                // API not available yet — use hardcoded sample data from TRAINING_CONFIG
+            });
+    }
+
     // ─── View navigation ────────────────────────────────────────
     function showView(name) {
         document.querySelectorAll('.training-view').forEach(function (v) {
@@ -124,9 +147,18 @@
                     };
                 });
                 CATEGORY_MAP = {};
+                SYSTEM_MAP = {};
                 ALL_ENVIRONMENTS.forEach(function (e) {
                     if (!CATEGORY_MAP[e.category]) CATEGORY_MAP[e.category] = [];
                     CATEGORY_MAP[e.category].push(e);
+                    // Build system map: each env may belong to multiple systems
+                    (e.system || '').split(',').forEach(function (s) {
+                        var trimmed = s.trim();
+                        if (trimmed) {
+                            if (!SYSTEM_MAP[trimmed]) SYSTEM_MAP[trimmed] = [];
+                            SYSTEM_MAP[trimmed].push(e);
+                        }
+                    });
                 });
                 CFG.environments = ALL_ENVIRONMENTS;
             })
@@ -197,8 +229,25 @@
 
     // ─── New Training Run Form ──────────────────────────────────
 
+    function populateSystems() {
+        var sel = document.getElementById('tr-env-system');
+        if (!sel) return;
+        var systems = Object.keys(SYSTEM_MAP).sort();
+        sel.innerHTML = '<option value="">— All systems —</option>';
+        systems.forEach(function (sys) {
+            var o = document.createElement('option');
+            o.value = sys;
+            o.textContent = sys + ' (' + SYSTEM_MAP[sys].length + ')';
+            sel.appendChild(o);
+        });
+        var hint = document.getElementById('env-system-hint');
+        if (hint) hint.textContent = systems.length + ' system' + (systems.length !== 1 ? 's' : '');
+    }
+
+    // Keep for backward compat (hidden category select)
     function populateCategories() {
         var sel = document.getElementById('tr-env-category');
+        if (!sel) return;
         var cats = Object.keys(CATEGORY_MAP).sort();
         cats.forEach(function (cat) {
             var o = document.createElement('option');
@@ -210,10 +259,10 @@
 
     function populateEnvironments() {
         var sel = document.getElementById('tr-env');
-        var catFilter = document.getElementById('tr-env-category').value;
-        sel.innerHTML = '<option value="">— Select environment —</option>';
+        var systemFilter = document.getElementById('tr-env-system') ? document.getElementById('tr-env-system').value : '';
+        sel.innerHTML = '<option value="">— Select scenario —</option>';
 
-        var envs = catFilter ? (CATEGORY_MAP[catFilter] || []) : ALL_ENVIRONMENTS;
+        var envs = systemFilter ? (SYSTEM_MAP[systemFilter] || []) : ALL_ENVIRONMENTS;
         envs.sort(function (a, b) { return a.name.localeCompare(b.name); });
 
         envs.forEach(function (e) {
@@ -225,8 +274,8 @@
 
         var hint = document.getElementById('env-count-hint');
         if (hint) {
-            hint.textContent = envs.length + ' environment' + (envs.length !== 1 ? 's' : '') +
-                (catFilter ? ' in ' + formatCategory(catFilter) : ' across ' + Object.keys(CATEGORY_MAP).length + ' categories');
+            hint.textContent = envs.length + ' scenario' + (envs.length !== 1 ? 's' : '') +
+                (systemFilter ? ' in ' + systemFilter : ' across ' + Object.keys(SYSTEM_MAP).length + ' systems');
         }
     }
 
@@ -259,19 +308,10 @@
         });
     }
 
+    // Scenario is now the RL environment itself (selected via tr-env in Section C).
+    // Keep function signature for backward compat — no longer populates a separate dropdown.
     function filterScenarios() {
-        var env = findEnv(document.getElementById('tr-env').value);
-        var cat = env ? env.category : '';
-        var sel = document.getElementById('tr-scenario');
-        sel.innerHTML = '<option value="">— Select scenario —</option>';
-        (CFG.scenarios || []).forEach(function (s) {
-            if (!cat || s.category === cat) {
-                var o = document.createElement('option');
-                o.value = s.id;
-                o.textContent = s.name + ' (' + s.task_count + ' tasks)';
-                sel.appendChild(o);
-            }
-        });
+        // no-op: scenario selection is now handled by tr-env (populateEnvironments)
     }
 
     function updateEnvPreview() {
@@ -280,7 +320,6 @@
         var env = findEnv(envId);
         if (!env) { panel.style.display = 'none'; return; }
         panel.style.display = 'block';
-        document.getElementById('ep-category').textContent = formatCategory(env.category) || '—';
         document.getElementById('ep-system').textContent = env.system || '—';
         var actionSpaceRow = document.getElementById('ep-action-space').closest('.ep-row');
         var stateFeaturesRow = document.getElementById('ep-state-features').closest('.ep-row');
@@ -328,6 +367,13 @@
         });
     }
 
+    function onSystemChange() {
+        populateEnvironments();
+        document.getElementById('tr-env').value = '';
+        onEnvironmentChange();
+    }
+
+    // Keep for backward compat
     function onCategoryChange() {
         populateEnvironments();
         document.getElementById('tr-env').value = '';
@@ -362,15 +408,30 @@
         var sel = document.getElementById('tr-verifier-type');
         var hilPanel = document.getElementById('human-eval-panel');
         var stdPanel = document.getElementById('verifier-standard-panel');
+        var ljPanel = document.getElementById('llm-judge-panel');
         sel.addEventListener('change', function () {
             var isHil = sel.value === 'human_eval';
+            var isLJ = sel.value === 'llm_judge';
             hilPanel.style.display = isHil ? '' : 'none';
-            stdPanel.style.display = isHil ? 'none' : '';
-            if (isHil && !document.querySelector('.condition-row')) {
+            ljPanel.style.display = isLJ ? '' : 'none';
+            stdPanel.style.display = (isHil || isLJ) ? 'none' : '';
+            if (isHil && !document.querySelector('#condition-rows .condition-row')) {
                 addConditionRow('Correct resolution', '0.4');
                 addConditionRow('Proper status transitions', '0.3');
                 addConditionRow('Communication quality', '0.3');
             }
+        });
+        // LLM Judge tab switching
+        var ljTabs = document.querySelectorAll('.llm-judge-tab');
+        ljTabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                ljTabs.forEach(function (t) { t.classList.remove('active'); });
+                tab.classList.add('active');
+                var target = tab.getAttribute('data-ljtab');
+                document.querySelectorAll('.llm-judge-tab-content').forEach(function (c) {
+                    c.classList.toggle('active', c.getAttribute('data-ljtab-content') === target);
+                });
+            });
         });
     }
 
@@ -495,9 +556,18 @@
 
     // ─── Prefill Sample Data ────────────────────────────────────
     function prefillSampleData() {
-        var catSel = document.getElementById('tr-env-category');
-        catSel.value = 'jira';
-        onCategoryChange();
+        // Select Jira system
+        var systemSel = document.getElementById('tr-env-system');
+        if (systemSel) {
+            // Find the Jira option
+            for (var i = 0; i < systemSel.options.length; i++) {
+                if (systemSel.options[i].value.toLowerCase().indexOf('jira') !== -1) {
+                    systemSel.value = systemSel.options[i].value;
+                    break;
+                }
+            }
+            onSystemChange();
+        }
 
         setTimeout(function () {
             document.getElementById('tr-env').value = 'JiraIssueResolution';
@@ -511,9 +581,6 @@
             if (!descField.value.trim()) {
                 descField.value = 'Sample GRPO training run on Jira Issue Resolution environment';
             }
-
-            var scenarioSel = document.getElementById('tr-scenario');
-            if (scenarioSel.options.length > 1) scenarioSel.selectedIndex = 1;
 
             var agentSel = document.getElementById('tr-agent');
             if (agentSel.options.length > 1) agentSel.selectedIndex = 1;
@@ -540,7 +607,7 @@
         var body = {
             run_name: name,
             description: document.getElementById('tr-desc').value.trim(),
-            scenario: document.getElementById('tr-scenario').value,
+            scenario: envId,
             environment: envId,
             category: env ? env.category : '',
             agent: document.getElementById('tr-agent').value,
@@ -586,8 +653,25 @@
                         weight: parseFloat(row.querySelector('.cond-weight').value) || 0
                     });
                 });
+            } else if (body.verifier.type === 'llm_judge') {
+                // LLM Judge — collect prompt, model, scoring field, examples, failure policy
+                body.verifier.judge_prompt = (document.getElementById('tr-lj-prompt').value || '').trim();
+                body.verifier.judge_model = document.getElementById('tr-lj-model').value;
+                body.verifier.judge_temperature = parseFloat(document.getElementById('tr-lj-temp').value) || 0;
+                body.verifier.scoring_field = (document.getElementById('tr-lj-scoring-field').value || 'score').trim();
+                body.verifier.example_input = (document.getElementById('tr-lj-example-input').value || '').trim();
+                body.verifier.example_output = (document.getElementById('tr-lj-example-output').value || '').trim();
+                var ljFailureRaw = (document.getElementById('tr-lj-failure-policy').value || '').trim();
+                if (ljFailureRaw) {
+                    try { body.verifier.failurePolicy = JSON.parse(ljFailureRaw); } catch (e) {
+                        showToast('Invalid JSON in LLM Judge Failure Policy', 'error');
+                        return;
+                    }
+                } else {
+                    body.verifier.failurePolicy = { hard_fail: false, penalty: 0.5, log_failure: true };
+                }
             } else {
-                // rule_based, trajectory, llm_judge — collect description, logic, failure policy
+                // rule_based, trajectory — collect description, logic, failure policy
                 body.verifier.description = (document.getElementById('tr-verifier-desc').value || '').trim();
                 var logicRaw = (document.getElementById('tr-verifier-logic').value || '').trim();
                 if (logicRaw) {
@@ -1605,12 +1689,16 @@
     }
 
     function init() {
-        loadEnvironments().then(function () {
+        // Load environments and agents/algorithms in parallel; agents/algorithms
+        // tries the backend API first, falls back to hardcoded sample data
+        Promise.all([loadEnvironments(), fetchAgentsAndAlgorithms()]).then(function () {
+            populateSystems();
             populateCategories();
             populateEnvironments();
             populateAlgorithms();
             populateVerifiers();
             filterScenarios();
+            filterAgents();
             refreshAndRenderList();
 
             // Handle ?env= param from catalog navigation
@@ -1619,10 +1707,16 @@
             if (preselectedEnv) {
                 showView('new');
                 var env = findEnv(preselectedEnv);
-                if (env && env.category) {
-                    document.getElementById('tr-env-category').value = env.category;
-                    populateEnvironments();
+                // Preselect the system in the Environment dropdown
+                if (env && env.system) {
+                    var primarySystem = env.system.split(',')[0].trim();
+                    var systemSel = document.getElementById('tr-env-system');
+                    if (systemSel) {
+                        systemSel.value = primarySystem;
+                        populateEnvironments();
+                    }
                 }
+                // Preselect the RL environment in the Scenario dropdown (now in Section C)
                 document.getElementById('tr-env').value = preselectedEnv;
                 onEnvironmentChange();
                 history.replaceState(null, '', window.location.pathname);
@@ -1646,10 +1740,14 @@
             });
         }
 
-        // Category filter
+        // System filter (Environment dropdown now shows systems)
+        var systemSel = document.getElementById('tr-env-system');
+        if (systemSel) systemSel.addEventListener('change', onSystemChange);
+
+        // Hidden category filter (backward compat)
         document.getElementById('tr-env-category').addEventListener('change', onCategoryChange);
 
-        // Environment change cascades
+        // Environment change cascades (Scenario dropdown selects RL environment)
         document.getElementById('tr-env').addEventListener('change', onEnvironmentChange);
 
         // Verifier

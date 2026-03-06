@@ -35,8 +35,8 @@ Open **http://localhost:8000** in your browser.
 | Route | Description |
 |-------|-------------|
 | `/` | Landing page |
-| `/catalog` | Environment catalog with industry/workflow filtering |
-| `/training-console` | Configure, run, and monitor RL training |
+| `/catalog` | Environment catalog with industry journey (fin-sim, healthcare-sim, Enterprise-sim, HR-sim) |
+| `/training-console` | Configure, run, and monitor RL training; Rollouts tab for browsing episodes |
 | `/test-console` | Interactive simulation console |
 | `/human-eval` | Human-in-the-loop evaluation |
 | `/contact` | Feedback form |
@@ -52,7 +52,7 @@ agentwork-simulator/
 │       ├── training.js         # Training console (stepper, charts, rollout)
 │       ├── simulation-console.js  # Simulation engine
 │       ├── rollout-comparison.js  # Side-by-side rollout renderer
-│       └── training-config-data.js  # Scenarios, agents, algorithms
+│       └── training-config-data.js  # Scenarios, agents, algorithms, sample runs
 ├── environments/               # 113 Gymnasium RL environments
 │   ├── base_environment.py     # HealthcareRLEnvironment base class
 │   ├── clinical/               # 20 environments (Epic, Cerner, Allscripts)
@@ -120,7 +120,12 @@ All environments inherit from `HealthcareRLEnvironment` and implement the Gymnas
 - **Rollout comparison**: Side-by-side pre/post training with named tool calls, arguments, verifier results, and final environment state
 - **Real-time progress**: Polling-based status updates with reward charts
 - **Model artifact management**: View metadata, copy model path
-- **19 pre-configured training scenarios** across all categories
+- **Training scenarios**: 113 RL environments used as training scenarios, filtered by system
+- **2 sample training runs**: Pre-configured demo runs (Jira GRPO + Clinical PPO) with full detail pages and rollout comparison
+- **Rollouts tab**: Browse all rollouts across environments with filtering and detail views (Messages, Tool Calls, Full JSON)
+- **LLM Judge verifier**: Create verifiers with Prompt, Model, Examples, and Failure Policy configuration
+- **New Training Run form**: 4-section layout — Name, Environment (system), Training Data & Evaluation (scenario + verifier), Agent & Training Method
+- **API-ready agent config**: Agents and algorithms fetched from `/api/training/config` with fallback to defaults
 
 ### API Training Flow
 
@@ -181,6 +186,9 @@ Tests cover Jira workflow definitions, RL environment behavior, registry integra
 | GET | `/api/training/jobs` | List all training jobs |
 | GET | `/api/rollout-comparison/{env}` | Rollout comparison data |
 | GET | `/api/rollouts/{env}` | Rollout history |
+| GET | `/api/rollouts/{env}/{id}` | Rollout detail (full step data) |
+| GET | `/api/rollouts-all` | All rollouts across environments |
+| GET | `/api/training/config` | Agent & algorithm config (future) |
 | GET | `/kpis/{env_name}` | KPI metrics |
 | POST | `/human-eval/{job_id}` | Submit human evaluation |
 | GET | `/jira-mock-data` | Jira mock data |

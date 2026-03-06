@@ -165,19 +165,14 @@
                 <div class="training-section training-section--compact">
                     <h3>B. Environment</h3>
                     <div class="t-field">
-                        <label class="t-label" for="tr-env-category">Category</label>
-                        <select id="tr-env-category">
-                            <option value="">— All categories —</option>
+                        <label class="t-label" for="tr-env-system">Environment <span class="t-hint-inline" id="env-system-hint"></span></label>
+                        <select id="tr-env-system">
+                            <option value="">— All systems —</option>
                         </select>
                     </div>
-                    <div class="t-field">
-                        <label class="t-label" for="tr-env">Environment <span class="t-hint-inline" id="env-count-hint"></span></label>
-                        <select id="tr-env">
-                            <option value="">— Select environment —</option>
-                        </select>
-                    </div>
+                    <!-- Hidden: keep category select for backward compat -->
+                    <select id="tr-env-category" style="display:none"><option value="">— All —</option></select>
                     <div id="env-preview-panel" class="env-preview" style="display:none">
-                        <div class="ep-row"><span class="ep-label">Category</span><span class="ep-value" id="ep-category"></span></div>
                         <div class="ep-row"><span class="ep-label">System</span><span class="ep-value" id="ep-system"></span></div>
                         <div class="ep-row"><span class="ep-label">Action Space</span><span class="ep-value" id="ep-action-space"></span></div>
                         <div class="ep-row"><span class="ep-label">State Features</span><span class="ep-value" id="ep-state-features"></span></div>
@@ -195,11 +190,13 @@
                     <p class="t-hint" style="margin-bottom:0.5rem">Filtered by the selected environment</p>
 
                     <div class="t-field">
-                        <label class="t-label" for="tr-scenario">Scenario</label>
-                        <select id="tr-scenario">
+                        <label class="t-label" for="tr-env">Scenario <span class="t-hint-inline" id="env-count-hint"></span></label>
+                        <select id="tr-env">
                             <option value="">— Select scenario —</option>
                         </select>
                     </div>
+                    <!-- Hidden: kept for backward compat -->
+                    <select id="tr-scenario" style="display:none"><option value="">—</option></select>
 
                     <div class="t-field">
                         <label class="t-label">Verifier</label>
@@ -251,7 +248,7 @@
                                     <label class="t-label" for="tr-verifier-system">System</label>
                                     <input type="text" id="tr-verifier-system" readonly>
                                 </div>
-                                <!-- Fields for rule_based, trajectory, llm_judge -->
+                                <!-- Fields for rule_based, trajectory -->
                                 <div id="verifier-standard-panel">
                                     <div class="t-field">
                                         <label class="t-label" for="tr-verifier-desc">Description</label>
@@ -275,6 +272,64 @@
                                             <label class="t-label" for="tr-verifier-penalty">Penalty</label>
                                             <input type="number" id="tr-verifier-penalty" value="-0.5" step="0.1">
                                         </div>
+                                    </div>
+                                </div>
+                                <!-- LLM Judge panel (shown when type=llm_judge) -->
+                                <div id="llm-judge-panel" style="display:none">
+                                    <div class="llm-judge-tabs">
+                                        <button type="button" class="llm-judge-tab active" data-ljtab="prompt">Prompt</button>
+                                        <button type="button" class="llm-judge-tab" data-ljtab="model">Model</button>
+                                        <button type="button" class="llm-judge-tab" data-ljtab="examples">Examples</button>
+                                        <button type="button" class="llm-judge-tab" data-ljtab="failure">Failure policy</button>
+                                    </div>
+                                    <div class="llm-judge-tab-content active" data-ljtab-content="prompt">
+                                        <div class="t-field">
+                                            <label class="t-label">Judge Prompt <span class="t-hint-inline">use {{output}} and {{expected}}</span></label>
+                                            <textarea id="tr-lj-prompt" rows="6" class="code-textarea" placeholder="You are an expert evaluator.&#10;Agent output: {{output}}&#10;Expected: {{expected}}&#10;&#10;Score 0.0–1.0: how well does the output satisfy the task?&#10;Return JSON only: { &quot;score&quot;: float, &quot;rationale&quot;: string }"></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="llm-judge-tab-content" data-ljtab-content="model">
+                                        <div class="t-row">
+                                            <div class="t-field" style="flex:2">
+                                                <label class="t-label">Judge Model</label>
+                                                <select id="tr-lj-model">
+                                                    <option value="claude-sonnet-4-6" selected>claude-sonnet-4-6</option>
+                                                    <option value="claude-opus-4-6">claude-opus-4-6</option>
+                                                    <option value="claude-haiku-4-5">claude-haiku-4-5</option>
+                                                    <option value="gpt-4o">gpt-4o</option>
+                                                    <option value="gpt-4o-mini">gpt-4o-mini</option>
+                                                </select>
+                                            </div>
+                                            <div class="t-field" style="flex:1">
+                                                <label class="t-label">Temp</label>
+                                                <input type="number" id="tr-lj-temp" value="0" min="0" max="2" step="0.1">
+                                            </div>
+                                        </div>
+                                        <div class="t-field">
+                                            <label class="t-label">Scoring Field <span class="t-hint-inline">JSON key in judge response</span></label>
+                                            <input type="text" id="tr-lj-scoring-field" value="score" placeholder="score">
+                                        </div>
+                                    </div>
+                                    <div class="llm-judge-tab-content" data-ljtab-content="examples">
+                                        <div class="t-field">
+                                            <label class="t-label">Example Input</label>
+                                            <textarea id="tr-lj-example-input" rows="3" class="code-textarea" placeholder='{ "output": "Agent response", "expected": "Ground truth" }'></textarea>
+                                        </div>
+                                        <div class="t-field">
+                                            <label class="t-label">Example Judge Output</label>
+                                            <textarea id="tr-lj-example-output" rows="3" class="code-textarea" placeholder='{ "score": 0.9, "rationale": "Output captures key terms but misses X" }'></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="llm-judge-tab-content" data-ljtab-content="failure">
+                                        <div class="t-field">
+                                            <label class="t-label">Failure Policy <span class="t-hint-inline">JSON</span></label>
+                                            <textarea id="tr-lj-failure-policy" rows="5" class="code-textarea" placeholder='{&#10;  "hard_fail": false,&#10;  "penalty": 0.5,&#10;  "log_failure": true&#10;}'>{
+  "hard_fail": false,
+  "penalty": 0.5,
+  "log_failure": true
+}</textarea>
+                                        </div>
+                                        <p class="t-hint">hard_fail &middot; penalty (0-1) &middot; log_failure</p>
                                     </div>
                                 </div>
                                 <!-- Human eval condition/weight table (shown when type=human_eval) -->
@@ -446,8 +501,8 @@
 
     <script src="/static/toast.js"></script>
     <script src="/static/verifier-data.js"></script>
-    <script src="/static/training-config-data.js"></script>
+    <script src="/static/training-config-data.js?v=2"></script>
     <script src="/static/rollout-comparison.js?v=2"></script>
-    <script src="/static/training.js"></script>
+    <script src="/static/training.js?v=2"></script>
 </body>
 </html>

@@ -268,6 +268,9 @@ _archived_seed_rollouts = {
     ],
 }
 
+# Seed rollout store with demo data for sample training runs
+rollout_store.update({k: list(v) for k, v in _archived_seed_rollouts.items()})
+
 
 class TrainingRequest(BaseModel):
     environment_name: Optional[str] = None

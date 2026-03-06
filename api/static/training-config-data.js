@@ -47,8 +47,268 @@
             { id: 'A2C', name: 'A2C', description: 'Advantage Actor-Critic — synchronous policy gradient method', recommended: false },
         ],
 
-        // Training runs — populated dynamically from backend via /api/training/jobs
+        // Training runs — 2 demo runs + dynamically populated from backend via /api/training/jobs
         trainingRuns: [
+            {
+                id: 'run_grpo_001',
+                job_id: 'run_grpo_001',
+                name: 'train_jira_grpo_2026_01_15',
+                description: 'GRPO training on Jira Issue Resolution',
+                status: 'completed',
+                environment: 'JiraIssueResolution',
+                environmentDisplay: 'Jira Issue Resolution',
+                category: 'jira',
+                model: 'qwen-1.7b-instruct',
+                algorithm: 'GRPO',
+                progress: 100,
+                started: 'Jan 15, 2026',
+                completed: 'Jan 16, 2026',
+                episodes: 320,
+                successRate: 85.6,
+                avgReward: 0.63,
+                baselineReward: 0.22,
+                results: {
+                    mean_reward: 0.63,
+                    max_reward: 0.91,
+                    min_reward: 0.04,
+                    total_episodes: 320,
+                    episodes_completed: 320
+                },
+                baseline_results: {
+                    mean_reward: 0.22,
+                    max_reward: 0.38,
+                    min_reward: 0.02,
+                    episodes: 5
+                },
+                model_saved: true,
+                model_url: '/models/grpo/JiraIssueResolution_run_grpo_001.zip',
+                model_metadata: {
+                    job_id: 'run_grpo_001',
+                    environment_name: 'JiraIssueResolution',
+                    algorithm: 'GRPO',
+                    num_episodes: 320,
+                    mean_reward: 0.63,
+                    max_reward: 0.91,
+                    min_reward: 0.04,
+                    total_episodes_completed: 320,
+                    training_completed: true,
+                    timestamp: '2026-01-16T08:42:00Z'
+                },
+                hil_required: false,
+                human_evaluations: [],
+                _mock_baseline_rollout: {
+                    id: 'bl_mock_001',
+                    environment_name: 'JiraIssueResolution',
+                    episode_number: 0,
+                    total_reward: 0.12,
+                    total_steps: 3,
+                    status: 'completed',
+                    source: 'training',
+                    policy_name: 'qwen-1.7b-instruct',
+                    checkpoint_label: 'base',
+                    scenario_name: 'Resolve Jira ticket ISK2',
+                    steps: [
+                        { step: 1, action: null, reward: 0.02,
+                          timeline_events: [
+                            { timestamp_ms: 0, event_type: 'SYSTEM', content: 'User request received: "Resolve Jira ticket ISK2"' },
+                            { timestamp_ms: 412, event_type: 'MODEL_THOUGHT', content: 'Need to resolve the ticket.' }
+                          ]
+                        },
+                        { step: 2, action: null, reward: 0.05,
+                          timeline_events: [
+                            { timestamp_ms: 913, event_type: 'MODEL_THOUGHT', content: 'Should check possible transitions.' }
+                          ]
+                        },
+                        { step: 3, action: null, reward: 0.05,
+                          timeline_events: [
+                            { timestamp_ms: 1284, event_type: 'MODEL_THOUGHT', content: 'No further action taken.' }
+                          ]
+                        }
+                    ],
+                    final_outcome: { reward: 0.12, steps: 3, resolved: false },
+                    final_environment_state: { issue_key: 'ISK2', status: 'In Progress' },
+                    verifier_results: [
+                        { check: 'Tool Sequence Validator', passed: false, detail: 'No tool calls observed' },
+                        { check: 'Transition Validator', passed: false, detail: 'transition_issue was never invoked' }
+                    ]
+                },
+                _mock_trained_rollout: {
+                    id: 'tr_mock_001',
+                    environment_name: 'JiraIssueResolution',
+                    episode_number: 287,
+                    total_reward: 0.91,
+                    total_steps: 3,
+                    status: 'completed',
+                    source: 'training',
+                    policy_name: 'qwen-1.7b-instruct',
+                    checkpoint_label: 'jira_grpo_step_300',
+                    scenario_name: 'Resolve Jira ticket ISK2',
+                    steps: [
+                        { step: 1, action: 'get_issue_summary_and_description', reward: 0.15,
+                          timeline_events: [
+                            { timestamp_ms: 0, event_type: 'SYSTEM', content: 'User request received: "Resolve Jira ticket ISK2"' },
+                            { timestamp_ms: 88, event_type: 'TOOL_CALL', tool_name: 'get_issue_summary_and_description', tool_args: { issue_key: 'ISK2' } },
+                            { timestamp_ms: 168, event_type: 'TOOL_RESULT', content: 'ISK-2: "Login page error" \u2014 Status: Open, Priority: High' }
+                          ]
+                        },
+                        { step: 2, action: 'get_transitions', reward: 0.20,
+                          timeline_events: [
+                            { timestamp_ms: 248, event_type: 'TOOL_CALL', tool_name: 'get_transitions', tool_args: { issue_key: 'ISK2' } },
+                            { timestamp_ms: 338, event_type: 'TOOL_RESULT', content: 'valid_transitions:\n  - id: 61\n    name: Done' }
+                          ]
+                        },
+                        { step: 3, action: 'transition_issue', reward: 0.56,
+                          timeline_events: [
+                            { timestamp_ms: 418, event_type: 'TOOL_CALL', tool_name: 'transition_issue', tool_args: { issue_key: 'ISK2', transition_id: '61' } },
+                            { timestamp_ms: 508, event_type: 'TOOL_RESULT', content: 'Status changed: Open \u2192 In Progress' },
+                            { timestamp_ms: 588, event_type: 'TOOL_CALL', tool_name: 'get_transitions', tool_args: { issue_key: 'ISK2' } },
+                            { timestamp_ms: 658, event_type: 'TOOL_RESULT', content: 'valid_transitions:\n  - id: 61\n    name: Done' },
+                            { timestamp_ms: 738, event_type: 'TOOL_CALL', tool_name: 'transition_issue', tool_args: { issue_key: 'ISK2', transition_id: '61' } },
+                            { timestamp_ms: 828, event_type: 'TOOL_RESULT', content: 'Status changed: In Progress \u2192 Done' }
+                          ]
+                        }
+                    ],
+                    final_outcome: { reward: 0.91, steps: 3, resolved: true },
+                    final_environment_state: { issue_status: 'Done', resolution: 'Fixed', comments: 0 },
+                    verifier_results: [
+                        { check: 'Tool sequence order', passed: true, detail: 'get_issue \u2192 get_transitions \u2192 transition_issue \u2014 correct order' },
+                        { check: 'Valid transitions only', passed: true, detail: 'All transition_ids from get_transitions result' },
+                        { check: 'Issue resolved', passed: true, detail: 'Issue moved to Done status' }
+                    ]
+                }
+            },
+            {
+                id: 'run_ppo_003',
+                job_id: 'run_ppo_003',
+                name: 'train_clinical_ppo_2026_02_20',
+                description: 'PPO training on Treatment Pathway Optimization',
+                status: 'completed',
+                environment: 'TreatmentPathwayOptimization',
+                environmentDisplay: 'Treatment Pathway Optimization',
+                category: 'clinical',
+                model: 'mistral-7b-instruct-v0.3',
+                algorithm: 'PPO',
+                progress: 100,
+                started: 'Feb 20, 2026',
+                completed: 'Feb 21, 2026',
+                episodes: 200,
+                successRate: 72.4,
+                avgReward: 0.51,
+                baselineReward: 0.18,
+                results: {
+                    mean_reward: 0.51,
+                    max_reward: 0.78,
+                    min_reward: 0.03,
+                    total_episodes: 200,
+                    episodes_completed: 200
+                },
+                baseline_results: {
+                    mean_reward: 0.18,
+                    max_reward: 0.31,
+                    min_reward: 0.01,
+                    episodes: 5
+                },
+                model_saved: true,
+                model_url: '/models/ppo/TreatmentPathwayOptimization_run_ppo_003.zip',
+                model_metadata: {
+                    job_id: 'run_ppo_003',
+                    environment_name: 'TreatmentPathwayOptimization',
+                    algorithm: 'PPO',
+                    num_episodes: 200,
+                    mean_reward: 0.51,
+                    total_episodes_completed: 200,
+                    training_completed: true
+                },
+                hil_required: false,
+                human_evaluations: [],
+                _mock_baseline_rollout: {
+                    id: 'bl_mock_003',
+                    environment_name: 'TreatmentPathwayOptimization',
+                    episode_number: 0,
+                    total_reward: 0.09,
+                    total_steps: 4,
+                    status: 'completed',
+                    source: 'training',
+                    policy_name: 'mistral-7b-instruct-v0.3',
+                    checkpoint_label: 'base',
+                    scenario_name: 'Treatment Pathway Optimization',
+                    steps: [
+                        { step: 1, action: null, reward: 0.01,
+                          timeline_events: [
+                            { timestamp_ms: 0, event_type: 'SYSTEM', content: 'Patient case loaded: chronic kidney disease stage 3' },
+                            { timestamp_ms: 320, event_type: 'MODEL_THOUGHT', content: 'Reviewing patient history.' }
+                          ]
+                        },
+                        { step: 2, action: null, reward: 0.03,
+                          timeline_events: [
+                            { timestamp_ms: 680, event_type: 'MODEL_THOUGHT', content: 'Should check labs and medications.' }
+                          ]
+                        },
+                        { step: 3, action: null, reward: 0.03,
+                          timeline_events: [
+                            { timestamp_ms: 1100, event_type: 'MODEL_THOUGHT', content: 'Considering treatment options.' }
+                          ]
+                        },
+                        { step: 4, action: null, reward: 0.02,
+                          timeline_events: [
+                            { timestamp_ms: 1450, event_type: 'MODEL_THOUGHT', content: 'No specific pathway selected.' }
+                          ]
+                        }
+                    ],
+                    final_outcome: { reward: 0.09, steps: 4, resolved: false },
+                    final_environment_state: { pathway_selected: false, patient_status: 'unchanged' },
+                    verifier_results: [
+                        { check: 'Pathway Selection', passed: false, detail: 'No treatment pathway was selected' },
+                        { check: 'Clinical Guidelines', passed: false, detail: 'No guideline-based actions taken' }
+                    ]
+                },
+                _mock_trained_rollout: {
+                    id: 'tr_mock_003',
+                    environment_name: 'TreatmentPathwayOptimization',
+                    episode_number: 185,
+                    total_reward: 0.78,
+                    total_steps: 4,
+                    status: 'completed',
+                    source: 'training',
+                    policy_name: 'mistral-7b-instruct-v0.3',
+                    checkpoint_label: 'clinical_ppo_step_200',
+                    scenario_name: 'Treatment Pathway Optimization',
+                    steps: [
+                        { step: 1, action: 'get_patient_summary', reward: 0.12,
+                          timeline_events: [
+                            { timestamp_ms: 0, event_type: 'SYSTEM', content: 'Patient case loaded: chronic kidney disease stage 3' },
+                            { timestamp_ms: 95, event_type: 'TOOL_CALL', tool_name: 'get_patient_summary', tool_args: { patient_id: 'PT-4821' } },
+                            { timestamp_ms: 180, event_type: 'TOOL_RESULT', content: 'Patient: 62yo M, CKD Stage 3, eGFR 42, HTN, DM2' }
+                          ]
+                        },
+                        { step: 2, action: 'get_lab_results', reward: 0.18,
+                          timeline_events: [
+                            { timestamp_ms: 260, event_type: 'TOOL_CALL', tool_name: 'get_lab_results', tool_args: { patient_id: 'PT-4821', panel: 'renal' } },
+                            { timestamp_ms: 350, event_type: 'TOOL_RESULT', content: 'Creatinine: 1.8, BUN: 32, K+: 4.9, eGFR: 42' }
+                          ]
+                        },
+                        { step: 3, action: 'select_treatment_pathway', reward: 0.22,
+                          timeline_events: [
+                            { timestamp_ms: 430, event_type: 'TOOL_CALL', tool_name: 'select_treatment_pathway', tool_args: { pathway: 'ckd_management_conservative', rationale: 'Stage 3 CKD with stable eGFR' } },
+                            { timestamp_ms: 520, event_type: 'TOOL_RESULT', content: 'Pathway selected: CKD Conservative Management' }
+                          ]
+                        },
+                        { step: 4, action: 'order_followup', reward: 0.26,
+                          timeline_events: [
+                            { timestamp_ms: 600, event_type: 'TOOL_CALL', tool_name: 'order_followup', tool_args: { type: 'nephrology_referral', timeframe: '2_weeks' } },
+                            { timestamp_ms: 690, event_type: 'TOOL_RESULT', content: 'Follow-up ordered: Nephrology consult in 2 weeks' }
+                          ]
+                        }
+                    ],
+                    final_outcome: { reward: 0.78, steps: 4, resolved: true },
+                    final_environment_state: { pathway_selected: true, patient_status: 'treatment_initiated', referral: 'nephrology' },
+                    verifier_results: [
+                        { check: 'Pathway Selection', passed: true, detail: 'CKD conservative management pathway selected' },
+                        { check: 'Clinical Guidelines', passed: true, detail: 'Actions aligned with KDIGO guidelines' },
+                        { check: 'Follow-up Ordered', passed: true, detail: 'Appropriate specialist referral placed' }
+                    ]
+                }
+            }
         ],
 
         // Archived mock data (kept for reference, not loaded)

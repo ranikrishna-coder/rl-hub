@@ -366,6 +366,60 @@
 }
 .add-condition-btn:hover { text-decoration: underline; }
 
+/* LLM Judge panel */
+.llm-judge-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    margin-bottom: 0.75rem;
+}
+.llm-judge-tab {
+    background: none;
+    border: none;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-secondary, #6b7280);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+}
+.llm-judge-tab:hover { color: var(--text-primary, #111); }
+.llm-judge-tab.active {
+    color: var(--primary-color, #7c3aed);
+    border-bottom-color: var(--primary-color, #7c3aed);
+}
+.llm-judge-tab-content {
+    display: none;
+}
+.llm-judge-tab-content.active {
+    display: block;
+}
+.training-section textarea.code-textarea,
+textarea.code-textarea {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    border: 1px solid #2d2d44;
+    border-radius: 8px;
+    padding: 0.75rem;
+    resize: vertical;
+    width: 100%;
+    box-sizing: border-box;
+}
+.training-section textarea.code-textarea::placeholder,
+textarea.code-textarea::placeholder {
+    color: #5a5a7a;
+}
+.training-section textarea.code-textarea:focus,
+textarea.code-textarea:focus {
+    outline: none;
+    border-color: var(--primary-color, #7c3aed);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
 /* Environment preview panel */
 .env-preview {
     background: #f9fafb;
