@@ -148,6 +148,21 @@ You can deploy without pushing:
 | **sudo: no tty present** | Add the NOPASSWD line in `visudo` for `systemctl restart agentwork-simulator` (step 2.1). |
 | **Service failed to start** | On VM run `sudo journalctl -u agentwork-simulator -n 50`; fix paths or app errors (see [DEPLOYMENT.md](DEPLOYMENT.md#-troubleshooting)). |
 | **git fetch / reset fails** | Repo is git clone; `origin` is correct; if private repo, use deploy key or token so pull works non-interactively. |
+| **Changes not reflected on VM** | See [Changes not reflected](#changes-not-reflected-on-vm) below. |
+
+### Changes not reflected on VM
+
+1. **Check GitHub Actions:** Repo → **Actions** → open the latest **Deploy to VM** run. If it failed, fix the failing step (SSH, path, git, or systemctl).
+2. **Path must match:** The directory the workflow updates must be the same one the app runs from. Default is `/var/agentwork/AgentWork-Simulator`. If you cloned elsewhere (e.g. `/home/azureuser/AgentWork-Simulator`), set the **DEPLOY_APP_PATH** secret to that path, and ensure the systemd service uses the same path.
+3. **Manual refresh on VM:** SSH to the VM and run:
+   ```bash
+   cd /var/agentwork/AgentWork-Simulator   # or your DEPLOY_APP_PATH
+   git fetch origin main && git status
+   git log -1 --oneline
+   ```
+   If `git status` says "up to date" but you just pushed, `origin` may be wrong or pull failed in the workflow. Run `git pull origin main` and `sudo systemctl restart agentwork-simulator`, then check the site again.
+4. **Browser cache:** Hard refresh (Ctrl+Shift+R or Cmd+Shift+R) or try an incognito window.
+5. **Service actually restarted:** On the VM run `sudo systemctl status agentwork-simulator` and `curl -s http://127.0.0.1:8000/ | head -20` to confirm the running app serves the latest content.
 
 ---
 
