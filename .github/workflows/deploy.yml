@@ -47,9 +47,11 @@ jobs:
     - name: Create deployment package
       run: |
         mkdir -p deployment
-        cp -r api environments simulator portal training orchestration database deployment/
+        for dir in api environments simulator portal training orchestration database verifiers observability governance; do
+          [ -d "$dir" ] && cp -r "$dir" deployment/
+        done
         cp requirements.txt README.md deployment/
-        cp start_server.sh deployment/
+        [ -f start_server.sh ] && cp start_server.sh deployment/
         tar -czf agentwork-simulator-deployment.tar.gz deployment/
         echo "✓ Deployment package created"
 
