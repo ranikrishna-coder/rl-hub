@@ -1,0 +1,57 @@
+# Auto-deploy to Ubuntu VM (systemd + Apache/Nginx)
+# Required secrets: DEPLOY_SSH_KEY, DEPLOY_HOST, DEPLOY_USER
+# Optional: DEPLOY_APP_PATH (default /var/agentwork/AgentWork-Simulator), DEPLOY_SSH_PORT (default 22)
+
+name: Deploy to VM
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-vm:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    name: Deploy to Ubuntu VM
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate deploy secrets
+        run: |
+          if [ -z "${{ secrets.DEPLOY_HOST }}" ] || [ -z "${{ secrets.DEPLOY_USER }}" ] || [ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]; then
+            echo "::error::Missing required secrets. Add DEPLOY_HOST, DEPLOY_USER, and DEPLOY_SSH_KEY in Settings → Secrets and variables → Actions. See CONFIGURE_AUTO_DEPLOY.md"
+            exit 1
+          fi
+          echo "✓ Deploy secrets present"
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+          script: |
+            set -e
+            APP_ROOT="${{ secrets.DEPLOY_APP_PATH }}"
+            [ -z "$APP_ROOT" ] && APP_ROOT="/var/agentwork/AgentWork-Simulator"
+            echo "→ App root: $APP_ROOT"
+            cd "$APP_ROOT" || { echo "❌ Directory not found: $APP_ROOT"; exit 1; }
+            echo "→ Git pull"
+            git fetch origin main && git reset --hard origin/main
+            echo "→ Install dependencies"
+            "$APP_ROOT/venv/bin/pip" install -q --upgrade pip
+            "$APP_ROOT/venv/bin/pip" install -q -r requirements.txt
+            echo "→ Restart service"
+            sudo systemctl restart agentwork-simulator
+            sleep 2
+            sudo systemctl is-active --quiet agentwork-simulator && echo "✅ agentwork-simulator is running" || (sudo systemctl status agentwork-simulator; exit 1)
+
+      - name: Summary
+        run: |
+          echo "## 🚀 Deployed to VM" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Branch \`main\` deployed to \`${{ secrets.DEPLOY_HOST }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "🔄 \`agentwork-simulator\` service restarted." >> $GITHUB_STEP_SUMMARY
