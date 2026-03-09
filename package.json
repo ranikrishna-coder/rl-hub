@@ -4,7 +4,10 @@
   "private": true,
   "description": "AgentWork Simulator - Production-grade RL environments for healthcare and enterprise systems",
   "scripts": {
-    "start": "python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8000"
+    "start": "python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8000",
+    "docker:build": "bash scripts/build-push-docker.sh build",
+    "docker:push": "bash scripts/build-push-docker.sh push",
+    "docker:build-push": "bash scripts/build-push-docker.sh build-push"
   },
   "engines": {
     "node": ">=18"

@@ -264,6 +264,25 @@ docker run -p 8000:8000 agentwork-simulator
 docker-compose up -d
 ```
 
+#### Automated local build and push (script)
+
+From the repo root, build and push to GitHub Container Registry in one go:
+
+```bash
+# One command (build + push). Image name is inferred from git remote (e.g. ghcr.io/owner/repo)
+npm run docker:build-push
+# or
+./scripts/build-push-docker.sh build-push
+```
+
+Log in once to ghcr.io first: `echo YOUR_GITHUB_TOKEN | docker login ghcr.io -u YOUR_USERNAME --password-stdin`
+
+- `npm run docker:build` — build only  
+- `npm run docker:push` — push existing image only  
+- `npm run docker:build-push` — build then push  
+
+Optional env: `IMAGE_NAME`, `DOCKER_TAG`, `REGISTRY` (e.g. `DOCKER_TAG=main npm run docker:build-push`).
+
 #### Push to Container Registry
 
 ```bash

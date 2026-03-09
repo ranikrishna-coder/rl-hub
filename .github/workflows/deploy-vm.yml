@@ -1,6 +1,7 @@
 # Auto-deploy to Ubuntu VM (systemd + Apache/Nginx)
 # Required secrets: DEPLOY_SSH_KEY, DEPLOY_HOST, DEPLOY_USER
 # Optional: DEPLOY_APP_PATH (default /var/agentwork/AgentWork-Simulator), DEPLOY_SSH_PORT (default 22)
+# Optional for private repo: DEPLOY_GITHUB_TOKEN (PAT with repo read) so git fetch works without prompt
 
 name: Deploy to VM
 
@@ -14,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     name: Deploy to Ubuntu VM
+    env:
+      REPO_FULL_NAME: ${{ github.repository }}
+      DEPLOY_GITHUB_TOKEN: ${{ secrets.DEPLOY_GITHUB_TOKEN }}
 
     steps:
       - name: Checkout
@@ -34,6 +38,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+          envs: REPO_FULL_NAME,DEPLOY_GITHUB_TOKEN
           script: |
             set -e
             APP_ROOT="${{ secrets.DEPLOY_APP_PATH }}"
@@ -41,7 +46,19 @@ jobs:
             echo "→ App root: $APP_ROOT"
             cd "$APP_ROOT" || { echo "❌ Directory not found: $APP_ROOT"; exit 1; }
             echo "→ Git pull"
+            if [ -n "$DEPLOY_GITHUB_TOKEN" ]; then
+              git remote set-url origin "https://x-access-token:${DEPLOY_GITHUB_TOKEN}@github.com/${REPO_FULL_NAME}.git"
+            fi
             git fetch origin main && git reset --hard origin/main
+            COMMIT=$(git rev-parse --short HEAD)
+            echo "→ Deployed commit: $COMMIT"
+            git log -1 --oneline
+            echo "→ Verify service uses same path"
+            SVC_PATH=$(systemctl show agentwork-simulator -p WorkingDirectory --value 2>/dev/null || true)
+            echo "  systemd WorkingDirectory: $SVC_PATH"
+            if [ -n "$SVC_PATH" ] && [ "$(realpath "$SVC_PATH" 2>/dev/null || echo "$SVC_PATH")" != "$(realpath "$APP_ROOT" 2>/dev/null || echo "$APP_ROOT")" ]; then
+              echo "::warning::Path mismatch: workflow updates $APP_ROOT but service runs from $SVC_PATH. Set DEPLOY_APP_PATH to $SVC_PATH or change the systemd unit to use $APP_ROOT."
+            fi
             echo "→ Install dependencies"
             "$APP_ROOT/venv/bin/pip" install -q --upgrade pip
             "$APP_ROOT/venv/bin/pip" install -q -r requirements.txt
@@ -49,9 +66,11 @@ jobs:
             sudo systemctl restart agentwork-simulator
             sleep 2
             sudo systemctl is-active --quiet agentwork-simulator && echo "✅ agentwork-simulator is running" || (sudo systemctl status agentwork-simulator; exit 1)
+            echo "→ Quick health check"
+            curl -sf http://127.0.0.1:8000/ >/dev/null && echo "  HTTP 200 OK" || echo "  HTTP check failed"
 
       - name: Summary
         run: |
           echo "## 🚀 Deployed to VM" >> $GITHUB_STEP_SUMMARY
           echo "✅ Branch \`main\` deployed to \`${{ secrets.DEPLOY_HOST }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "🔄 \`agentwork-simulator\` service restarted." >> $GITHUB_STEP_SUMMARY
+          echo "🔄 \`agentwork-simulator\` service restarted. If changes don't appear, check the Deploy step log for **Path mismatch** or set **DEPLOY_APP_PATH** to match the systemd WorkingDirectory." >> $GITHUB_STEP_SUMMARY

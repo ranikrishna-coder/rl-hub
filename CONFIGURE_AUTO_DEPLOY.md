@@ -18,6 +18,9 @@ The workflow needs these secrets to SSH into your VM. **Never commit them to the
 | `DEPLOY_SSH_KEY`  | **Yes**  | Full **private** SSH key (see below) | (multi-line key) |
 | `DEPLOY_APP_PATH` | No       | App directory on VM | `/var/agentwork/AgentWork-Simulator` (default) |
 | `DEPLOY_SSH_PORT` | No       | SSH port if not 22 | `22` (default) |
+| `DEPLOY_GITHUB_TOKEN` | No (required for **private** repo) | GitHub PAT with `repo` scope (read access) | `ghp_...` or fine-grained token with "Contents: Read" |
+
+**Private repo:** If the repository is private, add **DEPLOY_GITHUB_TOKEN**. The workflow uses it on the VM to set the git remote so `git fetch origin main` works without a password. Use a fine-grained PAT with "Contents: Read" or a classic PAT with `repo` scope. Do not use your password.
 
 ### Getting `DEPLOY_SSH_KEY`
 
@@ -147,8 +150,9 @@ You can deploy without pushing:
 | **Directory not found** | `DEPLOY_APP_PATH` matches the real path on the VM (e.g. `/var/agentwork/AgentWork-Simulator`). |
 | **sudo: no tty present** | Add the NOPASSWD line in `visudo` for `systemctl restart agentwork-simulator` (step 2.1). |
 | **Service failed to start** | On VM run `sudo journalctl -u agentwork-simulator -n 50`; fix paths or app errors (see [DEPLOYMENT.md](DEPLOYMENT.md#-troubleshooting)). |
-| **git fetch / reset fails** | Repo is git clone; `origin` is correct; if private repo, use deploy key or token so pull works non-interactively. |
+| **git fetch / reset fails** | Repo is git clone; `origin` is correct; if private repo, use deploy key or token so pull works non-interactively. **Add the DEPLOY_GITHUB_TOKEN secret** so the workflow can set the remote URL and fetch. |
 | **Changes not reflected on VM** | See [Changes not reflected](#changes-not-reflected-on-vm) below. |
+| **Job shows success but VM not updated** | Usually **path mismatch**: workflow updates one folder, service runs from another. In the **Deploy via SSH** log, check the line `systemd WorkingDirectory:` and compare to `App root:`. They must be the same. Set **DEPLOY_APP_PATH** to the systemd path, or change the systemd unit to use the app root path. |
 
 ### Changes not reflected on VM
 
@@ -168,7 +172,7 @@ You can deploy without pushing:
 
 ## Summary checklist
 
-- [ ] Secrets added: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` (and optional `DEPLOY_APP_PATH`, `DEPLOY_SSH_PORT`)
+- [ ] Secrets added: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` (and optional `DEPLOY_APP_PATH`, `DEPLOY_SSH_PORT`, **`DEPLOY_GITHUB_TOKEN` for private repo**)
 - [ ] VM: Public key for `DEPLOY_SSH_KEY` is in `~/.ssh/authorized_keys`
 - [ ] VM: `sudo visudo` has NOPASSWD for `systemctl restart agentwork-simulator`
 - [ ] VM: App cloned, venv and systemd service set up; path matches `DEPLOY_APP_PATH` (or default)
