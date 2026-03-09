@@ -89,7 +89,7 @@ jobs:
         " > installation_report.txt
 
     - name: Upload installation report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: installation-report
         path: installation_report.txt
