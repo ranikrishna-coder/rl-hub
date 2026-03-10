@@ -248,10 +248,10 @@ body {
     background-color: #1a1825;
     background-image:
         url(/static/hero-bg-pattern.svg),
-        linear-gradient(120deg, #1e1b4b 0%, #252236 50%, transparent 100%);
-    background-size: 75% 100%, 100% 100%;
-    background-position: 100% 50%, 0 0;
-    opacity: 0.85;
+        linear-gradient(120deg, #1a1825 0%, #1e1b2e 40%, #252236 100%);
+    background-size: 55% 100%, 100% 100%;
+    background-position: right -60px top, 0 0;
+    opacity: 0.45;
 }
 /* Hero – consistent vertical rhythm (space scale: 0.5, 0.75, 1, 1.25, 1.5rem) */
 .landing-hero {
