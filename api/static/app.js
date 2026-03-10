@@ -2219,7 +2219,7 @@ function getDefaultHowToUse(category, envName) {
             <li><strong>Access the Environment:</strong> Click the "🧪 Environment" button to open the interactive environment console.</li>
             <li><strong>Configure Parameters:</strong> Adjust the environment configuration parameters in the left panel to match your workflow setting (e.g., queue sizes, resource availability, urgency levels).</li>
             <li><strong>Select Agent Strategy:</strong> Choose an RL agent strategy (Random, Urgency First, Value First, or Balanced) to see how different approaches perform.</li>
-            <li><strong>Initialize Environment:</strong> Click "Initialize Environment" to start a new simulation episode with your configured parameters.</li>
+            <li><strong>Initialize:</strong> Click "Initialize" to start a new simulation episode with your configured parameters.</li>
             <li><strong>Run Simulation:</strong> Use "Step Forward" to advance one step at a time, or "Auto Run" to let the simulation run automatically at your selected speed.</li>
             <li><strong>Monitor Metrics:</strong> Watch real-time KPIs, metrics, and recommendations in the right panel to understand performance.</li>
             <li><strong>Analyze Results:</strong> Review the results summary at the bottom to assess clinical outcomes, operational efficiency, financial impact, and ROI.</li>

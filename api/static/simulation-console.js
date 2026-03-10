@@ -2165,7 +2165,7 @@ function resetSimulation() {
     stepCount = 0;
     metricsHistory = [];
 
-    document.getElementById('state-display').innerHTML = '<div class="empty-state">Click "Initialize Environment" to start</div>';
+    document.getElementById('state-display').innerHTML = '<div class="empty-state">Click "Initialize" to start</div>';
     document.getElementById('action-history').innerHTML = '<div class="empty-state">No actions taken yet</div>';
     document.getElementById('action-display').innerHTML = '<div class="empty-state">Waiting for initialization...</div>';
 

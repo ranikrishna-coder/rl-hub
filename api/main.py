@@ -2487,8 +2487,8 @@ async def get_huggingface_space_info(owner: str, repo: str):
 @app.post("/api/huggingface/import")
 async def import_huggingface_space(req: HuggingFaceImportRequest, background_tasks: BackgroundTasks):
     """
-    Import a HuggingFace Space by cloning its repo and registering it as a local environment.
-    Uses `git clone` to pull the entire space.
+    Import a HuggingFace Space by downloading files via the HF API.
+    No git dependency required — uses HTTP to fetch the file tree and download each file.
     """
     # Validate URL
     if "huggingface.co/spaces/" not in req.hf_url:
@@ -2502,41 +2502,53 @@ async def import_huggingface_space(req: HuggingFaceImportRequest, background_tas
     os.makedirs(HF_SPACES_DIR, exist_ok=True)
     target_dir = os.path.join(HF_SPACES_DIR, req.name)
 
-    # Clone the HuggingFace Space repo (3-step approach to bypass git-lfs)
-    clone_url = f"https://huggingface.co/spaces/{req.hf_owner}/{req.hf_repo}"
+    # Download files via HuggingFace API (no git required)
+    api_tree_url = f"https://huggingface.co/api/spaces/{req.hf_owner}/{req.hf_repo}/tree/main"
+    headers = {"User-Agent": "AgentWork-Simulator/1.0"}
     try:
         if os.path.exists(target_dir):
             shutil.rmtree(target_dir)
-        env = os.environ.copy()
-        env["GIT_LFS_SKIP_SMUDGE"] = "1"
+        os.makedirs(target_dir, exist_ok=True)
 
-        # Step 1: Clone without checkout to avoid triggering LFS filters
-        result = _subprocess.run(
-            ["git", "clone", "--depth", "1", "--no-checkout", clone_url, target_dir],
-            capture_output=True, text=True, timeout=120, env=env,
-        )
-        if result.returncode != 0:
-            raise HTTPException(status_code=500, detail=f"Git clone failed: {result.stderr[:500]}")
+        # Fetch file tree from HF API
+        tree_req = urllib.request.Request(api_tree_url, headers=headers)
+        with urllib.request.urlopen(tree_req, timeout=30) as resp:
+            tree = json.loads(resp.read().decode())
 
-        # Step 2: Override .gitattributes to disable LFS filters before checkout
-        info_dir = os.path.join(target_dir, ".git", "info")
-        os.makedirs(info_dir, exist_ok=True)
-        with open(os.path.join(info_dir, "attributes"), "w") as f:
-            f.write("* -filter -diff -merge\n")
+        # Download each file (skip LFS blobs > 10MB, skip directories)
+        max_file_size = 10 * 1024 * 1024  # 10MB limit per file
+        for item in tree:
+            if item.get("type") != "file":
+                continue
+            rpath = item.get("path", "")
+            size = item.get("size", 0)
+            if size > max_file_size:
+                continue  # Skip large LFS files
+            file_url = f"https://huggingface.co/spaces/{req.hf_owner}/{req.hf_repo}/resolve/main/{rpath}"
+            local_path = os.path.join(target_dir, rpath)
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            dl_req = urllib.request.Request(file_url, headers=headers)
+            try:
+                with urllib.request.urlopen(dl_req, timeout=60) as dl_resp:
+                    with open(local_path, "wb") as f:
+                        f.write(dl_resp.read())
+            except Exception:
+                pass  # Skip files that fail to download
 
-        # Step 3: Checkout files (LFS filters disabled via info/attributes)
-        checkout_result = _subprocess.run(
-            ["git", "-C", target_dir, "checkout"],
-            capture_output=True, text=True, timeout=120, env=env,
-        )
-        # Checkout warnings are not fatal (e.g. LFS pointer files stay as pointers)
-        if checkout_result.returncode != 0 and "error" in checkout_result.stderr.lower():
-            raise HTTPException(status_code=500, detail=f"Git checkout failed: {checkout_result.stderr[:500]}")
-
-    except _subprocess.TimeoutExpired:
-        raise HTTPException(status_code=504, detail="Clone timed out (>120s). The repository may be too large.")
-    except FileNotFoundError:
-        raise HTTPException(status_code=500, detail="git is not installed or not in PATH.")
+    except urllib.error.HTTPError as exc:
+        if os.path.exists(target_dir):
+            shutil.rmtree(target_dir, ignore_errors=True)
+        if exc.code == 404:
+            raise HTTPException(status_code=404, detail=f"Space '{req.hf_owner}/{req.hf_repo}' not found on HuggingFace.")
+        raise HTTPException(status_code=500, detail=f"HuggingFace API error (HTTP {exc.code})")
+    except urllib.error.URLError as exc:
+        if os.path.exists(target_dir):
+            shutil.rmtree(target_dir, ignore_errors=True)
+        raise HTTPException(status_code=502, detail=f"Failed to reach HuggingFace: {str(exc.reason)}")
+    except Exception as exc:
+        if os.path.exists(target_dir):
+            shutil.rmtree(target_dir, ignore_errors=True)
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(exc)}")
 
     # Try to read metadata from the cloned repo
     sdk = "unknown"
