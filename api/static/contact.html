@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contact us – Centific AgentWork Simulator</title>
+    <title>Contact us – Centific RL Environment & Agent</title>
     <link rel="stylesheet" href="/static/landing.css">
     <link rel="stylesheet" href="/static/global-nav.css">
     <link rel="stylesheet" href="/static/toast.css">
@@ -12,7 +12,11 @@
             var h = window.location.hostname;
             if (h === 'localhost' || h === '127.0.0.1') window.API_BASE = 'http://localhost:8000';
             else window.API_BASE = window.location.origin;
-            document.documentElement.setAttribute('data-theme', 'light');
+            var saved = null;
+            try { saved = localStorage.getItem('landing-theme'); } catch (e) {}
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved === 'dark' || (saved !== 'light' && prefersDark)) document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.setAttribute('data-theme', 'light');
         })();
     </script>
 </head>
@@ -21,7 +25,7 @@
         <div class="landing-nav-wrap">
             <a href="/" class="landing-logo">
                 <img src="/static/logo.svg" alt="" class="logo-icon" width="40" height="40">
-                <span class="logo-text"><span class="logo-brand">Centific</span><span class="logo-product">AgentWork Simulator</span></span>
+                <span class="logo-text"><span class="logo-brand">Centific</span><span class="logo-product">RL Environment & Agent</span></span>
             </a>
             <nav class="landing-nav">
                 <a href="/catalog" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.125em"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Catalog</a>
@@ -39,6 +43,10 @@
                 </div>
                 -->
                 <a href="/#contact" class="nav-link">Contact us</a>
+                <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+                    <span class="theme-icon theme-icon-sun">&#9728;&#65039;</span>
+                    <span class="theme-icon theme-icon-moon">&#127769;</span>
+                </button>
             </nav>
         </div>
     </header>
@@ -46,7 +54,7 @@
     <main class="landing-main">
         <section class="landing-section landing-section-alt">
             <h2 class="landing-section-title">Contact us</h2>
-            <p class="landing-section-desc">Let's unlock the full potential of AgentWork Simulator for your enterprise. Request a tailored demo, collaborate on custom-built environments, or speak with our team about enterprise-grade access and deployment options. We're here to partner with you every step of the way.</p>
+            <p class="landing-section-desc">Let's unlock the full potential of our RL environments for your enterprise. Request a tailored demo, collaborate on custom-built environments, or speak with our team about enterprise-grade access and deployment options. We're here to partner with you every step of the way.</p>
             <form class="contact-form" id="contact-form" action="#" method="post">
                 <div class="contact-row">
                     <label class="contact-label" for="contact-name">Name</label>
@@ -66,11 +74,11 @@
                 </div>
                 <div class="contact-row">
                     <label class="contact-label" for="contact-usecase">Describe your use case</label>
-                    <textarea id="contact-usecase" name="use_case" class="contact-textarea" rows="4" placeholder="Describe your use case and how you plan to use AgentWork Simulator." required></textarea>
+                    <textarea id="contact-usecase" name="use_case" class="contact-textarea" rows="4" placeholder="Describe your use case and how you plan to use our RL environments." required></textarea>
                 </div>
                 <div class="contact-row contact-actions">
                     <button type="submit" class="contact-submit">Send message</button>
-                    <p class="contact-note">Or explore the <a href="/catalog">catalog</a> to try AgentWork Simulator now.</p>
+                    <p class="contact-note">Or explore the <a href="/catalog">catalog</a> to try our RL environments now.</p>
                 </div>
             </form>
         </section>
@@ -174,11 +182,19 @@
                         }).catch(function() { showToast('Submission failed. Please try again.', 'error'); });
                     } else {
                         var body = 'Use case: ' + useCase + '\n\nOrganization: ' + org + '\n\n-- ' + name + ' (' + email + ')';
-                        window.location.href = 'mailto:kausalyarani.k@centific.com?subject=' + encodeURIComponent('AgentWork Simulator: ' + name) + '&body=' + encodeURIComponent(body);
+                        window.location.href = 'mailto:kausalyarani.k@centific.com?subject=' + encodeURIComponent('RL Environment & Agent: ' + name) + '&body=' + encodeURIComponent(body);
                     }
                 });
             }
         })();
+    </script>
+    <script>
+        function toggleTheme() {
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            try { localStorage.setItem('landing-theme', next); } catch (e) {}
+        }
     </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Centific AgentWork Simulator - Training</title>
+    <title>Centific RL Environment & Agent - Training</title>
     <link rel="stylesheet" href="/static/styles.css">
     <link rel="stylesheet" href="/static/global-nav.css">
     <link rel="stylesheet" href="/static/toast.css">
@@ -21,7 +21,11 @@
     <script src="/config.js" onerror="(function(){})()"></script>
     <script>
         (function() {
-            document.documentElement.setAttribute('data-theme', 'light');
+            var saved = null;
+            try { saved = localStorage.getItem('landing-theme'); } catch (e) {}
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved === 'dark' || (saved !== 'light' && prefersDark)) document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.setAttribute('data-theme', 'light');
             // Embedded mode: hide chrome when loaded inside an iframe
             if (new URLSearchParams(window.location.search).get('embedded') === '1') {
                 document.documentElement.classList.add('embedded-mode');
@@ -33,7 +37,7 @@
     <nav class="gn-bar">
         <a href="/" class="gn-logo">
             <img src="/static/logo.svg" alt="" width="28" height="28">
-            <span class="gn-logo-text">Centific <span class="gn-logo-sub">AgentWork Simulator</span></span>
+            <span class="gn-logo-text">Centific <span class="gn-logo-sub">RL Environment & Agent</span></span>
         </a>
         <button type="button" class="gn-toggle" aria-label="Toggle menu" onclick="document.querySelector('.gn-links').classList.toggle('gn-open')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -42,6 +46,7 @@
             <li><a href="/catalog" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Catalog</a></li>
             <!-- <li><a href="/training-console" class="gn-link gn-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg> Training</a></li> -->
             <li><a href="/#contact" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Contact us</a></li>
+            <li><button type="button" class="gn-theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode"><span class="theme-icon-sun">&#9728;&#65039;</span><span class="theme-icon-moon">&#127769;</span></button></li>
         </ul>
     </nav>
 
@@ -523,5 +528,13 @@
     <script src="/static/training-config-data.js?v=3"></script>
     <script src="/static/rollout-comparison.js?v=2"></script>
     <script src="/static/training.js?v=10"></script>
+    <script>
+        function toggleTheme() {
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            try { localStorage.setItem('landing-theme', next); } catch (e) {}
+        }
+    </script>
 </body>
 </html>

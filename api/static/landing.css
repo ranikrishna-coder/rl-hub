@@ -163,6 +163,10 @@ body {
 [data-theme="dark"] .theme-icon-moon { display: inline; }
 
 /* Systematic geometric pattern – diamond/chevron, brand colors at low opacity, 4 layers for depth */
+[data-theme="dark"] .bg-systematic-pattern {
+    background-color: #1a1825 !important;
+    background-image: none !important;
+}
 .bg-systematic-pattern {
     --brand-pink: #CB1487;
     --brand-purple: #233F92;
@@ -635,6 +639,9 @@ body {
     align-items: center;
     justify-content: center;
     margin-bottom: 0.9rem;
+}
+[data-theme="dark"] .domain-tile-icon {
+    background: rgba(139, 92, 246, 0.15);
 }
 .domain-tile-title {
     font-size: 1.05rem;

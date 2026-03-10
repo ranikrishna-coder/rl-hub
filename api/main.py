@@ -82,7 +82,7 @@ from governance.safety_guardrails import SafetyGuardrails, SafetyConfig
 from governance.risk_thresholds import RiskThresholds, RiskThresholdConfig
 from governance.compliance_rules import ComplianceRules
 
-app = FastAPI(title="AgentWork Simulator API", version="1.0.0")
+app = FastAPI(title="RL Environment & Agent API", version="1.0.0")
 
 # Mount static files
 static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -113,6 +113,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---------------------------------------------------------------------------
+# MCP Agent – environment health, backups, tools
+# ---------------------------------------------------------------------------
+from api.mcp_agent import router as _agent_router, init_agent as _init_agent  # noqa: E402
+
+app.include_router(_agent_router)
 
 # Training jobs storage (in production, use database)
 training_jobs: Dict[str, Dict[str, Any]] = {}  # Clean slate — populated by POST /train
@@ -330,7 +337,7 @@ async def root():
     landing_path = os.path.join(static_dir, "landing.html")
     if os.path.exists(landing_path):
         return FileResponse(landing_path)
-    return {"message": "AgentWork Simulator API", "version": "1.0.0"}
+    return {"message": "RL Environment & Agent API", "version": "1.0.0"}
 
 
 @app.get("/catalog")
@@ -364,6 +371,16 @@ async def contact_page():
     raise HTTPException(status_code=404, detail="Contact page not found")
 
 
+@app.get("/agent-dashboard")
+async def agent_dashboard_page():
+    """Serve the MCP Agent Health Dashboard."""
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    path = os.path.join(static_dir, "agent-dashboard.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="Agent dashboard not found")
+
+
 # Legacy: redirect old references
 @app.get("/index.html")
 async def index_redirect():
@@ -375,7 +392,7 @@ async def index_redirect():
 @app.get("/api")
 async def api_info():
     return {
-        "message": "AgentWork Simulator API",
+        "message": "RL Environment & Agent API",
         "version": "1.0.0",
         "endpoints": {
             "landing": "/",
@@ -446,7 +463,7 @@ Describe your use case:
 {sub.use_case}
 """
         msg = MIMEMultipart()
-        msg["Subject"] = f"AgentWork Simulator contact: {sub.name} ({sub.organization})"
+        msg["Subject"] = f"RL Environment & Agent contact: {sub.name} ({sub.organization})"
         msg["From"] = from_addr
         msg["To"] = CONTACT_EMAIL_TO
         msg.attach(MIMEText(body, "plain"))
@@ -861,7 +878,7 @@ async def get_config():
     config_content = f"""// API Configuration
 // This can be overridden by setting window.API_BASE before loading app.js
 window.API_BASE = window.API_BASE || '{api_url}';
-console.log('🚀 AgentWork Simulator - API Base URL:', window.API_BASE);
+console.log('🚀 RL Environment & Agent - API Base URL:', window.API_BASE);
 """
     from fastapi.responses import Response
     return Response(content=config_content, media_type="application/javascript")
@@ -2411,35 +2428,34 @@ import subprocess as _subprocess
 # Directory for cloned HF spaces
 HF_SPACES_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hf_spaces")
 
-# Persistent JSON store for custom environments
+# ---------------------------------------------------------------------------
+# Persistent environment store  (SQLite – survives git reset --hard deploys)
+# ---------------------------------------------------------------------------
 _CUSTOM_ENV_STORE_PATH = os.path.join(os.path.dirname(__file__), "data", "custom_environments.json")
+
+from api.persistence import EnvironmentStore, migrate_json_to_sqlite  # noqa: E402
+from api.config import ENV_STORE_DB_PATH  # noqa: E402
+
+_env_store = EnvironmentStore(ENV_STORE_DB_PATH)
+_migrated = migrate_json_to_sqlite(_CUSTOM_ENV_STORE_PATH, _env_store)
 
 
 def _load_persisted_environments() -> List[Dict[str, Any]]:
-    """Load custom environments from disk so they survive restarts."""
-    if os.path.exists(_CUSTOM_ENV_STORE_PATH):
-        try:
-            with open(_CUSTOM_ENV_STORE_PATH, "r") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return []
+    """Load custom environments from the SQLite store."""
+    return _env_store.list_all()
 
 
 def _persist_environments() -> None:
-    """Write current custom environments list to disk."""
-    os.makedirs(os.path.dirname(_CUSTOM_ENV_STORE_PATH), exist_ok=True)
-    with open(_CUSTOM_ENV_STORE_PATH, "w") as f:
-        json.dump(custom_environments, f, indent=2)
+    """Sync in-memory custom_environments list to the SQLite store."""
+    for env in custom_environments:
+        name = env.get("name")
+        if name:
+            _env_store.upsert(name, env)
 
 
 def _remove_persisted_environment(name: str) -> None:
-    """Remove a single environment from the persisted store."""
-    data = _load_persisted_environments()
-    data = [e for e in data if e.get("name") != name]
-    os.makedirs(os.path.dirname(_CUSTOM_ENV_STORE_PATH), exist_ok=True)
-    with open(_CUSTOM_ENV_STORE_PATH, "w") as f:
-        json.dump(data, f, indent=2)
+    """Remove a single environment from the SQLite store."""
+    _env_store.delete(name)
 
 
 # Load previously saved environments on startup
@@ -2656,8 +2672,8 @@ _CATEGORY_TO_DEFAULT_SYSTEM = {
 
 _CATEGORY_TO_DOMAIN = {
     "clinical": "med-sim", "claims": "fin-sim", "payment": "fin-sim",
-    "revenue": "fin-sim", "jira": "it-sim", "servicenow": "it-sim",
-    "devops": "it-sim", "hr": "hr-sim", "crm": "fin-sim",
+    "revenue": "fin-sim", "jira": "dev-sim", "servicenow": "dev-sim",
+    "devops": "dev-sim", "hr": "hr-sim", "crm": "fin-sim",
     "supply_chain": "fin-sim", "cross_workflow": "cross-domain",
 }
 
@@ -2976,6 +2992,29 @@ async def classify_all_environments(request: Request):
 _startup_classified = _auto_classify_all_environments() if custom_environments else 0
 if _startup_classified:
     print(f"[AI Agent] Auto-classified {_startup_classified} environment(s) on startup")
+
+# --- Startup: initialise MCP agent ---
+def _get_catalog_count() -> int:
+    try:
+        return len(list_all_environments())
+    except Exception:
+        return 0
+
+_init_agent(
+    env_store=_env_store,
+    custom_envs=custom_environments,
+    catalog_count_fn=_get_catalog_count,
+    classify_fn=_deep_classify_environment,
+    hf_spaces_dir=HF_SPACES_DIR,
+)
+
+# Auto-backup on startup
+from api.config import AUTO_BACKUP_ON_STARTUP  # noqa: E402
+if AUTO_BACKUP_ON_STARTUP and custom_environments:
+    _startup_backup_id = _env_store.create_backup(
+        label=f"auto-startup-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    )
+    print(f"[MCP Agent] Startup backup created (id={_startup_backup_id})")
 
 
 @app.get("/api/custom-environments")

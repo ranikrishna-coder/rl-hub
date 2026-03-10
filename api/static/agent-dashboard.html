@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centific RL Environment & Agent - Agent Dashboard</title>
+    <link rel="stylesheet" href="/static/global-nav.css">
+    <link rel="stylesheet" href="/static/agent-dashboard.css?v=2">
+    <link rel="stylesheet" href="/static/toast.css">
+    <script>
+        (function() {
+            var h = window.location.hostname;
+            if (h === 'localhost' || h === '127.0.0.1') window.API_BASE = 'http://localhost:8000';
+            else window.API_BASE = window.location.origin;
+            var saved = null;
+            try { saved = localStorage.getItem('landing-theme'); } catch (e) {}
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved === 'dark' || (saved !== 'light' && prefersDark)) document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.setAttribute('data-theme', 'light');
+        })();
+    </script>
+</head>
+<body data-page="agent-dashboard">
+    <nav class="gn-bar">
+        <a href="/" class="gn-logo">
+            <img src="/static/logo.svg" alt="" width="28" height="28">
+            <span class="gn-logo-text">Centific <span class="gn-logo-sub">RL Environment & Agent</span></span>
+        </a>
+        <button type="button" class="gn-toggle" aria-label="Toggle menu" onclick="document.querySelector('.gn-links').classList.toggle('gn-open')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <ul class="gn-links">
+            <li><a href="/catalog" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Catalog</a></li>
+            <li><a href="/#contact" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Contact us</a></li>
+            <li><button type="button" class="gn-theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode"><span class="theme-icon-sun">&#9728;&#65039;</span><span class="theme-icon-moon">&#127769;</span></button></li>
+        </ul>
+    </nav>
+
+    <div class="ad-container">
+        <!-- Header with status -->
+        <div class="ad-header">
+            <h1>MCP Environment Agent</h1>
+            <span id="ad-status-badge" class="ad-header-badge healthy">
+                <span class="dot"></span> <span id="ad-status-text">Loading...</span>
+            </span>
+        </div>
+
+        <!-- Metric cards -->
+        <div class="ad-metrics">
+            <div class="ad-card">
+                <div class="ad-card-label">Total Environments</div>
+                <div class="ad-card-value" id="ad-total">--</div>
+                <div class="ad-card-sub" id="ad-total-sub">catalog + user</div>
+            </div>
+            <div class="ad-card">
+                <div class="ad-card-label">User Environments</div>
+                <div class="ad-card-value" id="ad-user">--</div>
+                <div class="ad-card-sub" id="ad-user-sub">HF imports + custom</div>
+            </div>
+            <div class="ad-card">
+                <div class="ad-card-label">Classification</div>
+                <div class="ad-card-value" id="ad-class">--%</div>
+                <div class="ad-card-sub">coverage</div>
+            </div>
+            <div class="ad-card">
+                <div class="ad-card-label">Last Backup</div>
+                <div class="ad-card-value" id="ad-backup-age">--</div>
+                <div class="ad-card-sub" id="ad-backup-sub">no backups</div>
+            </div>
+        </div>
+
+        <!-- Warnings -->
+        <div id="ad-warnings" class="ad-warnings empty">
+            <h3>Warnings</h3>
+            <ul id="ad-warnings-list"></ul>
+        </div>
+
+        <!-- MCP Tools -->
+        <div class="ad-section">
+            <div class="ad-section-header">
+                <h2>MCP Agent Tools</h2>
+            </div>
+            <div class="ad-tools-grid" id="ad-tools-grid">
+                <div class="ad-tool-card" onclick="invokeTool('list_environments')">
+                    <div class="ad-tool-name">list_environments</div>
+                    <div class="ad-tool-desc">List all user-created and imported environments</div>
+                </div>
+                <div class="ad-tool-card" onclick="invokeTool('check_health')">
+                    <div class="ad-tool-name">check_health</div>
+                    <div class="ad-tool-desc">Run health checks on all environments</div>
+                </div>
+                <div class="ad-tool-card" onclick="invokeTool('backup_state')">
+                    <div class="ad-tool-name">backup_state</div>
+                    <div class="ad-tool-desc">Create a backup snapshot of all environments</div>
+                </div>
+                <div class="ad-tool-card" onclick="invokeTool('restore_state')">
+                    <div class="ad-tool-name">restore_state</div>
+                    <div class="ad-tool-desc">Restore environments from a previous backup</div>
+                </div>
+                <div class="ad-tool-card" onclick="invokeTool('classify_environment')">
+                    <div class="ad-tool-name">classify_environment</div>
+                    <div class="ad-tool-desc">Run AI classification on a specific environment</div>
+                </div>
+                <div class="ad-tool-card" onclick="invokeTool('get_stats')">
+                    <div class="ad-tool-name">get_stats</div>
+                    <div class="ad-tool-desc">Get aggregated environment statistics</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Backups -->
+        <div class="ad-section">
+            <div class="ad-section-header">
+                <h2>Backup Management</h2>
+                <button class="ad-btn" onclick="createBackup()">+ Create Backup</button>
+            </div>
+            <div class="ad-table-wrap">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Label</th>
+                            <th>Environments</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ad-backups-body">
+                        <tr><td colspan="5" class="ad-empty">Loading backups...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Environment Table -->
+        <div class="ad-section">
+            <div class="ad-section-header">
+                <h2>User Environments</h2>
+            </div>
+            <div class="ad-table-wrap">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Source</th>
+                            <th>System</th>
+                            <th>Workflow</th>
+                            <th>Category</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ad-envs-body">
+                        <tr><td colspan="5" class="ad-empty">Loading environments...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer class="landing-footer">
+        <div class="landing-footer-inner">
+            <a href="/terms">Terms of Use</a>
+            <a href="/privacy">Privacy</a>
+            <a href="/cookies">Cookie Policy</a>
+        </div>
+    </footer>
+
+    <script>
+        var API = window.API_BASE || '';
+
+        // ── Fetch and render health ──────────────────────────
+        function loadHealth() {
+            fetch(API + '/api/agent/health')
+                .then(function(r) { return r.json(); })
+                .then(function(h) {
+                    // Status badge
+                    var badge = document.getElementById('ad-status-badge');
+                    badge.className = 'ad-header-badge ' + h.status;
+                    document.getElementById('ad-status-text').textContent = h.status.charAt(0).toUpperCase() + h.status.slice(1);
+
+                    // Metric cards
+                    document.getElementById('ad-total').textContent = h.total_environments;
+                    document.getElementById('ad-total-sub').textContent = h.catalog_environments + ' catalog + ' + h.user_environments + ' user';
+                    document.getElementById('ad-user').textContent = h.user_environments;
+                    document.getElementById('ad-user-sub').textContent = h.hf_imports + ' HF imports, ' + h.custom_created + ' custom';
+                    document.getElementById('ad-class').textContent = h.classification_coverage + '%';
+
+                    // Backup age
+                    if (h.last_backup) {
+                        var ago = timeAgo(h.last_backup);
+                        document.getElementById('ad-backup-age').textContent = ago;
+                        document.getElementById('ad-backup-sub').textContent = 'since last backup';
+                    } else {
+                        document.getElementById('ad-backup-age').textContent = 'None';
+                        document.getElementById('ad-backup-sub').textContent = 'no backups yet';
+                    }
+
+                    // Warnings
+                    var warnPanel = document.getElementById('ad-warnings');
+                    var warnList = document.getElementById('ad-warnings-list');
+                    warnList.innerHTML = '';
+                    if (h.warnings && h.warnings.length > 0) {
+                        warnPanel.classList.remove('empty');
+                        h.warnings.forEach(function(w) {
+                            var li = document.createElement('li');
+                            li.textContent = w;
+                            warnList.appendChild(li);
+                        });
+                    } else {
+                        warnPanel.classList.add('empty');
+                    }
+                })
+                .catch(function(err) {
+                    document.getElementById('ad-status-text').textContent = 'Error';
+                    document.getElementById('ad-status-badge').className = 'ad-header-badge unhealthy';
+                });
+        }
+
+        // ── Fetch and render backups ─────────────────────────
+        function loadBackups() {
+            fetch(API + '/api/agent/backups')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var tbody = document.getElementById('ad-backups-body');
+                    var backups = data.backups || [];
+                    if (backups.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="ad-empty">No backups yet. Create one to protect your environments.</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = '';
+                    backups.forEach(function(b) {
+                        var tr = document.createElement('tr');
+                        tr.innerHTML =
+                            '<td>' + b.id + '</td>' +
+                            '<td>' + (b.label || '<em>auto</em>') + '</td>' +
+                            '<td>' + b.env_count + '</td>' +
+                            '<td>' + formatDate(b.created_at) + '</td>' +
+                            '<td><button class="ad-btn ad-btn-small" onclick="restoreBackup(' + b.id + ')">Restore</button></td>';
+                        tbody.appendChild(tr);
+                    });
+                })
+                .catch(function() {
+                    document.getElementById('ad-backups-body').innerHTML = '<tr><td colspan="5" class="ad-empty">Failed to load backups</td></tr>';
+                });
+        }
+
+        // ── Fetch and render environments ────────────────────
+        function loadEnvs() {
+            fetch(API + '/api/custom-environments')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var tbody = document.getElementById('ad-envs-body');
+                    var envs = data.environments || [];
+                    if (envs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="ad-empty">No user environments. Import from HuggingFace or create one in the Catalog.</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = '';
+                    envs.forEach(function(e) {
+                        var tr = document.createElement('tr');
+                        var srcBadge = e.source === 'huggingface'
+                            ? '<span class="ad-badge ad-badge-hf">HF</span>'
+                            : '<span class="ad-badge ad-badge-custom">Custom</span>';
+                        tr.innerHTML =
+                            '<td><strong>' + esc(e.name) + '</strong></td>' +
+                            '<td>' + srcBadge + '</td>' +
+                            '<td>' + esc(e.system || 'Unclassified') + '</td>' +
+                            '<td>' + esc(e.workflow || '-') + '</td>' +
+                            '<td>' + esc(e.category || '-') + '</td>';
+                        tbody.appendChild(tr);
+                    });
+                })
+                .catch(function() {
+                    document.getElementById('ad-envs-body').innerHTML = '<tr><td colspan="5" class="ad-empty">Failed to load environments</td></tr>';
+                });
+        }
+
+        // ── Actions ──────────────────────────────────────────
+        function createBackup() {
+            var label = prompt('Backup label (optional):') || '';
+            fetch(API + '/api/agent/backups', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ label: label || null })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                alert('Backup created (ID: ' + d.backup_id + ')');
+                loadBackups();
+                loadHealth();
+            })
+            .catch(function() { alert('Failed to create backup'); });
+        }
+
+        function restoreBackup(id) {
+            if (!confirm('Restore from backup #' + id + '? This will replace all current user environments.')) return;
+            fetch(API + '/api/agent/backups/' + id + '/restore', { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    alert('Restored ' + d.restored_count + ' environment(s)');
+                    loadHealth();
+                    loadBackups();
+                    loadEnvs();
+                })
+                .catch(function() { alert('Failed to restore backup'); });
+        }
+
+        function invokeTool(toolName) {
+            var params = {};
+            if (toolName === 'restore_state') {
+                var bid = prompt('Enter backup ID to restore:');
+                if (!bid) return;
+                params = { backup_id: bid };
+            } else if (toolName === 'classify_environment') {
+                var name = prompt('Enter environment name:');
+                if (!name) return;
+                params = { name: name };
+            } else if (toolName === 'backup_state') {
+                var label = prompt('Backup label (optional):');
+                if (label) params = { label: label };
+            }
+            fetch(API + '/api/agent/invoke', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tool: toolName, params: params })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                alert('Tool: ' + toolName + '\n\nResult:\n' + JSON.stringify(d.result, null, 2).substring(0, 1000));
+                loadHealth();
+                loadBackups();
+                loadEnvs();
+            })
+            .catch(function(e) { alert('Error: ' + e.message); });
+        }
+
+        // ── Helpers ──────────────────────────────────────────
+        function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+        function formatDate(iso) {
+            if (!iso) return '-';
+            try {
+                var d = new Date(iso);
+                return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } catch (e) { return iso; }
+        }
+
+        function timeAgo(iso) {
+            try {
+                var ms = Date.now() - new Date(iso).getTime();
+                var mins = Math.floor(ms / 60000);
+                if (mins < 1) return 'just now';
+                if (mins < 60) return mins + 'm ago';
+                var hrs = Math.floor(mins / 60);
+                if (hrs < 24) return hrs + 'h ago';
+                var days = Math.floor(hrs / 24);
+                return days + 'd ago';
+            } catch (e) { return iso; }
+        }
+
+        function toggleTheme() {
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            try { localStorage.setItem('landing-theme', next); } catch (e) {}
+        }
+
+        // ── Init ─────────────────────────────────────────────
+        loadHealth();
+        loadBackups();
+        loadEnvs();
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadHealth, 30000);
+    </script>
+</body>
+</html>

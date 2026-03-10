@@ -3345,3 +3345,146 @@ h1 svg, h2 svg, h3 svg, h4 svg {
     }
 }
 
+/* ── Dark Mode Overrides ───────────────────────────────────── */
+
+/* Search inputs */
+[data-theme="dark"] .search-box input {
+    background: var(--card-bg, #252236);
+    color: var(--text-primary, #f3f0f9);
+}
+
+/* Category badges */
+[data-theme="dark"] .category-clinical { background: rgba(107, 33, 168, 0.25); color: #c4b5fd; }
+[data-theme="dark"] .category-imaging { background: rgba(159, 18, 57, 0.25); color: #fda4af; }
+[data-theme="dark"] .category-population_health { background: rgba(22, 101, 52, 0.25); color: #86efac; }
+[data-theme="dark"] .category-revenue_cycle { background: rgba(146, 64, 14, 0.25); color: #fcd34d; }
+[data-theme="dark"] .category-clinical_trials { background: rgba(91, 33, 182, 0.25); color: #c4b5fd; }
+[data-theme="dark"] .category-hospital_operations { background: rgba(107, 33, 168, 0.25); color: #c4b5fd; }
+[data-theme="dark"] .category-telehealth { background: rgba(3, 105, 161, 0.25); color: #7dd3fc; }
+[data-theme="dark"] .category-interoperability { background: rgba(154, 52, 18, 0.25); color: #fdba74; }
+[data-theme="dark"] .category-cross_workflow { background: rgba(153, 27, 27, 0.25); color: #fca5a5; }
+[data-theme="dark"] .category-custom { background: rgba(55, 48, 163, 0.25); color: #a5b4fc; }
+[data-theme="dark"] .category-jira { background: rgba(109, 40, 217, 0.25); color: #c4b5fd; }
+[data-theme="dark"] .category-hr_payroll { background: rgba(4, 120, 87, 0.25); color: #6ee7b7; }
+
+/* Save button saved state */
+[data-theme="dark"] .save-btn.saved {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #f87171;
+    color: #f87171;
+}
+[data-theme="dark"] .save-btn.saved:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: #f87171;
+    color: #f87171;
+}
+
+/* Error state */
+[data-theme="dark"] .error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+/* Border colors */
+[data-theme="dark"] .env-delete-bottom {
+    border-top-color: var(--border-color, #3e3a52);
+}
+
+/* Training inline status badges */
+[data-theme="dark"] .training-inline-status.completed { background: rgba(22, 163, 74, 0.2); color: #4ade80; }
+[data-theme="dark"] .training-inline-status.running { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+[data-theme="dark"] .training-inline-status.pending { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+[data-theme="dark"] .training-inline-status.failed { background: rgba(220, 38, 38, 0.2); color: #fca5a5; }
+
+/* Train runs table status badges */
+[data-theme="dark"] .train-runs-table .trt-status.completed { background: rgba(22, 163, 74, 0.2); color: #4ade80; }
+[data-theme="dark"] .train-runs-table .trt-status.running { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+[data-theme="dark"] .train-runs-table .trt-status.failed { background: rgba(220, 38, 38, 0.2); color: #fca5a5; }
+[data-theme="dark"] .train-runs-table .trt-status.pending { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+
+/* Rollout verifier chips */
+[data-theme="dark"] .rc-verifier-chip.rc-verifier-pass { background: rgba(22, 163, 74, 0.2); color: #4ade80; }
+[data-theme="dark"] .rc-verifier-chip.rc-verifier-fail { background: rgba(220, 38, 38, 0.2); color: #fca5a5; }
+
+/* Rollout comparison */
+[data-theme="dark"] .rc-empty-state { background: var(--card-bg, #252236); }
+[data-theme="dark"] .rc-action-summary { background: var(--card-bg, #252236); }
+
+/* Verifier badges in styles.css */
+[data-theme="dark"] .vtype-rule-based { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+[data-theme="dark"] .vtype-trajectory-based { background: rgba(139, 92, 246, 0.2); color: #c4b5fd; }
+[data-theme="dark"] .vtype-llm-judge { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+[data-theme="dark"] .vtype-human-eval { background: rgba(251, 191, 36, 0.2); color: #fcd34d; }
+
+/* HIL notice */
+[data-theme="dark"] .hil-notice {
+    background: rgba(217, 119, 6, 0.15);
+    border-left-color: #fbbf24;
+    color: #fcd34d;
+}
+
+/* Add Environment page hardcoded colors */
+[data-theme="dark"] .add-env-hero h1 { color: var(--text-primary, #f3f0f9); }
+[data-theme="dark"] .add-env-subtitle { color: var(--text-secondary, #a8a2b8); }
+[data-theme="dark"] .add-env-tab { color: var(--text-secondary, #a8a2b8); }
+[data-theme="dark"] .add-env-tab:hover { color: var(--text-primary, #f3f0f9); }
+[data-theme="dark"] .add-env-field label { color: var(--text-primary, #f3f0f9); }
+[data-theme="dark"] .add-env-hint { color: var(--text-secondary, #a8a2b8); }
+[data-theme="dark"] .add-env-inline-label { color: var(--text-primary, #f3f0f9); }
+[data-theme="dark"] .add-env-segmented { background: var(--card-bg, #252236); }
+[data-theme="dark"] .add-env-seg-title { color: var(--text-primary, #f3f0f9); }
+[data-theme="dark"] .add-env-seg-spec { color: var(--text-secondary, #a8a2b8); }
+[data-theme="dark"] .add-env-seg-btn.selected .add-env-seg-spec { color: var(--text-secondary, #a8a2b8); }
+[data-theme="dark"] .add-env-seg-free { background: rgba(22, 163, 74, 0.2); color: #4ade80; }
+[data-theme="dark"] .add-env-seg-info { color: var(--text-secondary, #a8a2b8); }
+[data-theme="dark"] .add-env-terraform-info { color: var(--text-secondary, #a8a2b8); }
+[data-theme="dark"] .add-env-import-progress { color: var(--text-secondary, #a8a2b8); }
+[data-theme="dark"] .add-env-import-step-header h3 { color: var(--text-primary, #f3f0f9); }
+[data-theme="dark"] .add-env-import-preview-header h3 { color: var(--text-primary, #f3f0f9); }
+[data-theme="dark"] .add-env-import-meta-label { color: var(--text-secondary, #a8a2b8); }
+[data-theme="dark"] .add-env-import-meta-row { border-bottom-color: var(--border-color, #3e3a52); }
+[data-theme="dark"] .add-env-section-header h2 { color: var(--text-primary, #f3f0f9); }
+[data-theme="dark"] .add-env-section-header p { color: var(--text-secondary, #a8a2b8); }
+
+/* HTTP method badges */
+[data-theme="dark"] .hf-method-get { background: rgba(21, 87, 36, 0.3); color: #86efac; }
+[data-theme="dark"] .hf-method-post { background: rgba(0, 64, 133, 0.3); color: #93c5fd; }
+[data-theme="dark"] .hf-method-put { background: rgba(133, 100, 4, 0.3); color: #fcd34d; }
+[data-theme="dark"] .hf-method-delete { background: rgba(114, 28, 36, 0.3); color: #fca5a5; }
+[data-theme="dark"] .hf-method-websocket { background: rgba(111, 66, 193, 0.3); color: #c4b5fd; }
+
+/* File viewer */
+[data-theme="dark"] .hf-iframe-wrap { background: var(--card-bg, #252236); }
+[data-theme="dark"] .hf-file-viewer-header { background: rgba(255, 255, 255, 0.03); }
+[data-theme="dark"] .hf-model-card h4 { background: rgba(255, 255, 255, 0.03); }
+[data-theme="dark"] .hf-file:hover { background: rgba(192, 38, 211, 0.06); }
+[data-theme="dark"] .hf-file { border-bottom-color: var(--border-color, #3e3a52); }
+[data-theme="dark"] .hf-dep { background: rgba(255, 255, 255, 0.06); }
+[data-theme="dark"] .hf-endpoint { border-bottom-color: var(--border-color, #3e3a52); }
+[data-theme="dark"] .hf-model-field { border-bottom-color: var(--border-color, #3e3a52); }
+
+/* Terraform code header */
+[data-theme="dark"] .tf-code-header { background: rgba(255, 255, 255, 0.03); color: var(--text-secondary, #a8a2b8); }
+
+/* File close button kbd */
+[data-theme="dark"] .hf-file-close-btn kbd {
+    background: #3e3a52;
+    color: #a8a2b8;
+    border-color: #4e4a62;
+    box-shadow: 0 1px 0 #2d2a3d;
+}
+[data-theme="dark"] .hf-file-close-btn:hover kbd {
+    background: #4e4a62;
+    color: #f3f0f9;
+}
+
+/* Training config modal form inputs */
+[data-theme="dark"] .training-config-modal .form-group input[type="text"],
+[data-theme="dark"] .training-config-modal .form-group input[type="number"],
+[data-theme="dark"] .training-config-modal .form-group input[type="url"],
+[data-theme="dark"] .training-config-modal .form-group select,
+[data-theme="dark"] .training-config-modal .form-group textarea {
+    background: var(--card-bg, #252236);
+    color: var(--text-primary, #f3f0f9);
+}
+

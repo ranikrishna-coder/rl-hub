@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Centific AgentWork Simulator</title>
+    <title>Centific RL Environment & Agent</title>
     <link rel="stylesheet" href="/static/landing.css?v=8">
     <link rel="stylesheet" href="/static/global-nav.css">
     <link rel="stylesheet" href="/static/toast.css">
@@ -12,7 +12,11 @@
             var h = window.location.hostname;
             if (h === 'localhost' || h === '127.0.0.1') window.API_BASE = 'http://localhost:8000';
             else window.API_BASE = window.location.origin;
-            document.documentElement.setAttribute('data-theme', 'light');
+            var saved = null;
+            try { saved = localStorage.getItem('landing-theme'); } catch (e) {}
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved === 'dark' || (saved !== 'light' && prefersDark)) document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.setAttribute('data-theme', 'light');
         })();
     </script>
 </head>
@@ -21,7 +25,7 @@
         <div class="landing-nav-wrap">
             <a href="/" class="landing-logo">
                 <img src="/static/logo.svg" alt="" class="logo-icon" width="40" height="40">
-                <span class="logo-text"><span class="logo-brand">Centific</span><span class="logo-product">AgentWork Simulator</span></span>
+                <span class="logo-text"><span class="logo-brand">Centific</span><span class="logo-product">RL Environment & Agent</span></span>
             </a>
             <nav class="landing-nav">
                 <a href="/catalog" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.125em"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Catalog</a>
@@ -39,6 +43,10 @@
                 </div>
                 -->
                 <a href="#contact" class="nav-link">Contact us</a>
+                <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+                    <span class="theme-icon theme-icon-sun">&#9728;&#65039;</span>
+                    <span class="theme-icon theme-icon-moon">&#127769;</span>
+                </button>
             </nav>
         </div>
     </header>
@@ -48,7 +56,7 @@
         <section class="landing-hero">
             <div class="hero-content">
                 <div class="hero-left">
-                    <h1>AgentWork Simulator<br>for <span class="hero-highlight">Real-World Workflows</span></h1>
+                    <h1>Reinforcement Learning Environment & Agent<br>for <span class="hero-highlight">Real-World Workflows</span></h1>
                     <p class="landing-pitch">Train and evaluate AI agents in production-ready reinforcement learning environments designed for real enterprise decisions. From revenue cycle management and claims processing to clinical pathways and complex enterprise workflows, our environments allow agents to practice tasks, receive structured feedback, and continuously improve performance. Each environment integrates with enterprise systems and scales from safe simulation to real-world deployment.</p>
                     <form class="hero-search-form" id="hero-search-form" action="/catalog" method="get">
                         <div class="hero-search-box">
@@ -68,7 +76,7 @@
                         </div>
                     </form>
                     <div class="hero-stats hero-stats-inline">
-                        <span class="stat-item-inline"><span class="stat-num" id="hero-stat-envs">100+</span> <span class="stat-label">AgentWork Simulators</span></span>
+                        <span class="stat-item-inline"><span class="stat-num" id="hero-stat-envs">100+</span> <span class="stat-label">RL Environments</span></span>
                         <span class="stat-sep" aria-hidden="true">·</span>
                         <span class="stat-item-inline"><span class="stat-num" id="hero-stat-industries">3</span> <span class="stat-label">Industries</span></span>
                         <span class="stat-sep" aria-hidden="true">·</span>
@@ -94,12 +102,12 @@
         </section>
 
         <section class="landing-section">
-            <h2 class="landing-section-title">Popular AgentWork Simulators</h2>
+            <h2 class="landing-section-title">Popular RL Environments</h2>
             <div class="domain-strip">
                 <!-- fin-sim -->
                 <div class="domain-tile">
                     <div class="domain-tile-icon">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="14" rx="2" stroke="#7c3aed" stroke-width="1.5"/><path d="M2 10h20" stroke="#7c3aed" stroke-width="1.5"/><circle cx="6" cy="15" r="1.5" fill="#a78bfa"/><path d="M10 15h6" stroke="#c4b5fd" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="3" y="2" width="18" height="20" rx="2" stroke="#7c3aed" stroke-width="1.5"/><path d="M7 7h10" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/><path d="M7 11h10" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/><path d="M7 15h6" stroke="#c4b5fd" stroke-width="1.5" stroke-linecap="round"/></svg>
                     </div>
                     <h3 class="domain-tile-title">fin-sim</h3>
                     <ul class="domain-tile-links">
@@ -111,7 +119,7 @@
                 <!-- med-sim -->
                 <div class="domain-tile">
                     <div class="domain-tile-icon">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M8 2v4M16 2v4" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/><rect x="3" y="4" width="18" height="16" rx="2" stroke="#7c3aed" stroke-width="1.5"/><path d="M12 9v6M9 12h6" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M6 3a3 3 0 013 3v0a3 3 0 01-3 3" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/><path d="M18 3a3 3 0 00-3 3v0a3 3 0 003 3" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/><path d="M6 9v3a6 6 0 006 6v0" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/><path d="M18 9v3a6 6 0 01-6 6v0" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/><path d="M12 18v3" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="21" r="2" stroke="#a78bfa" stroke-width="1.5"/></svg>
                     </div>
                     <h3 class="domain-tile-title">med-sim</h3>
                     <ul class="domain-tile-links">
@@ -120,12 +128,12 @@
                         <li><a href="/catalog?env=ICUResourceAllocation">ICU Resource Allocation</a></li>
                     </ul>
                 </div>
-                <!-- it-sim -->
+                <!-- dev-sim -->
                 <div class="domain-tile">
                     <div class="domain-tile-icon">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#7c3aed" stroke-width="1.5"/><path d="M3 9h18" stroke="#7c3aed" stroke-width="1.5"/><circle cx="6" cy="6" r="1" fill="#a78bfa"/><circle cx="9" cy="6" r="1" fill="#c4b5fd"/><path d="M7 13h10M7 17h6" stroke="#c4b5fd" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="2" stroke="#7c3aed" stroke-width="1.5"/><rect x="13" y="3" width="8" height="8" rx="2" stroke="#a78bfa" stroke-width="1.5"/><rect x="3" y="13" width="8" height="8" rx="2" stroke="#a78bfa" stroke-width="1.5"/><rect x="13" y="13" width="8" height="8" rx="2" stroke="#7c3aed" stroke-width="1.5"/><circle cx="7" cy="7" r="1.5" fill="#7c3aed"/><circle cx="17" cy="7" r="1.5" fill="#a78bfa"/><circle cx="7" cy="17" r="1.5" fill="#a78bfa"/><circle cx="17" cy="17" r="1.5" fill="#7c3aed"/></svg>
                     </div>
-                    <h3 class="domain-tile-title">it-sim</h3>
+                    <h3 class="domain-tile-title">dev-sim</h3>
                     <ul class="domain-tile-links">
                         <li><a href="/catalog?env=JiraIssueResolution">Jira Issue Resolution</a></li>
                         <li><a href="/catalog?env=JiraStatusUpdate">Jira Status Update</a></li>
@@ -135,7 +143,7 @@
                 <!-- hr-sim -->
                 <div class="domain-tile">
                     <div class="domain-tile-icon">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="7" r="3" stroke="#7c3aed" stroke-width="1.5"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" stroke="#7c3aed" stroke-width="1.5"/><path d="M17 8l2 2 4-4" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="7" r="3" stroke="#7c3aed" stroke-width="1.5"/><path d="M2 21v-2a4 4 0 014-4h6a4 4 0 014 4v2" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="7" r="3" stroke="#a78bfa" stroke-width="1.5"/><path d="M22 21v-2a4 4 0 00-3-3.87" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/></svg>
                     </div>
                     <h3 class="domain-tile-title">hr-sim</h3>
                     <ul class="domain-tile-links">
@@ -146,13 +154,13 @@
                 </div>
             </div>
             <div class="landing-cta-row">
-                <a href="/catalog" class="btn-landing-cta">Explore All Simulators</a>
+                <a href="/catalog" class="btn-landing-cta">Explore All Environments</a>
             </div>
         </section>
 
         <section class="landing-section landing-section-alt contact-section" id="contact" aria-hidden="true">
             <h2 class="landing-section-title">Contact us</h2>
-            <p class="landing-section-desc">Let's unlock the full potential of AgentWork Simulator for your enterprise. Request a tailored demo, collaborate on custom-built environments, or speak with our team about enterprise-grade access and deployment options. We're here to partner with you every step of the way.</p>
+            <p class="landing-section-desc">Let's unlock the full potential of our RL environments for your enterprise. Request a tailored demo, collaborate on custom-built environments, or speak with our team about enterprise-grade access and deployment options. We're here to partner with you every step of the way.</p>
             <form class="contact-form" id="contact-form" action="#" method="post">
                 <div class="contact-row">
                     <label class="contact-label" for="contact-name">Name</label>
@@ -172,11 +180,11 @@
                 </div>
                 <div class="contact-row">
                     <label class="contact-label" for="contact-usecase">Describe your use case</label>
-                    <textarea id="contact-usecase" name="use_case" class="contact-textarea" rows="4" placeholder="Describe your use case and how you plan to use AgentWork Simulator." required></textarea>
+                    <textarea id="contact-usecase" name="use_case" class="contact-textarea" rows="4" placeholder="Describe your use case and how you plan to use our RL environments." required></textarea>
                 </div>
                 <div class="contact-row contact-actions">
                     <button type="submit" class="contact-submit">Send message</button>
-                    <p class="contact-note">Or explore the <a href="/catalog">catalog</a> to try AgentWork Simulator now.</p>
+                    <p class="contact-note">Or explore the <a href="/catalog">catalog</a> to try our RL environments now.</p>
                 </div>
             </form>
         </section>
@@ -263,7 +271,7 @@
                         }
                     }).catch(function(err) {
                         var mailtoBody = 'Use case: ' + useCase + '\n\nOrganization: ' + org + '\n\n-- ' + name + ' (' + email + ')';
-                        window.location.href = 'mailto:kausalyarani.k@centific.com?subject=' + encodeURIComponent('AgentWork Simulator: ' + name) + '&body=' + encodeURIComponent(mailtoBody);
+                        window.location.href = 'mailto:kausalyarani.k@centific.com?subject=' + encodeURIComponent('RL Environment & Agent: ' + name) + '&body=' + encodeURIComponent(mailtoBody);
                     });
                 });
             }
@@ -308,6 +316,14 @@
                 });
             })();
         })();
+    </script>
+    <script>
+        function toggleTheme() {
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            try { localStorage.setItem('landing-theme', next); } catch (e) {}
+        }
     </script>
 </body>
 </html>

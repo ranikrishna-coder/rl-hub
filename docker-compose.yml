@@ -10,6 +10,8 @@ services:
       - PYTHONUNBUFFERED=1
     volumes:
       - ./models:/app/models
+      - ./api/data:/app/api/data
+      - ./hf_spaces:/app/hf_spaces
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]

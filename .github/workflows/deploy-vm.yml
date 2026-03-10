@@ -45,6 +45,15 @@ jobs:
             [ -z "$APP_ROOT" ] && APP_ROOT="/var/agentwork/AgentWork-Simulator"
             echo "→ App root: $APP_ROOT"
             cd "$APP_ROOT" || { echo "❌ Directory not found: $APP_ROOT"; exit 1; }
+            # --- Preserve user state before destructive git reset ---
+            echo "→ Backing up user state"
+            BACKUP_DIR="/tmp/agentwork-deploy-backup-$(date +%s)"
+            mkdir -p "$BACKUP_DIR"
+            [ -f "$APP_ROOT/api/data/environments.db" ] && cp "$APP_ROOT/api/data/environments.db" "$BACKUP_DIR/" && echo "  Backed up environments.db"
+            [ -f "$APP_ROOT/api/data/custom_environments.json" ] && cp "$APP_ROOT/api/data/custom_environments.json" "$BACKUP_DIR/" && echo "  Backed up custom_environments.json"
+            [ -f "$APP_ROOT/api/data/contact_submissions.db" ] && cp "$APP_ROOT/api/data/contact_submissions.db" "$BACKUP_DIR/" && echo "  Backed up contact_submissions.db"
+            [ -d "$APP_ROOT/hf_spaces" ] && cp -r "$APP_ROOT/hf_spaces" "$BACKUP_DIR/" && echo "  Backed up hf_spaces/"
+
             echo "→ Git pull"
             if [ -n "$DEPLOY_GITHUB_TOKEN" ]; then
               git remote set-url origin "https://x-access-token:${DEPLOY_GITHUB_TOKEN}@github.com/${REPO_FULL_NAME}.git"
@@ -53,6 +62,16 @@ jobs:
             COMMIT=$(git rev-parse --short HEAD)
             echo "→ Deployed commit: $COMMIT"
             git log -1 --oneline
+
+            # --- Restore user state after git reset ---
+            echo "→ Restoring user state"
+            mkdir -p "$APP_ROOT/api/data"
+            [ -f "$BACKUP_DIR/environments.db" ] && cp "$BACKUP_DIR/environments.db" "$APP_ROOT/api/data/" && echo "  Restored environments.db"
+            [ -f "$BACKUP_DIR/custom_environments.json" ] && cp "$BACKUP_DIR/custom_environments.json" "$APP_ROOT/api/data/" && echo "  Restored custom_environments.json"
+            [ -f "$BACKUP_DIR/contact_submissions.db" ] && cp "$BACKUP_DIR/contact_submissions.db" "$APP_ROOT/api/data/" && echo "  Restored contact_submissions.db"
+            [ -d "$BACKUP_DIR/hf_spaces" ] && cp -r "$BACKUP_DIR/hf_spaces" "$APP_ROOT/" && echo "  Restored hf_spaces/"
+            rm -rf "$BACKUP_DIR"
+            echo "  State backup cleaned up"
             echo "→ Verify service uses same path"
             SVC_PATH=$(systemctl show agentwork-simulator -p WorkingDirectory --value 2>/dev/null || true)
             echo "  systemd WorkingDirectory: $SVC_PATH"

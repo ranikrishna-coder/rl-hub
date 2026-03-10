@@ -379,7 +379,7 @@ const SDK_TEMPLATES = {
     custom: null
 };
 
-const DEFAULT_TERRAFORM_TEMPLATE = '# Welcome to Centific AgentWork Simulator - Terraform Template\n' +
+const DEFAULT_TERRAFORM_TEMPLATE = '# Welcome to Centific RL Environment & Agent - Terraform Template\n' +
 '# This template provisions a small web application for\n' +
 '# exploring reinforcement learning concepts.\n\n' +
 'terraform {\n' +
@@ -486,7 +486,7 @@ function generateEnvironmentDetails(envData) {
 var JOURNEY_PERSONAS = {
     finance: [
         { id: 'revenue_cycle', label: 'Revenue cycle', desc: 'Claims, billing, payments' },
-        { id: 'all', label: 'All finance', desc: 'All finance AgentWork Simulator' }
+        { id: 'all', label: 'All finance', desc: 'All finance RL environments' }
     ],
     healthcare: [
         { id: 'clinical', label: 'Clinical', desc: 'Care pathways, interventions' },
@@ -495,14 +495,14 @@ var JOURNEY_PERSONAS = {
         { id: 'revenue_cycle', label: 'Revenue', desc: 'Billing, claims' },
         { id: 'clinical_trials', label: 'Clinical trials', desc: 'Trials, enrollment' },
         { id: 'hospital_operations', label: 'Operations', desc: 'Staffing, beds' },
-        { id: 'all', label: 'All healthcare', desc: 'All healthcare AgentWork Simulator' }
+        { id: 'all', label: 'All healthcare', desc: 'All healthcare RL environments' }
     ],
     enterprise: [
         { id: 'jira', label: 'Jira workflows', desc: 'Issue resolution, status, comments' }
     ],
     human_resources: [
         { id: 'hr_payroll', label: 'HR & Payroll', desc: 'Workday, SAP SuccessFactors, ADP' },
-        { id: 'all', label: 'All HR & Payroll', desc: 'All HR and payroll AgentWork Simulators' }
+        { id: 'all', label: 'All HR & Payroll', desc: 'All HR and payroll RL environments' }
     ]
 };
 
@@ -553,7 +553,7 @@ function applyIndustryPersonaFilter() {
     var domainFilter = document.getElementById('domain-filter');
     var category = 'all';
     if (industry === 'enterprise') {
-        if (domainFilter) domainFilter.value = 'it-sim';
+        if (domainFilter) domainFilter.value = 'dev-sim';
         category = persona && persona === 'jira' ? 'jira' : 'all';
     } else if (industry === 'human_resources') {
         if (domainFilter) domainFilter.value = 'hr-sim';
@@ -684,7 +684,7 @@ async function loadEnvironments() {
             const generatedDescription = environmentDetails[env.name]?.description || getEnvironmentDescription(env.name, env.category || 'other');
             
             // Debug: Log if description is still generic (for troubleshooting)
-            if (generatedDescription && generatedDescription.includes('AgentWork Simulator for optimization')) {
+            if (generatedDescription && generatedDescription.includes('RL environment for optimization')) {
                 console.warn(`⚠️ Generic description detected for ${env.name}, using generated description`);
             }
             
@@ -848,7 +848,7 @@ function openHelpSection() {
         workflowsByCategory[category].push({
             name: env.name,
             displayName: formatEnvironmentName(env.name),
-            description: env.description || 'AgentWork Simulator',
+            description: env.description || 'RL Environment',
             system: env.system || 'Multiple'
         });
     });
@@ -860,14 +860,14 @@ function openHelpSection() {
             <h2 style="color: var(--primary-color); margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">🏢 Integrated Software Systems</h2>
             <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
                 This platform integrates with multiple operational software systems, providing digital twin simulations 
-                and AgentWork Simulator for workflow optimization:
+                and RL environments for workflow optimization:
             </p>
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
                 ${Object.entries(systemsMap).map(([system, envs]) => `
                     <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color);">
                         <h3 style="color: var(--primary-color); margin-bottom: 0.75rem; font-size: 1.1rem;">${system}</h3>
                         <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">
-                            <strong>${envs.length}</strong> AgentWork Simulator${envs.length !== 1 ? 's' : ''} available
+                            <strong>${envs.length}</strong> RL environment${envs.length !== 1 ? 's' : ''} available
                         </p>
                         <ul style="font-size: 0.85rem; color: var(--text-primary); list-style: none; padding: 0;">
                             ${envs.slice(0, 5).map(env => `
@@ -883,7 +883,7 @@ function openHelpSection() {
         <div class="help-section" style="margin-bottom: 3rem;">
             <h2 style="color: var(--primary-color); margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">🔄 Workflows by Category</h2>
             <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
-                All ${allEnvironments.length} AgentWork Simulator organized by workflow category:
+                All ${allEnvironments.length} RL environments organized by workflow category:
             </p>
             ${Object.entries(workflowsByCategory).map(([category, workflows]) => `
                 <div style="margin-bottom: 2rem; background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color);">
@@ -913,7 +913,7 @@ function openHelpSection() {
             <h2 style="color: var(--primary-color); margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">📖 Quick Start Guide</h2>
             <div style="background: #f0f9ff; padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--primary-color);">
                 <ol style="line-height: 2; padding-left: 1.5rem;">
-                    <li><strong>Browse Environments:</strong> Use the search and filter options to find AgentWork Simulator relevant to your software systems and workflows.</li>
+                    <li><strong>Browse Environments:</strong> Use the search and filter options to find RL environments relevant to your software systems and workflows.</li>
                     <li><strong>View Details:</strong> Click "View Details" on any environment card to learn about its capabilities and use cases.</li>
                     <li><strong>Test with Environment:</strong> Click "🧪 Environment" to open the interactive console and test the environment with your parameters.</li>
                     <li><strong>Train an Agent:</strong> Click "🎓 Start Training" to configure and train an RL agent for production use.</li>
@@ -996,7 +996,7 @@ function updateSystemFilterOptions() {
     const medCategories = ['clinical', 'imaging', 'population_health', 'hospital_operations',
                            'telehealth', 'interoperability', 'clinical_trials', 'cross_workflow'];
     let envsForSystems = allEnvironments;
-    if (domain === 'it-sim') {
+    if (domain === 'dev-sim') {
         envsForSystems = allEnvironments.filter(env => env.category === 'jira' || (env.system || '').toLowerCase().includes('jira'));
     } else if (domain === 'med-sim') {
         envsForSystems = allEnvironments.filter(env => medCategories.includes(env.category));
@@ -1046,7 +1046,7 @@ function filterEnvironments(searchTerm, category) {
         if (system === 'all') {
             const medCategories = ['clinical', 'imaging', 'population_health', 'hospital_operations',
                                    'telehealth', 'interoperability', 'clinical_trials', 'cross_workflow'];
-            if (domain === 'it-sim') matchesDomain = env.category === 'jira' || (env.system || '').toLowerCase().includes('jira');
+            if (domain === 'dev-sim') matchesDomain = env.category === 'jira' || (env.system || '').toLowerCase().includes('jira');
             else if (domain === 'med-sim') matchesDomain = medCategories.includes(env.category);
             else if (domain === 'fin-sim') matchesDomain = env.category === 'revenue_cycle';
             else if (domain === 'hr-sim') matchesDomain = env.category === 'hr_payroll';
@@ -1429,7 +1429,7 @@ function getDefaultWhatItDoes(category, envName) {
     const envSpecificDescriptions = {
         // Clinical
         'TreatmentPathwayOptimization': `
-            <p>This AgentWork Simulator optimizes treatment sequences for patients with multiple conditions. 
+            <p>This RL environment optimizes treatment sequences for patients with multiple conditions. 
             It learns to balance clinical outcomes, efficiency, and cost-effectiveness by determining 
             the optimal order and timing of treatments, medications, and interventions.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1441,7 +1441,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'SepsisEarlyIntervention': `
-            <p>This AgentWork Simulator focuses on early detection and intervention for sepsis cases. 
+            <p>This RL environment focuses on early detection and intervention for sepsis cases. 
             It uses SOFA scores, vital signs, and clinical indicators to identify at-risk patients 
             and trigger appropriate interventions before sepsis becomes life-threatening.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1453,7 +1453,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'ICUResourceAllocation': `
-            <p>This AgentWork Simulator optimally allocates ICU beds and staff resources based on patient 
+            <p>This RL environment optimally allocates ICU beds and staff resources based on patient 
             acuity, resource availability, and predicted outcomes. It helps balance capacity constraints 
             with patient care needs.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1465,7 +1465,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'SurgicalScheduling': `
-            <p>This AgentWork Simulator intelligently schedules surgical procedures to optimize OR utilization 
+            <p>This RL environment intelligently schedules surgical procedures to optimize OR utilization 
             while minimizing patient wait times, cancellations, and resource conflicts. It balances 
             elective and emergency cases effectively.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1477,7 +1477,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'DiagnosticTestSequencing': `
-            <p>This AgentWork Simulator determines the optimal order of diagnostic tests to accelerate 
+            <p>This RL environment determines the optimal order of diagnostic tests to accelerate 
             diagnosis while minimizing costs and delays. It considers test dependencies, urgency, 
             and resource availability.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1489,7 +1489,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'MedicationDosingOptimization': `
-            <p>This AgentWork Simulator personalizes medication dosages based on patient characteristics, 
+            <p>This RL environment personalizes medication dosages based on patient characteristics, 
             drug interactions, therapeutic response, and safety considerations. It optimizes dosing 
             regimens for maximum efficacy and minimum side effects.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1501,7 +1501,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'ReadmissionReduction': `
-            <p>This AgentWork Simulator identifies high-risk entities and applies targeted interventions 
+            <p>This RL environment identifies high-risk entities and applies targeted interventions 
             to prevent avoidable repeat work or reprocessing. It optimizes handoffs, follow-up actions, 
             and transition management across the workflow.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1513,7 +1513,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'CareCoordination': `
-            <p>This AgentWork Simulator coordinates care across multiple providers and departments to 
+            <p>This RL environment coordinates care across multiple providers and departments to 
             ensure seamless patient transitions and continuity. It optimizes communication, handoffs, 
             and care plan execution.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1525,7 +1525,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'ChronicDiseaseManagement': `
-            <p>This AgentWork Simulator manages chronic conditions through proactive monitoring, medication 
+            <p>This RL environment manages chronic conditions through proactive monitoring, medication 
             adherence support, and lifestyle interventions. It optimizes intervention timing and intensity 
             to prevent complications.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1537,7 +1537,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'EmergencyTriage': `
-            <p>This AgentWork Simulator prioritizes emergency department patients based on acuity, resource 
+            <p>This RL environment prioritizes emergency department patients based on acuity, resource 
             availability, and clinical urgency. It optimizes triage decisions to ensure critical 
             patients receive timely care.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1550,7 +1550,7 @@ function getDefaultWhatItDoes(category, envName) {
         `,
         // Imaging
         'ImagingOrderPrioritization': `
-            <p>This AgentWork Simulator prioritizes imaging orders based on clinical urgency, equipment 
+            <p>This RL environment prioritizes imaging orders based on clinical urgency, equipment 
             availability, and patient needs. It reduces wait times for critical studies while 
             maintaining high throughput.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1562,7 +1562,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'RadiologyScheduling': `
-            <p>This AgentWork Simulator schedules radiology appointments to maximize scanner utilization 
+            <p>This RL environment schedules radiology appointments to maximize scanner utilization 
             while meeting patient and referring physician needs. It balances routine and urgent studies 
             effectively.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1574,7 +1574,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'ScanParameterOptimization': `
-            <p>This AgentWork Simulator optimizes imaging scan parameters to balance image quality, 
+            <p>This RL environment optimizes imaging scan parameters to balance image quality, 
             radiation dose, and scan duration. It personalizes scan settings for each patient 
             and study type.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1586,7 +1586,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'ImagingWorkflowRouting': `
-            <p>This AgentWork Simulator routes imaging studies through optimal workflow paths to minimize 
+            <p>This RL environment routes imaging studies through optimal workflow paths to minimize 
             processing time and maximize throughput. It optimizes the journey from order to report.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1597,7 +1597,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'EquipmentUtilization': `
-            <p>This AgentWork Simulator maximizes utilization of imaging equipment including CT, MRI, 
+            <p>This RL environment maximizes utilization of imaging equipment including CT, MRI, 
             and ultrasound scanners across multiple facilities. It balances demand with capacity 
             effectively.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1610,7 +1610,7 @@ function getDefaultWhatItDoes(category, envName) {
         `,
         // Population Health
         'RiskStratification': `
-            <p>This AgentWork Simulator stratifies patient populations by risk level to enable targeted 
+            <p>This RL environment stratifies patient populations by risk level to enable targeted 
             interventions and resource allocation. It identifies high-risk patients who would 
             benefit most from proactive care.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1622,7 +1622,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'PreventiveOutreach': `
-            <p>This AgentWork Simulator identifies patients due for preventive care and optimizes outreach 
+            <p>This RL environment identifies patients due for preventive care and optimizes outreach 
             strategies to improve screening rates. It personalizes communication and timing for 
             maximum engagement.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1634,7 +1634,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'VaccinationAllocation': `
-            <p>This AgentWork Simulator allocates vaccines across populations to maximize coverage while 
+            <p>This RL environment allocates vaccines across populations to maximize coverage while 
             prioritizing high-risk groups. It optimizes distribution strategies during normal operations 
             and public health emergencies.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1646,7 +1646,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'HighRiskMonitoring': `
-            <p>This AgentWork Simulator monitors high-risk patients proactively to prevent adverse events 
+            <p>This RL environment monitors high-risk patients proactively to prevent adverse events 
             and reduce emergency department visits. It optimizes monitoring frequency and 
             intervention timing.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1658,7 +1658,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'PopulationCostOptimization': `
-            <p>This AgentWork Simulator optimizes population health spending to maximize outcomes while 
+            <p>This RL environment optimizes population health spending to maximize outcomes while 
             controlling per-member costs. It allocates resources across programs and interventions 
             strategically.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1671,7 +1671,7 @@ function getDefaultWhatItDoes(category, envName) {
         `,
         // Revenue Cycle
         'ClaimsRouting': `
-            <p>This AgentWork Simulator routes insurance claims to appropriate processors for optimal 
+            <p>This RL environment routes insurance claims to appropriate processors for optimal 
             adjudication and payment speed. It matches claims to processors based on expertise, 
             capacity, and success rates.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1683,7 +1683,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'DenialIntervention': `
-            <p>This AgentWork Simulator identifies claim denials and applies targeted interventions to 
+            <p>This RL environment identifies claim denials and applies targeted interventions to 
             maximize recovery and reduce future denials. It prioritizes high-value denials and 
             optimizes appeal strategies.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1695,7 +1695,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'PaymentPlanSequencing': `
-            <p>This AgentWork Simulator optimizes patient payment plan structures to maximize collection 
+            <p>This RL environment optimizes patient payment plan structures to maximize collection 
             rates while maintaining patient satisfaction. It personalizes payment terms based on 
             patient financial capacity.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1707,7 +1707,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'BillingCodeOptimization': `
-            <p>This AgentWork Simulator optimizes billing code selection to maximize reimbursement while 
+            <p>This RL environment optimizes billing code selection to maximize reimbursement while 
             ensuring compliance and accuracy. It helps prevent under-coding and over-coding issues.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1718,7 +1718,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'RevenueLeakageDetection': `
-            <p>This AgentWork Simulator detects and prevents revenue leakage through missed charges, 
+            <p>This RL environment detects and prevents revenue leakage through missed charges, 
             under-coding, and billing errors. It identifies patterns and applies corrective actions.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1730,7 +1730,7 @@ function getDefaultWhatItDoes(category, envName) {
         `,
         // Clinical Trials
         'TrialPatientMatching': `
-            <p>This AgentWork Simulator matches patients to appropriate clinical trials based on eligibility 
+            <p>This RL environment matches patients to appropriate clinical trials based on eligibility 
             criteria and trial requirements. It optimizes matching to maximize enrollment and trial 
             success rates.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -1742,7 +1742,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'AdaptiveTrialDesign': `
-            <p>This AgentWork Simulator adapts trial protocols in real-time based on interim results to 
+            <p>This RL environment adapts trial protocols in real-time based on interim results to 
             maximize efficiency and ethical outcomes. It optimizes trial design dynamically.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1753,7 +1753,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'EnrollmentAcceleration': `
-            <p>This AgentWork Simulator accelerates patient enrollment in clinical trials through targeted 
+            <p>This RL environment accelerates patient enrollment in clinical trials through targeted 
             outreach and streamlined processes. It optimizes recruitment strategies and timing.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1764,7 +1764,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'ProtocolDeviationMitigation': `
-            <p>This AgentWork Simulator identifies and mitigates protocol deviations to maintain trial 
+            <p>This RL environment identifies and mitigates protocol deviations to maintain trial 
             integrity and regulatory compliance. It prevents deviations through proactive monitoring.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1775,7 +1775,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'DrugDosageTrialSequencing': `
-            <p>This AgentWork Simulator optimizes drug dosage escalation sequences in Phase I trials to 
+            <p>This RL environment optimizes drug dosage escalation sequences in Phase I trials to 
             balance safety and efficiency. It determines optimal dose levels and escalation schedules.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1787,7 +1787,7 @@ function getDefaultWhatItDoes(category, envName) {
         `,
         // Hospital Operations
         'StaffingAllocation': `
-            <p>This AgentWork Simulator allocates staff across departments to optimize patient care and 
+            <p>This RL environment allocates staff across departments to optimize patient care and 
             operational efficiency. It balances workload, skill requirements, and cost constraints.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1798,7 +1798,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'ORUtilization': `
-            <p>This AgentWork Simulator maximizes operating room utilization while balancing elective and 
+            <p>This RL environment maximizes operating room utilization while balancing elective and 
             emergency case needs. It optimizes OR scheduling and resource allocation.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1809,7 +1809,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'SupplyChainInventory': `
-            <p>This AgentWork Simulator manages medical supply inventory to prevent shortages while minimizing 
+            <p>This RL environment manages medical supply inventory to prevent shortages while minimizing 
             carrying costs. It optimizes ordering, stocking, and distribution strategies.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1820,7 +1820,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'BedTurnoverOptimization': `
-            <p>This AgentWork Simulator optimizes bed turnover processes to maximize capacity and minimize 
+            <p>This RL environment optimizes bed turnover processes to maximize capacity and minimize 
             patient wait times. It coordinates cleaning, maintenance, and patient flow.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1831,7 +1831,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'EquipmentMaintenance': `
-            <p>This AgentWork Simulator schedules equipment maintenance to minimize downtime while ensuring 
+            <p>This RL environment schedules equipment maintenance to minimize downtime while ensuring 
             patient safety. It balances preventive maintenance with operational needs.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1843,7 +1843,7 @@ function getDefaultWhatItDoes(category, envName) {
         `,
         // Telehealth
         'VirtualVisitRouting': `
-            <p>This AgentWork Simulator routes virtual visits to appropriate providers based on patient needs 
+            <p>This RL environment routes virtual visits to appropriate providers based on patient needs 
             and provider availability. It optimizes matching to maximize access and quality.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1854,7 +1854,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'EscalationPolicy': `
-            <p>This AgentWork Simulator determines when to escalate virtual visits to in-person care based 
+            <p>This RL environment determines when to escalate virtual visits to in-person care based 
             on clinical indicators. It optimizes escalation decisions to ensure patient safety.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1865,7 +1865,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'ProviderLoadBalancing': `
-            <p>This AgentWork Simulator balances provider workloads across virtual and in-person care to 
+            <p>This RL environment balances provider workloads across virtual and in-person care to 
             maximize access. It optimizes scheduling and assignment strategies.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1876,7 +1876,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'FollowUpOptimization': `
-            <p>This AgentWork Simulator optimizes follow-up visit scheduling for telehealth patients to 
+            <p>This RL environment optimizes follow-up visit scheduling for telehealth patients to 
             ensure continuity of care. It personalizes follow-up timing and modality.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1887,7 +1887,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'DigitalAdherenceCoaching': `
-            <p>This AgentWork Simulator delivers digital coaching interventions to improve medication and 
+            <p>This RL environment delivers digital coaching interventions to improve medication and 
             treatment adherence. It personalizes coaching content, timing, and intensity.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1899,7 +1899,7 @@ function getDefaultWhatItDoes(category, envName) {
         `,
         // Interoperability
         'DataReconciliation': `
-            <p>This AgentWork Simulator reconciles data across multiple operational systems to ensure data 
+            <p>This RL environment reconciles data across multiple operational systems to ensure data 
             integrity and consistency. It identifies and resolves discrepancies automatically.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1910,7 +1910,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'CrossSystemAlertPrioritization': `
-            <p>This AgentWork Simulator prioritizes alerts from multiple systems to prevent alert fatigue 
+            <p>This RL environment prioritizes alerts from multiple systems to prevent alert fatigue 
             and ensure critical notifications. It filters and ranks alerts intelligently.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1921,7 +1921,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'DuplicateRecordResolution': `
-            <p>This AgentWork Simulator identifies and resolves duplicate patient records across systems to 
+            <p>This RL environment identifies and resolves duplicate patient records across systems to 
             maintain data quality. It merges records intelligently while preserving data integrity.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1932,7 +1932,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'InterFacilityTransfer': `
-            <p>This AgentWork Simulator optimizes patient transfers between facilities to ensure continuity 
+            <p>This RL environment optimizes patient transfers between facilities to ensure continuity 
             of care and data exchange. It coordinates transfer logistics and information sharing.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1943,7 +1943,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'HIERouting': `
-            <p>This AgentWork Simulator routes health information exchange messages to appropriate systems 
+            <p>This RL environment routes health information exchange messages to appropriate systems 
             and workflows. It optimizes message routing for efficiency and accuracy.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1955,7 +1955,7 @@ function getDefaultWhatItDoes(category, envName) {
         `,
         // Cross-Workflow
         'PatientJourneyOptimization': `
-            <p>This AgentWork Simulator uses multi-agent optimization across the entire patient care continuum 
+            <p>This RL environment uses multi-agent optimization across the entire patient care continuum 
             from admission to discharge. It coordinates care across multiple departments and workflows.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1966,7 +1966,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'HospitalThroughput': `
-            <p>This AgentWork Simulator optimizes hospital-wide throughput to maximize capacity utilization 
+            <p>This RL environment optimizes hospital-wide throughput to maximize capacity utilization 
             and patient flow. It coordinates operations across all departments and services.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1977,7 +1977,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'ClinicalFinancialTradeoff': `
-            <p>This AgentWork Simulator balances clinical quality and financial performance across all hospital 
+            <p>This RL environment balances clinical quality and financial performance across all hospital 
             operations. It optimizes decisions to maximize value and outcomes.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1988,7 +1988,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'ValueBasedCareOptimization': `
-            <p>This AgentWork Simulator optimizes value-based care metrics including quality scores and cost 
+            <p>This RL environment optimizes value-based care metrics including quality scores and cost 
             efficiency. It aligns operations with value-based payment models.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -1999,7 +1999,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'MultiHospitalNetworkCoordination': `
-            <p>This AgentWork Simulator coordinates operations across hospital networks to maximize resource 
+            <p>This RL environment coordinates operations across hospital networks to maximize resource 
             utilization and care quality. It optimizes network-wide resource allocation and patient flow.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -2019,7 +2019,7 @@ function getDefaultWhatItDoes(category, envName) {
     // Fallback to category-based descriptions
     const categoryDescriptions = {
         'clinical': `
-            <p>This AgentWork Simulator optimizes decision-making processes in operational settings. 
+            <p>This RL environment optimizes decision-making processes in operational settings. 
             It uses reinforcement learning to learn optimal strategies for task handling, resource allocation, 
             and sequencing. The agent learns from trial and error to maximize outcomes 
             while balancing efficiency and cost-effectiveness.</p>
@@ -2032,7 +2032,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'imaging': `
-            <p>This AgentWork Simulator optimizes medical imaging operations, including order prioritization, 
+            <p>This RL environment optimizes medical imaging operations, including order prioritization, 
             scheduling, and resource allocation. The agent learns to balance urgency, resource availability, 
             and operational efficiency to ensure critical imaging studies are completed promptly while 
             maintaining high throughput.</p>
@@ -2045,7 +2045,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'revenue_cycle': `
-            <p>This AgentWork Simulator optimizes revenue cycle management processes, including 
+            <p>This RL environment optimizes revenue cycle management processes, including 
             claims processing, denial management, and payment collection. The agent learns strategies 
             to maximize revenue recovery while minimizing processing costs and delays.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -2057,7 +2057,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'population_health': `
-            <p>This AgentWork Simulator optimizes population health management strategies, including preventive 
+            <p>This RL environment optimizes population health management strategies, including preventive 
             care interventions, chronic disease management, and care coordination. The agent learns to 
             identify high-risk patients and allocate resources effectively to improve population health outcomes.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -2069,7 +2069,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'hospital_operations': `
-            <p>This AgentWork Simulator optimizes hospital operational processes, including bed management, 
+            <p>This RL environment optimizes hospital operational processes, including bed management, 
             staff scheduling, and resource allocation. The agent learns to balance patient needs, 
             resource constraints, and operational efficiency to improve overall hospital performance.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -2081,7 +2081,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'clinical_trials': `
-            <p>This AgentWork Simulator optimizes clinical trial operations including patient matching, 
+            <p>This RL environment optimizes clinical trial operations including patient matching, 
             enrollment, protocol adherence, and resource allocation. The agent learns to maximize 
             trial efficiency and success rates.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -2093,7 +2093,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'telehealth': `
-            <p>This AgentWork Simulator optimizes telehealth operations including visit routing, provider 
+            <p>This RL environment optimizes telehealth operations including visit routing, provider 
             allocation, escalation decisions, and follow-up scheduling. The agent learns to maximize 
             virtual care quality and efficiency.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -2105,7 +2105,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'interoperability': `
-            <p>This AgentWork Simulator optimizes health information exchange and interoperability operations 
+            <p>This RL environment optimizes health information exchange and interoperability operations 
             including data reconciliation, alert prioritization, and message routing. The agent learns 
             to maximize data quality and exchange efficiency.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -2117,7 +2117,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'cross_workflow': `
-            <p>This AgentWork Simulator uses multi-agent optimization to coordinate operations across multiple 
+            <p>This RL environment uses multi-agent optimization to coordinate operations across multiple 
             workflows and departments. Agents collaborate to optimize complex, interconnected 
             enterprise processes.</p>
             <p><strong>Key Benefits:</strong></p>
@@ -2131,7 +2131,7 @@ function getDefaultWhatItDoes(category, envName) {
     };
     
     return categoryDescriptions[category] || `
-        <p>This AgentWork Simulator uses reinforcement learning to optimize operational processes and decision-making. 
+        <p>This RL environment uses reinforcement learning to optimize operational processes and decision-making. 
         The agent learns optimal strategies through trial and error, maximizing desired outcomes while 
         balancing multiple objectives such as quality, operational efficiency, and financial performance.</p>
     `;
@@ -2266,7 +2266,7 @@ function buildTrainingSection(envName, envCategory) {
                     '<div class="training-empty-state">' +
                         '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5" style="opacity:0.4;margin-bottom:0.75rem;"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg>' +
                         '<p style="color:var(--text-secondary);margin-bottom:1rem;font-size:0.9rem;">No training runs yet. Configure and start your first training run.</p>' +
-                        '<button class="btn btn-primary" onclick="_openTrainingConfigModal(\'' + envName + '\')">' +
+                        '<button class="btn btn-primary" onclick="openTrainingConfigPopup(\'' + envName + '\')">' +
                             '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
                             ' New Training' +
                         '</button>' +
@@ -2318,7 +2318,7 @@ function buildTrainingSection(envName, envCategory) {
             '<div class="detail-collapsible-content">' +
                 '<div class="training-inline-header">' +
                     '<span class="training-inline-count">' + runs.length + ' run' + (runs.length !== 1 ? 's' : '') + '</span>' +
-                    '<button class="btn btn-primary btn-small train-new-btn" onclick="_openTrainingConfigModal(\'' + envName + '\')">' +
+                    '<button class="btn btn-primary btn-small train-new-btn" onclick="openTrainingConfigPopup(\'' + envName + '\')">' +
                         '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
                         ' New' +
                     '</button>' +
@@ -3535,7 +3535,7 @@ function _showTerraformDetailView(env, details) {
                     '<span class="sim-container-id">' + name.toLowerCase().replace(/[^a-z0-9]/g, '') + '-' + Math.random().toString(36).slice(2, 8) + '</span>' +
                 '</div>' +
                 '<div class="sim-terminal" id="sim-terminal">' +
-                    '<div class="sim-terminal-line sim-line-system">AgentWork Container Runtime v0.1.0</div>' +
+                    '<div class="sim-terminal-line sim-line-system">RL Environment Container Runtime v0.1.0</div>' +
                     '<div class="sim-terminal-line sim-line-system">Initializing environment: <span style="color:#7dd3fc;">' + formatEnvironmentName(name) + '</span></div>' +
                     '<div class="sim-terminal-line sim-line-system">Hardware: ' + hardware + '</div>' +
                     '<div class="sim-terminal-line sim-line-system">---</div>' +
@@ -3790,6 +3790,38 @@ function openTrainingConfig(envName) {
     // Navigate to Training Console with environment pre-selected
     window.location.href = '/training-console?env=' + encodeURIComponent(envName);
 }
+
+function openTrainingConfigPopup(envName) {
+    // Open the new training-console UI inside a modal iframe
+    var existing = document.getElementById('training-config-modal');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'modal training-config-modal';
+    overlay.id = 'training-config-modal';
+    overlay.style.cssText = 'display:flex;align-items:center;justify-content:center;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.6);backdrop-filter:blur(2px);';
+    overlay.onclick = function(e) { if (e.target === overlay) closeTrainingConfig(); };
+
+    var container = document.createElement('div');
+    container.style.cssText = 'position:relative;width:92vw;max-width:1200px;height:88vh;border-radius:12px;overflow:hidden;background:var(--bg-primary,#fff);box-shadow:0 25px 60px rgba(0,0,0,0.3);';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '&times;';
+    closeBtn.style.cssText = 'position:absolute;top:8px;right:12px;z-index:10;background:none;border:none;font-size:1.6rem;cursor:pointer;color:var(--text-secondary,#666);line-height:1;padding:4px 8px;border-radius:4px;';
+    closeBtn.onclick = closeTrainingConfig;
+    closeBtn.onmouseover = function() { this.style.background = 'var(--bg-hover,#f0f0f0)'; };
+    closeBtn.onmouseout = function() { this.style.background = 'none'; };
+
+    var iframe = document.createElement('iframe');
+    iframe.src = '/training-console?env=' + encodeURIComponent(envName) + '&embedded=1';
+    iframe.style.cssText = 'width:100%;height:100%;border:none;';
+
+    container.appendChild(closeBtn);
+    container.appendChild(iframe);
+    overlay.appendChild(container);
+    document.body.appendChild(overlay);
+}
+window.openTrainingConfigPopup = openTrainingConfigPopup;
 
 function _openTrainingConfigModal(envName) {
     const env = allEnvironments.find(e => e.name === envName);
@@ -5116,6 +5148,12 @@ function renderSdkTemplateGrid(sdkValue) {
     var select = document.createElement('select');
     select.id = 'add-env-template-select';
     select.className = 'add-env-template-select';
+    var defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = '-- select --';
+    defaultOpt.disabled = true;
+    defaultOpt.selected = true;
+    select.appendChild(defaultOpt);
     templates.forEach(function(tmpl) {
         var opt = document.createElement('option');
         opt.value = tmpl.id;
@@ -5175,7 +5213,7 @@ window.resetTerraformToDefault = resetTerraformToDefault;
 
 // ─── Domain-to-category mapping for new environments ───
 var _categoryToDomain = {
-    jira: 'it-sim', clinical: 'med-sim', imaging: 'med-sim', revenue_cycle: 'fin-sim',
+    jira: 'dev-sim', clinical: 'med-sim', imaging: 'med-sim', revenue_cycle: 'fin-sim',
     hr_payroll: 'hr-sim', population_health: 'med-sim', clinical_trials: 'med-sim',
     hospital_operations: 'med-sim', telehealth: 'med-sim', interoperability: 'med-sim',
     cross_workflow: 'med-sim'

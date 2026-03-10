@@ -939,3 +939,41 @@ h1 svg, h2 svg, h3 svg, h4 svg {
     gap: 0.4rem;
 }
 
+/* ── Dark Mode Overrides ───────────────────────────────────── */
+[data-theme="dark"] .form-group input[type="number"],
+[data-theme="dark"] .form-group select,
+[data-theme="dark"] .form-group textarea {
+    background: var(--card-bg, #252236);
+    color: var(--text-primary, #f3f0f9);
+    border-color: var(--border, #3e3a52);
+}
+
+[data-theme="dark"] .verifier-code-block {
+    background: #1a1825;
+    border-color: var(--border, #3e3a52);
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .vtype-rule-based { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+[data-theme="dark"] .vtype-trajectory-based { background: rgba(139, 92, 246, 0.2); color: #c4b5fd; }
+[data-theme="dark"] .vtype-llm-judge { background: rgba(194, 65, 12, 0.2); color: #fdba74; }
+[data-theme="dark"] .vtype-human-eval { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+
+[data-theme="dark"] .condition-row .remove-btn:hover {
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.15);
+}
+
+[data-theme="dark"] .verifier-modal .form-group input,
+[data-theme="dark"] .verifier-modal .form-group select,
+[data-theme="dark"] .verifier-modal .form-group textarea {
+    background: var(--card-bg, #252236);
+    color: var(--text-primary, #f3f0f9);
+    border-color: var(--border, #3e3a52);
+}
+
+[data-theme="dark"] .badge-urgent { background: rgba(220, 38, 38, 0.2); color: #fca5a5; }
+[data-theme="dark"] .badge-high { background: rgba(234, 88, 12, 0.2); color: #fdba74; }
+[data-theme="dark"] .badge-medium { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+[data-theme="dark"] .badge-low { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+

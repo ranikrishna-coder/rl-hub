@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Centific AgentWork Simulator - Catalog</title>
+    <title>Centific RL Environment & Agent - Catalog</title>
     <link rel="stylesheet" href="/static/styles.css?v=25">
     <link rel="stylesheet" href="/static/global-nav.css?v=3">
     <link rel="stylesheet" href="/static/toast.css?v=3">
@@ -21,12 +21,10 @@
     <script>
         (function() {
             var saved = null;
-            // Dark mode disabled for now - keep code to re-enable later
-            // try { saved = localStorage.getItem('landing-theme'); } catch (e) {}
-            // var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            // if (saved === 'dark' || (saved !== 'light' && prefersDark)) document.documentElement.setAttribute('data-theme', 'dark');
-            // else document.documentElement.setAttribute('data-theme', 'light');
-            document.documentElement.setAttribute('data-theme', 'light');
+            try { saved = localStorage.getItem('landing-theme'); } catch (e) {}
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved === 'dark' || (saved !== 'light' && prefersDark)) document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.setAttribute('data-theme', 'light');
         })();
     </script>
 </head>
@@ -34,7 +32,7 @@
     <nav class="gn-bar">
         <a href="/" class="gn-logo">
             <img src="/static/logo.svg" alt="" width="28" height="28">
-            <span class="gn-logo-text">Centific <span class="gn-logo-sub">AgentWork Simulator</span></span>
+            <span class="gn-logo-text">Centific <span class="gn-logo-sub">RL Environment & Agent</span></span>
         </a>
         <button type="button" class="gn-toggle" aria-label="Toggle menu" onclick="document.querySelector('.gn-links').classList.toggle('gn-open')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -44,6 +42,7 @@
             <!-- <li><a href="/test-console" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Environment</a></li> -->
             <!-- <li><a href="/training-console" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg> Training</a></li> -->
             <li><a href="/#contact" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Contact us</a></li>
+            <li><button type="button" class="gn-theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode"><span class="theme-icon-sun">&#9728;&#65039;</span><span class="theme-icon-moon">&#127769;</span></button></li>
         </ul>
     </nav>
 
@@ -243,12 +242,12 @@
         <div id="journey-step-1" class="journey-step" style="display: none;">
             <header class="header">
                 <h1>Choose your industry</h1>
-                <p class="subtitle">Select an industry to discover relevant AgentWork Simulators.</p>
+                <p class="subtitle">Select an industry to discover relevant RL environments.</p>
             </header>
             <div class="journey-cards" id="journey-industry-cards">
                 <a href="/catalog?industry=enterprise" class="journey-card">
                     <span class="journey-card-icon">📋</span>
-                    <h2>it-sim</h2>
+                    <h2>dev-sim</h2>
                     <p>Jira and project workflow automation.</p>
                 </a>
                 <a href="/catalog?industry=healthcare" class="journey-card">
@@ -268,23 +267,23 @@
                 </a>
             </div>
             <p style="text-align: center; margin-top: 1.5rem;">
-                <a href="/catalog?industry=all" class="journey-skip">Browse all AgentWork Simulators</a>
+                <a href="/catalog?industry=all" class="journey-skip">Browse all RL Environments</a>
             </p>
         </div>
         <!-- User journey: Step 2 - Choose persona -->
         <div id="journey-step-2" class="journey-step" style="display: none;">
             <header class="header">
                 <h1>Choose your workflow</h1>
-                <p class="subtitle" id="journey-step-2-subtitle">Select a workflow area to see matching AgentWork Simulators.</p>
+                <p class="subtitle" id="journey-step-2-subtitle">Select a workflow area to see matching RL environments.</p>
             </header>
             <div class="journey-cards" id="journey-persona-cards"></div>
         </div>
-        <!-- Step 3: Browse AgentWork Simulators -->
+        <!-- Step 3: Browse RL Environments -->
         <div id="catalog-browse" style="display: none;">
         <!-- Compact catalog header -->
         <div class="catalog-header-compact">
             <div class="catalog-header-left">
-                <h1 class="catalog-title">AgentWork Simulator</h1>
+                <h1 class="catalog-title">Reinforcement Learning Environment & Agent</h1>
                 <div class="catalog-stats-inline">
                     <span class="catalog-stat"><strong id="total-envs">—</strong> environments</span>
                     <span class="catalog-stat-sep">·</span>
@@ -305,7 +304,7 @@
                     <label for="domain-filter" style="font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">Domain:</label>
                     <select id="domain-filter" class="system-filter-select" title="Filter by domain">
                         <option value="all">All</option>
-                        <option value="it-sim">it-sim</option>
+                        <option value="dev-sim">dev-sim</option>
                         <option value="med-sim">med-sim</option>
                         <option value="fin-sim">fin-sim</option>
                         <option value="hr-sim">hr-sim</option>
@@ -324,7 +323,7 @@
             </div>
             <div class="filter-buttons" id="filter-buttons">
                 <button class="filter-btn active" data-category="all" data-domain="all">All</button>
-                <button class="filter-btn" data-category="jira" data-domain="it-sim">Jira</button>
+                <button class="filter-btn" data-category="jira" data-domain="dev-sim">Jira</button>
                 <button class="filter-btn" data-category="hr_payroll" data-domain="hr-sim">HR & Payroll</button>
                 <button class="filter-btn" data-category="revenue_cycle" data-domain="fin-sim">Revenue</button>
                 <button class="filter-btn" data-category="clinical" data-domain="med-sim">Clinical</button>
@@ -377,6 +376,14 @@
     <script src="/static/verifier-data.js"></script>
     <script src="/static/training-config-data.js?v=3"></script>
     <script src="/static/rollout-comparison.js"></script>
-    <script src="/static/app.js?v=22"></script>
+    <script src="/static/app.js?v=24"></script>
+    <script>
+        function toggleTheme() {
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            try { localStorage.setItem('landing-theme', next); } catch (e) {}
+        }
+    </script>
 </body>
 </html>
