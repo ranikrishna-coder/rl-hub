@@ -143,3 +143,28 @@
     }
     .gn-logo-sub { display: none; }
 }
+
+/* ── Global Footer ──────────────────────────────────────── */
+.landing-footer {
+    background: var(--gn-bg, #ffffff);
+    padding: 1.25rem 1.5rem;
+    margin-top: 2rem;
+    border-top: 1px solid var(--gn-border, #e8e4ef);
+}
+.landing-footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    gap: 1.25rem;
+    font-size: 0.875rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.landing-footer-inner a {
+    color: var(--gn-text-muted, #5a5568);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+.landing-footer-inner a:hover {
+    color: var(--gn-accent, #c026d3);
+}

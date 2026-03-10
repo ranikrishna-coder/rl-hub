@@ -4,6 +4,11 @@
     box-sizing: border-box;
 }
 
+/* Embedded mode: hide chrome when loaded inside an iframe */
+.embedded-mode .gn-bar { display: none !important; }
+.embedded-mode .console-header { display: none !important; }
+.embedded-mode .console-container { min-height: auto; padding-top: 0.5rem; }
+
 /* Centific AgentWork Simulator – design style guide: magenta/purple palette */
 :root {
     /* Brand (style guide) */

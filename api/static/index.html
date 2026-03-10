@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Centific AgentWork Simulator - Catalog</title>
-    <link rel="stylesheet" href="/static/styles.css">
-    <link rel="stylesheet" href="/static/global-nav.css">
-    <link rel="stylesheet" href="/static/toast.css">
+    <link rel="stylesheet" href="/static/styles.css?v=22">
+    <link rel="stylesheet" href="/static/global-nav.css?v=3">
+    <link rel="stylesheet" href="/static/toast.css?v=3">
     <script>
         (function() {
             var hostname = window.location.hostname;
@@ -41,8 +41,9 @@
         </button>
         <ul class="gn-links">
             <li><a href="/catalog" class="gn-link gn-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Catalog</a></li>
-            <li><a href="/test-console" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Simulation</a></li>
-            <li><a href="/training-console" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg> Training</a></li>
+            <!-- <li><a href="/test-console" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Environment</a></li> -->
+            <!-- <li><a href="/training-console" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg> Training</a></li> -->
+            <li><a href="/#contact" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Contact us</a></li>
         </ul>
     </nav>
 
@@ -54,6 +55,189 @@
         </div>
     </div>
 
+    <!-- Full-page Add Environment view -->
+    <div id="add-env-page" class="env-detail-page" style="display: none;">
+        <div class="env-detail-inner" style="max-width:900px;">
+            <button type="button" class="btn-back-catalog" onclick="closeAddEnvironmentPage()">← Back to Catalog</button>
+
+            <div class="add-env-hero">
+                <h1>Create a new Environment</h1>
+                <p class="add-env-subtitle">Create a new environment and deploy it to your catalog.</p>
+            </div>
+
+            <!-- Tab switcher -->
+            <div class="add-env-tabs">
+                <button type="button" class="add-env-tab active" data-tab="form" onclick="switchAddEnvTab('form')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    Configure
+                </button>
+                <button type="button" class="add-env-tab" data-tab="import" onclick="switchAddEnvTab('import')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Import
+                </button>
+            </div>
+
+            <!-- Configure tab -->
+            <div class="add-env-panel" id="add-env-panel-form">
+                <form id="add-env-form" autocomplete="off" onsubmit="submitAddEnvironment(event)">
+                    <!-- Section: Identity -->
+                    <div class="add-env-section-header">
+                        <h2>Environment Identity</h2>
+                        <p>Name and describe your new environment.</p>
+                    </div>
+                    <div class="add-env-row">
+                        <div class="add-env-field">
+                            <label for="add-env-owner">Owner <span class="add-env-required">*</span></label>
+                            <input type="text" id="add-env-owner" value="centific" placeholder="centific" required>
+                        </div>
+                        <div class="add-env-field">
+                            <label for="add-env-name">Environment name <span class="add-env-required">*</span></label>
+                            <input type="text" id="add-env-name" placeholder="my-environment" required pattern="[A-Za-z][A-Za-z0-9_-]*">
+                        </div>
+                    </div>
+
+                    <div class="add-env-row">
+                        <div class="add-env-field" style="flex:2;min-width:0;">
+                            <label for="add-env-desc">Short description</label>
+                            <input type="text" id="add-env-desc" placeholder="A brief description of what this environment does" maxlength="200">
+                        </div>
+                        <div class="add-env-field" style="flex:1;min-width:140px;">
+                            <label for="add-env-license">License</label>
+                            <select id="add-env-license">
+                                <option value="">-- Select --</option>
+                                <option value="apache-2.0">Apache 2.0</option>
+                                <option value="mit">MIT</option>
+                                <option value="gpl-3.0">GPL 3.0</option>
+                                <option value="bsd-3-clause">BSD 3-Clause</option>
+                                <option value="proprietary">Proprietary</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- SDK Section -->
+                    <div class="add-env-field">
+                        <label class="add-env-inline-label">SDK</label>
+                        <div class="add-env-segmented" id="add-env-sdk-seg">
+                            <button type="button" class="add-env-seg-btn selected" data-value="gradio" onclick="selectEnvSegment(this, 'sdk')">
+                                <span class="add-env-seg-title">Gradio</span>
+                            </button>
+                            <button type="button" class="add-env-seg-btn" data-value="docker" onclick="selectEnvSegment(this, 'sdk')">
+                                <span class="add-env-seg-title">Docker</span>
+                            </button>
+                            <button type="button" class="add-env-seg-btn" data-value="static" onclick="selectEnvSegment(this, 'sdk')">
+                                <span class="add-env-seg-title">Static</span>
+                            </button>
+                            <button type="button" class="add-env-seg-btn" data-value="custom" onclick="selectEnvSegment(this, 'sdk')">
+                                <span class="add-env-seg-title">Custom</span>
+                            </button>
+                        </div>
+                        <input type="hidden" id="add-env-sdk" value="gradio">
+                    </div>
+
+                    <!-- Template (dropdown for non-custom, terraform editor for custom) -->
+                    <div class="add-env-field" id="add-env-template-container" style="display:none;"></div>
+                    <input type="hidden" id="add-env-template" value="blank">
+
+                    <!-- Compute Section -->
+                    <div class="add-env-field">
+                        <label class="add-env-inline-label">Compute</label>
+                        <div class="add-env-segmented add-env-segmented-specs" id="add-env-hw-seg">
+                            <button type="button" class="add-env-seg-btn selected" data-value="cpu-basic" onclick="selectEnvSegment(this, 'hardware')">
+                                <span class="add-env-seg-title">CPU basic</span>
+                                <span class="add-env-seg-spec">2 vCPU · 16 GB <span class="add-env-seg-free">FREE</span></span>
+                            </button>
+                            <button type="button" class="add-env-seg-btn" data-value="cpu-upgrade" onclick="selectEnvSegment(this, 'hardware')">
+                                <span class="add-env-seg-title">CPU upgrade</span>
+                                <span class="add-env-seg-spec">8 vCPU · 32 GB</span>
+                            </button>
+                            <button type="button" class="add-env-seg-btn" data-value="gpu-t4" onclick="selectEnvSegment(this, 'hardware')">
+                                <span class="add-env-seg-title">GPU T4</span>
+                                <span class="add-env-seg-spec">1x T4 · 16 GB</span>
+                            </button>
+                            <button type="button" class="add-env-seg-btn" data-value="gpu-a10" onclick="selectEnvSegment(this, 'hardware')">
+                                <span class="add-env-seg-title">GPU A10G</span>
+                                <span class="add-env-seg-spec">1x A10G · 24 GB</span>
+                            </button>
+                        </div>
+                        <input type="hidden" id="add-env-hardware" value="cpu-basic">
+                    </div>
+
+                    <div class="add-env-submit-row">
+                        <button type="submit" class="btn btn-primary">Create Environment</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Import tab -->
+            <div class="add-env-panel" id="add-env-panel-import" style="display:none;">
+                <div class="add-env-import-card">
+                    <!-- Source selector -->
+                    <div class="add-env-import-source-row">
+                        <label class="add-env-inline-label">Source</label>
+                        <div class="add-env-segmented" id="add-env-import-source-seg">
+                            <button type="button" class="add-env-seg-btn selected" data-value="huggingface" onclick="selectImportSource(this)">
+                                <span class="add-env-seg-title">HuggingFace</span>
+                            </button>
+                            <button type="button" class="add-env-seg-btn" data-value="github" onclick="selectImportSource(this)">
+                                <span class="add-env-seg-title">GitHub</span>
+                            </button>
+                            <button type="button" class="add-env-seg-btn" data-value="url" onclick="selectImportSource(this)">
+                                <span class="add-env-seg-title">URL</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 1: Enter URL -->
+                    <div class="add-env-import-step">
+                        <div class="add-env-import-step-header">
+                            <span class="add-env-import-step-num">1</span>
+                            <h3 id="import-step1-title">Enter HuggingFace URL</h3>
+                        </div>
+                        <div class="add-env-import-url-row">
+                            <input type="url" id="add-env-import-path" placeholder="https://huggingface.co/spaces/org/env-name" class="add-env-import-url-input">
+                            <button type="button" class="btn btn-primary btn-icon-compact" onclick="fetchImportSource()" id="btn-preview-hf" title="Fetch metadata">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            </button>
+                        </div>
+                        <span class="add-env-hint" id="import-url-hint">Paste the full URL of a public HuggingFace Space</span>
+                        <div id="add-env-import-status" class="add-env-import-status" style="display:none;">
+                            <div class="add-env-import-progress">
+                                <div class="add-env-import-spinner"></div>
+                                <span id="add-env-import-status-text">Fetching environment metadata...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Review & Import (hidden until fetch succeeds) -->
+                    <div class="add-env-import-step" id="import-step-details" style="display:none;">
+                        <div class="add-env-import-step-header">
+                            <span class="add-env-import-step-num">2</span>
+                            <h3>Review & Import</h3>
+                        </div>
+                        <div id="add-env-import-preview" class="add-env-import-preview">
+                            <div id="add-env-import-meta" class="add-env-import-meta"></div>
+                        </div>
+                        <div class="add-env-import-fields">
+                            <div class="add-env-field">
+                                <label for="add-env-import-name">Environment name <span class="add-env-required">*</span></label>
+                                <input type="text" id="add-env-import-name" placeholder="e.g. clinKriya" required pattern="[A-Za-z][A-Za-z0-9_-]*">
+                            </div>
+                            <div class="add-env-field">
+                                <label for="add-env-import-desc">Description</label>
+                                <input type="text" id="add-env-import-desc" placeholder="Brief description" maxlength="200">
+                            </div>
+                        </div>
+                        <div class="add-env-import-action-row">
+                            <button type="button" class="btn btn-outline btn-small" onclick="clearEnvImport()">Clear</button>
+                            <button type="button" class="btn btn-primary" onclick="submitImportedEnvironment()" id="btn-import-hf">Import Environment</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="container" id="catalog-container">
         <!-- User journey: Step 1 - Choose industry -->
         <div id="journey-step-1" class="journey-step" style="display: none;">
@@ -62,24 +246,24 @@
                 <p class="subtitle">Select an industry to discover relevant AgentWork Simulators.</p>
             </header>
             <div class="journey-cards" id="journey-industry-cards">
+                <a href="/catalog?industry=enterprise" class="journey-card">
+                    <span class="journey-card-icon">📋</span>
+                    <h2>it-sim</h2>
+                    <p>Jira and project workflow automation.</p>
+                </a>
+                <a href="/catalog?industry=healthcare" class="journey-card">
+                    <span class="journey-card-icon">🏥</span>
+                    <h2>med-sim</h2>
+                    <p>Clinical, imaging, population health, and operations.</p>
+                </a>
                 <a href="/catalog?industry=finance" class="journey-card">
                     <span class="journey-card-icon">💰</span>
                     <h2>fin-sim</h2>
                     <p>Revenue cycle, claims, billing, and payment workflows.</p>
                 </a>
-                <a href="/catalog?industry=healthcare" class="journey-card">
-                    <span class="journey-card-icon">🏥</span>
-                    <h2>healthcare-sim</h2>
-                    <p>Clinical, imaging, population health, and operations.</p>
-                </a>
-                <a href="/catalog?industry=enterprise" class="journey-card">
-                    <span class="journey-card-icon">📋</span>
-                    <h2>Enterprise-sim</h2>
-                    <p>Jira and project workflow automation.</p>
-                </a>
                 <a href="/catalog?industry=human_resources" class="journey-card">
                     <span class="journey-card-icon">👥</span>
-                    <h2>HR-sim</h2>
+                    <h2>hr-sim</h2>
                     <p>HR & Payroll: Workday, SAP SuccessFactors, ADP.</p>
                 </a>
             </div>
@@ -97,64 +281,61 @@
         </div>
         <!-- Step 3: Browse AgentWork Simulators -->
         <div id="catalog-browse" style="display: none;">
-        <div class="top-bar">
-            <button class="help-button" onclick="openHelpSection()">
-                📚 Help & Documentation
-            </button>
-        </div>
-        <header class="header">
-            <h1>AgentWork Simulator</h1>
-            <p class="subtitle" id="subtitle-env-count">Reinforcement learning environments for workflow optimization</p>
-            <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-number" id="total-envs">—</span>
-                    <span class="stat-label">Environments</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number" id="total-categories">9</span>
-                    <span class="stat-label">Categories</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number" id="total-systems">18</span>
-                    <span class="stat-label">Systems</span>
+        <!-- Compact catalog header -->
+        <div class="catalog-header-compact">
+            <div class="catalog-header-left">
+                <h1 class="catalog-title">AgentWork Simulator</h1>
+                <div class="catalog-stats-inline">
+                    <span class="catalog-stat"><strong id="total-envs">—</strong> environments</span>
+                    <span class="catalog-stat-sep">·</span>
+                    <span class="catalog-stat"><strong id="total-categories">11</strong> categories</span>
+                    <span class="catalog-stat-sep">·</span>
+                    <span class="catalog-stat"><strong id="total-systems">24</strong> systems</span>
                 </div>
             </div>
-        </header>
+        </div>
 
         <div class="controls">
-            <div class="search-box">
-                <input type="text" id="search-input" placeholder="Search environments..." />
-                <span class="search-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-            </div>
-            <div class="domain-filter-wrap" style="display: flex; align-items: center; gap: 0.5rem;">
-                <label for="domain-filter" style="font-size: 0.9rem; color: var(--text-secondary); white-space: nowrap;">Domain:</label>
-                <select id="domain-filter" class="system-filter-select" title="Filter by domain: Enterprise (Jira), HR & Payroll, or Operational workflows">
-                    <option value="all">All</option>
-                    <option value="enterprise">Enterprise apps</option>
-                    <option value="hr_payroll">HR & Payroll</option>
-                    <option value="healthcare">Operational workflows</option>
-                </select>
-            </div>
-            <div class="system-filter-wrap" style="display: flex; align-items: center; gap: 0.5rem;">
-                <label for="system-filter" style="font-size: 0.9rem; color: var(--text-secondary); white-space: nowrap;">Software system:</label>
-                <select id="system-filter" class="system-filter-select" title="Filter environments by software system. Enterprise apps shows Jira; Healthcare shows Epic, Cerner, etc.">
-                    <option value="all">All systems</option>
-                    <!-- Populated by JS from environment data -->
-                </select>
+            <div class="catalog-search-row">
+                <div class="search-box" style="margin-bottom:0;">
+                    <input type="text" id="search-input" placeholder="Search environments..." />
+                    <span class="search-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                </div>
+                <div class="domain-filter-wrap" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label for="domain-filter" style="font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">Domain:</label>
+                    <select id="domain-filter" class="system-filter-select" title="Filter by domain">
+                        <option value="all">All</option>
+                        <option value="it-sim">it-sim</option>
+                        <option value="med-sim">med-sim</option>
+                        <option value="fin-sim">fin-sim</option>
+                        <option value="hr-sim">hr-sim</option>
+                    </select>
+                </div>
+                <div class="system-filter-wrap" id="system-filter-wrap" style="display: none; align-items: center; gap: 0.5rem;">
+                    <label for="system-filter" style="font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">System:</label>
+                    <select id="system-filter" class="system-filter-select" title="Filter environments by software system.">
+                        <option value="all">All systems</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary btn-small catalog-add-btn" onclick="showAddEnvironmentPage()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Add Environment
+                </button>
             </div>
             <div class="filter-buttons" id="filter-buttons">
                 <button class="filter-btn active" data-category="all" data-domain="all">All</button>
-                <button class="filter-btn" data-category="jira" data-domain="enterprise">Jira</button>
-                <button class="filter-btn" data-category="hr_payroll" data-domain="hr_payroll">HR & Payroll</button>
-                <button class="filter-btn" data-category="clinical" data-domain="healthcare">Clinical</button>
-                <button class="filter-btn" data-category="imaging" data-domain="healthcare">Imaging</button>
-                <button class="filter-btn" data-category="population_health" data-domain="healthcare">Population</button>
-                <button class="filter-btn" data-category="revenue_cycle" data-domain="healthcare">Revenue</button>
-                <button class="filter-btn" data-category="clinical_trials" data-domain="healthcare">Clinical Trials</button>
-                <button class="filter-btn" data-category="hospital_operations" data-domain="healthcare">Operations</button>
-                <button class="filter-btn" data-category="telehealth" data-domain="healthcare">Telehealth</button>
-                <button class="filter-btn" data-category="interoperability" data-domain="healthcare">Interoperability</button>
-                <button class="filter-btn" data-category="cross_workflow" data-domain="healthcare">Cross-Workflow</button>
+                <button class="filter-btn" data-category="jira" data-domain="it-sim">Jira</button>
+                <button class="filter-btn" data-category="hr_payroll" data-domain="hr-sim">HR & Payroll</button>
+                <button class="filter-btn" data-category="revenue_cycle" data-domain="fin-sim">Revenue</button>
+                <button class="filter-btn" data-category="clinical" data-domain="med-sim">Clinical</button>
+                <button class="filter-btn" data-category="imaging" data-domain="med-sim">Imaging</button>
+                <button class="filter-btn" data-category="population_health" data-domain="med-sim">Population</button>
+                <button class="filter-btn" data-category="clinical_trials" data-domain="med-sim">Clinical Trials</button>
+                <button class="filter-btn" data-category="hospital_operations" data-domain="med-sim">Operations</button>
+                <button class="filter-btn" data-category="telehealth" data-domain="med-sim">Telehealth</button>
+                <button class="filter-btn" data-category="interoperability" data-domain="med-sim">Interoperability</button>
+                <button class="filter-btn" data-category="cross_workflow" data-domain="med-sim">Cross-Workflow</button>
+                <button class="filter-btn" data-category="custom">Custom</button>
             </div>
         </div>
 
@@ -183,9 +364,19 @@
         </div>
     </div>
 
+    <footer class="landing-footer">
+        <div class="landing-footer-inner">
+            <a href="#" onclick="event.preventDefault(); openHelpSection();">Help</a>
+            <a href="#">Terms of Use</a>
+            <a href="#">Privacy</a>
+            <a href="#">Cookie Policy</a>
+        </div>
+    </footer>
+
     <script src="/static/toast.js"></script>
     <script src="/static/verifier-data.js"></script>
+    <script src="/static/training-config-data.js?v=3"></script>
     <script src="/static/rollout-comparison.js"></script>
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=22"></script>
 </body>
 </html>

@@ -3,10 +3,10 @@ FastAPI Backend for AgentWork Simulator
 Provides endpoints for training, monitoring, and KPI retrieval
 """
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 import uvicorn
@@ -282,6 +282,7 @@ class TrainingRequest(BaseModel):
     dataset_url: Optional[str] = None
     verifier_config: Optional[Dict[str, Any]] = None  # Verifier configuration
     run_name: Optional[str] = None
+    category: Optional[str] = None  # Environment category (jira, clinical, etc.)
 
 
 class TrainingResponse(BaseModel):
@@ -1130,6 +1131,7 @@ async def start_training(
             "job_id": job_id,
             "environment_name": final_env_name,
             "run_name": req.run_name or "",
+            "category": req.category or "",
             "status": "running",
             "algorithm": req.algorithm,
             "model": req.model or "",
@@ -1693,6 +1695,7 @@ async def list_training_jobs():
             "run_name": job.get("run_name", ""),
             "status": job.get("status", "unknown"),
             "environment_name": job.get("environment_name", ""),
+            "category": job.get("category", ""),
             "algorithm": job.get("algorithm", ""),
             "model": job.get("model", ""),
             "progress": job.get("progress", 0),
@@ -2163,7 +2166,7 @@ async def get_all_rollouts(environment_name: Optional[str] = None, limit: int = 
                 tool_calls += sum(1 for e in s.get("timeline_events", []) if e.get("event_type") == "TOOL_CALL")
             fs = r.get("final_environment_state") or {}
             final_state_label = fs.get("status") or fs.get("issue_status") or ("Resolved" if fs.get("resolved") else "")
-            if not final_state_label and r.get("final_outcome", {}).get("resolved"):
+            if not final_state_label and (r.get("final_outcome") or {}).get("resolved"):
                 final_state_label = "Resolved"
             all_rollouts.append({
                 "id": r["id"],
@@ -2396,6 +2399,493 @@ async def get_governance_configs():
         "configs": governance_configs,
         "count": len(governance_configs)
     }
+
+
+# ---------- HuggingFace Integration ----------
+
+import urllib.request
+import urllib.error
+import shutil
+import subprocess as _subprocess
+
+# Directory for cloned HF spaces
+HF_SPACES_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hf_spaces")
+
+# Persistent JSON store for custom environments
+_CUSTOM_ENV_STORE_PATH = os.path.join(os.path.dirname(__file__), "data", "custom_environments.json")
+
+
+def _load_persisted_environments() -> List[Dict[str, Any]]:
+    """Load custom environments from disk so they survive restarts."""
+    if os.path.exists(_CUSTOM_ENV_STORE_PATH):
+        try:
+            with open(_CUSTOM_ENV_STORE_PATH, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
+
+
+def _persist_environments() -> None:
+    """Write current custom environments list to disk."""
+    os.makedirs(os.path.dirname(_CUSTOM_ENV_STORE_PATH), exist_ok=True)
+    with open(_CUSTOM_ENV_STORE_PATH, "w") as f:
+        json.dump(custom_environments, f, indent=2)
+
+
+def _remove_persisted_environment(name: str) -> None:
+    """Remove a single environment from the persisted store."""
+    data = _load_persisted_environments()
+    data = [e for e in data if e.get("name") != name]
+    os.makedirs(os.path.dirname(_CUSTOM_ENV_STORE_PATH), exist_ok=True)
+    with open(_CUSTOM_ENV_STORE_PATH, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+# Load previously saved environments on startup
+custom_environments: List[Dict[str, Any]] = _load_persisted_environments()
+
+
+class HuggingFaceImportRequest(BaseModel):
+    name: str
+    description: Optional[str] = None
+    hf_url: str
+    hf_owner: str
+    hf_repo: str
+
+
+@app.get("/api/huggingface/space-info")
+async def get_huggingface_space_info(owner: str, repo: str):
+    """Fetch metadata about a HuggingFace Space via the HF API."""
+    hf_api_url = f"https://huggingface.co/api/spaces/{owner}/{repo}"
+    try:
+        req = urllib.request.Request(hf_api_url, headers={"User-Agent": "AgentWork-Simulator/1.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode())
+
+        return {
+            "id": data.get("id", f"{owner}/{repo}"),
+            "owner": owner,
+            "repo": repo,
+            "author": data.get("author", owner),
+            "sdk": data.get("sdk", "unknown"),
+            "license": data.get("cardData", {}).get("license", data.get("license", None)),
+            "tags": data.get("tags", []),
+            "likes": data.get("likes", 0),
+            "last_modified": data.get("lastModified"),
+            "private": data.get("private", False),
+            "disabled": data.get("disabled", False),
+        }
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            raise HTTPException(status_code=404, detail=f"Space '{owner}/{repo}' not found on HuggingFace.")
+        raise HTTPException(status_code=exc.code, detail=f"HuggingFace API error (HTTP {exc.code})")
+    except urllib.error.URLError as exc:
+        raise HTTPException(status_code=502, detail=f"Failed to reach HuggingFace API: {str(exc.reason)}")
+
+
+@app.post("/api/huggingface/import")
+async def import_huggingface_space(req: HuggingFaceImportRequest, background_tasks: BackgroundTasks):
+    """
+    Import a HuggingFace Space by cloning its repo and registering it as a local environment.
+    Uses `git clone` to pull the entire space.
+    """
+    # Validate URL
+    if "huggingface.co/spaces/" not in req.hf_url:
+        raise HTTPException(status_code=400, detail="Invalid HuggingFace Space URL.")
+
+    # Check for duplicate name
+    existing_names = [e["name"] for e in custom_environments]
+    if req.name in existing_names:
+        raise HTTPException(status_code=409, detail=f"Environment '{req.name}' already exists.")
+
+    os.makedirs(HF_SPACES_DIR, exist_ok=True)
+    target_dir = os.path.join(HF_SPACES_DIR, req.name)
+
+    # Clone the HuggingFace Space repo (3-step approach to bypass git-lfs)
+    clone_url = f"https://huggingface.co/spaces/{req.hf_owner}/{req.hf_repo}"
+    try:
+        if os.path.exists(target_dir):
+            shutil.rmtree(target_dir)
+        env = os.environ.copy()
+        env["GIT_LFS_SKIP_SMUDGE"] = "1"
+
+        # Step 1: Clone without checkout to avoid triggering LFS filters
+        result = _subprocess.run(
+            ["git", "clone", "--depth", "1", "--no-checkout", clone_url, target_dir],
+            capture_output=True, text=True, timeout=120, env=env,
+        )
+        if result.returncode != 0:
+            raise HTTPException(status_code=500, detail=f"Git clone failed: {result.stderr[:500]}")
+
+        # Step 2: Override .gitattributes to disable LFS filters before checkout
+        info_dir = os.path.join(target_dir, ".git", "info")
+        os.makedirs(info_dir, exist_ok=True)
+        with open(os.path.join(info_dir, "attributes"), "w") as f:
+            f.write("* -filter -diff -merge\n")
+
+        # Step 3: Checkout files (LFS filters disabled via info/attributes)
+        checkout_result = _subprocess.run(
+            ["git", "-C", target_dir, "checkout"],
+            capture_output=True, text=True, timeout=120, env=env,
+        )
+        # Checkout warnings are not fatal (e.g. LFS pointer files stay as pointers)
+        if checkout_result.returncode != 0 and "error" in checkout_result.stderr.lower():
+            raise HTTPException(status_code=500, detail=f"Git checkout failed: {checkout_result.stderr[:500]}")
+
+    except _subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="Clone timed out (>120s). The repository may be too large.")
+    except FileNotFoundError:
+        raise HTTPException(status_code=500, detail="git is not installed or not in PATH.")
+
+    # Try to read metadata from the cloned repo
+    sdk = "unknown"
+    readme_path = os.path.join(target_dir, "README.md")
+    if os.path.exists(readme_path):
+        try:
+            with open(readme_path, "r") as f:
+                content = f.read(2000)
+            # Parse YAML front-matter for sdk
+            if content.startswith("---"):
+                end = content.find("---", 3)
+                if end > 0:
+                    front = content[3:end]
+                    for line in front.split("\n"):
+                        if line.strip().startswith("sdk:"):
+                            sdk = line.split(":", 1)[1].strip()
+                            break
+        except Exception:
+            pass
+
+    env_record = {
+        "name": req.name,
+        "description": req.description or f"Imported from HuggingFace: {req.hf_owner}/{req.hf_repo}",
+        "category": "cross_workflow",
+        "system": "Custom",
+        "sdk": sdk,
+        "source": "huggingface",
+        "hf_url": req.hf_url,
+        "hf_owner": req.hf_owner,
+        "hf_repo": req.hf_repo,
+        "local_path": target_dir,
+        "imported_at": datetime.utcnow().isoformat() + "Z",
+    }
+    custom_environments.append(env_record)
+    _persist_environments()
+
+    return {
+        "status": "success",
+        "name": req.name,
+        "description": env_record["description"],
+        "sdk": sdk,
+        "category": "cross_workflow",
+        "local_path": target_dir,
+        "message": f"Space '{req.hf_owner}/{req.hf_repo}' cloned successfully to {target_dir}.",
+    }
+
+
+@app.get("/api/custom-environments")
+async def list_custom_environments():
+    """List all custom / imported environments."""
+    return {"count": len(custom_environments), "environments": custom_environments}
+
+
+@app.delete("/api/custom-environments/{name}")
+async def delete_custom_environment(name: str):
+    """Delete a custom / imported environment by name."""
+    global custom_environments
+    env_record = next((e for e in custom_environments if e["name"] == name), None)
+    if not env_record:
+        raise HTTPException(status_code=404, detail=f"Environment '{name}' not found.")
+
+    # Remove cloned directory if it exists
+    local_path = env_record.get("local_path")
+    if local_path and os.path.isdir(local_path):
+        shutil.rmtree(local_path, ignore_errors=True)
+
+    # Remove from persisted JSON store
+    _remove_persisted_environment(name)
+
+    custom_environments = [e for e in custom_environments if e["name"] != name]
+    return {"status": "deleted", "name": name}
+
+
+@app.post("/api/custom-environments")
+async def save_custom_environment_config(request: Request):
+    """Save or update configuration for a custom environment."""
+    try:
+        data = await request.json()
+        name = data.get("name")
+        if not name:
+            raise HTTPException(status_code=400, detail="Environment name required")
+
+        # Find existing or create new record
+        existing = next((e for e in custom_environments if e["name"] == name), None)
+        if existing:
+            # Update existing - merge all incoming fields
+            for key, val in data.items():
+                existing[key] = val
+            _persist_environments()
+            return {"status": "updated", "name": name}
+        else:
+            # Create new record - store all incoming data
+            record = dict(data)
+            record.setdefault("category", "cross_workflow")
+            record.setdefault("source", "custom")
+            custom_environments.append(record)
+            _persist_environments()
+            return {"status": "created", "name": name}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/environment/{name}/analyze")
+async def analyze_environment(name: str):
+    """Analyze a cloned HuggingFace space and return rich metadata."""
+    import re as _re
+    import glob as _glob
+
+    # Find the environment in custom_environments
+    env_record = next((e for e in custom_environments if e["name"] == name), None)
+    local_path = None
+    if env_record and "local_path" in env_record:
+        local_path = env_record["local_path"]
+    else:
+        candidate = os.path.join(HF_SPACES_DIR, name)
+        if os.path.isdir(candidate):
+            local_path = candidate
+
+    if not local_path or not os.path.isdir(local_path):
+        raise HTTPException(status_code=404, detail=f"No cloned environment found for '{name}'")
+
+    result = {
+        "name": name,
+        "local_path": local_path,
+        "readme_raw": "",
+        "front_matter": {},
+        "openenv": {},
+        "pyproject": {},
+        "files": [],
+        "endpoints": [],
+        "models": {},
+    }
+
+    # 1) List files (skip .git, __pycache__, .egg-info, uv.lock)
+    skip_dirs = {".git", "__pycache__", "node_modules"}
+    skip_exts = {".lock", ".pyc"}
+    file_list = []
+    for root, dirs, files in os.walk(local_path):
+        dirs[:] = [d for d in dirs if d not in skip_dirs and not d.endswith(".egg-info")]
+        for f in files:
+            if any(f.endswith(ext) for ext in skip_exts):
+                continue
+            rel = os.path.relpath(os.path.join(root, f), local_path)
+            size = os.path.getsize(os.path.join(root, f))
+            file_list.append({"path": rel, "size": size})
+    result["files"] = sorted(file_list, key=lambda x: x["path"])
+
+    # 2) Parse README.md
+    readme_path = os.path.join(local_path, "README.md")
+    if os.path.exists(readme_path):
+        try:
+            with open(readme_path, "r") as f:
+                raw = f.read()
+            result["readme_raw"] = raw
+            if raw.startswith("---"):
+                end = raw.find("---", 3)
+                if end > 0:
+                    front = raw[3:end]
+                    fm = {}
+                    for line in front.strip().split("\n"):
+                        if ":" in line:
+                            key, val = line.split(":", 1)
+                            key = key.strip()
+                            val = val.strip()
+                            if val.startswith("[") or key == "tags":
+                                continue
+                            fm[key] = val
+                    tags = []
+                    in_tags = False
+                    for line in front.strip().split("\n"):
+                        if line.strip().startswith("tags:"):
+                            in_tags = True
+                            continue
+                        if in_tags:
+                            if line.strip().startswith("- "):
+                                tags.append(line.strip()[2:])
+                            else:
+                                in_tags = False
+                    if tags:
+                        fm["tags"] = tags
+                    result["front_matter"] = fm
+                    result["readme_raw"] = raw[end + 3:].strip()
+        except Exception:
+            pass
+
+    # 3) Parse openenv.yaml
+    oe_path = os.path.join(local_path, "openenv.yaml")
+    if os.path.exists(oe_path):
+        try:
+            with open(oe_path, "r") as f:
+                lines = f.readlines()
+            oe = {}
+            for line in lines:
+                if ":" in line and not line.strip().startswith("#"):
+                    key, val = line.split(":", 1)
+                    oe[key.strip()] = val.strip()
+            result["openenv"] = oe
+        except Exception:
+            pass
+
+    # 4) Parse pyproject.toml (basic)
+    pp_path = os.path.join(local_path, "pyproject.toml")
+    if os.path.exists(pp_path):
+        try:
+            with open(pp_path, "r") as f:
+                content = f.read()
+            pp = {}
+            in_project = False
+            in_deps = False
+            deps = []
+            for line in content.split("\n"):
+                if line.strip() == "[project]":
+                    in_project = True
+                    continue
+                if line.strip().startswith("[") and line.strip() != "[project]":
+                    in_project = False
+                    in_deps = False
+                if in_project:
+                    if line.strip() == "dependencies = [":
+                        in_deps = True
+                        continue
+                    if in_deps:
+                        if line.strip() == "]":
+                            in_deps = False
+                            continue
+                        dep = line.strip().strip('",')
+                        if dep and not dep.startswith("#"):
+                            deps.append(dep)
+                    elif "=" in line and not line.strip().startswith("#"):
+                        key, val = line.split("=", 1)
+                        pp[key.strip()] = val.strip().strip('"')
+            if deps:
+                pp["dependencies"] = deps
+            result["pyproject"] = pp
+        except Exception:
+            pass
+
+    # 5) Extract endpoints from app.py files
+    app_files = _glob.glob(os.path.join(local_path, "**", "app.py"), recursive=True)
+    endpoints = []
+    for app_file in app_files:
+        try:
+            with open(app_file, "r") as f:
+                code = f.read(10000)
+            for m in _re.finditer(r'@\w+\.(get|post|put|delete|websocket)\(["\']([^"\']+)', code):
+                endpoints.append({"method": m.group(1).upper(), "path": m.group(2)})
+        except Exception:
+            pass
+    result["endpoints"] = endpoints
+
+    # 6) Extract model definitions from models.py
+    models_path = os.path.join(local_path, "models.py")
+    if os.path.exists(models_path):
+        try:
+            with open(models_path, "r") as f:
+                code = f.read(15000)
+            models = {}
+            current_class = None
+            current_fields = []
+            current_doc = ""
+            for line in code.split("\n"):
+                class_match = _re.match(r'^class (\w+)\(.*(?:BaseModel|Enum|Action|Observation|State)', line)
+                if class_match:
+                    if current_class:
+                        models[current_class] = {"fields": current_fields, "doc": current_doc}
+                    current_class = class_match.group(1)
+                    current_fields = []
+                    current_doc = ""
+                    continue
+                if current_class:
+                    doc_match = _re.match(r'\s+"""(.+?)"""', line)
+                    if doc_match:
+                        current_doc = doc_match.group(1)
+                        continue
+                    enum_match = _re.match(r'\s+(\w+)\s*=\s*["\'](.+?)["\']', line)
+                    if enum_match:
+                        current_fields.append({"name": enum_match.group(1), "value": enum_match.group(2)})
+                        continue
+                    field_match = _re.match(r'\s+(\w+):\s*(.+?)(?:\s*=.*)?$', line)
+                    if field_match and not line.strip().startswith("#") and not line.strip().startswith('"""'):
+                        fname = field_match.group(1)
+                        ftype = field_match.group(2).strip().rstrip("=").strip()
+                        desc_match = _re.search(r'description=["\'](.+?)["\']', line)
+                        desc = desc_match.group(1) if desc_match else ""
+                        current_fields.append({"name": fname, "type": ftype, "description": desc})
+            if current_class:
+                models[current_class] = {"fields": current_fields, "doc": current_doc}
+            result["models"] = models
+        except Exception:
+            pass
+
+    return result
+
+
+@app.get("/api/environment/{name}/file")
+async def read_environment_file(name: str, path: str):
+    """Read a specific file from a cloned environment."""
+    env_record = next((e for e in custom_environments if e["name"] == name), None)
+    local_path = None
+    if env_record and "local_path" in env_record:
+        local_path = env_record["local_path"]
+    else:
+        candidate = os.path.join(HF_SPACES_DIR, name)
+        if os.path.isdir(candidate):
+            local_path = candidate
+    if not local_path or not os.path.isdir(local_path):
+        raise HTTPException(status_code=404, detail=f"No cloned environment found for '{name}'")
+    full_path = os.path.normpath(os.path.join(local_path, path))
+    if not full_path.startswith(os.path.normpath(local_path)):
+        raise HTTPException(status_code=403, detail="Path traversal not allowed")
+    if not os.path.isfile(full_path):
+        raise HTTPException(status_code=404, detail=f"File not found: {path}")
+    try:
+        size = os.path.getsize(full_path)
+        if size > 500_000:
+            return {"path": path, "content": None, "truncated": True, "size": size}
+        with open(full_path, "r", errors="replace") as f:
+            content = f.read()
+        return {"path": path, "content": content, "size": size, "truncated": False}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/huggingface/proxy")
+async def proxy_huggingface_app(url: str):
+    """Proxy a HuggingFace Space page to avoid X-Frame-Options blocking."""
+    import urllib.request
+    import urllib.error
+    if not url.startswith("https://huggingface.co/"):
+        raise HTTPException(status_code=400, detail="Only huggingface.co URLs are allowed")
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            content_type = resp.headers.get("Content-Type", "text/html")
+            body = resp.read(2_000_000).decode("utf-8", errors="replace")
+        # Inject a <base> tag so relative resources resolve correctly
+        base_url = url.rsplit("/", 1)[0] + "/"
+        base_tag = f'<base href="{base_url}">'
+        if "<head" in body:
+            body = body.replace("<head>", "<head>" + base_tag, 1)
+            if "<head>" not in body:
+                body = _re.sub(r'(<head[^>]*>)', r'\1' + base_tag, body, count=1)
+        else:
+            body = base_tag + body
+        return HTMLResponse(content=body)
+    except urllib.error.HTTPError as e:
+        raise HTTPException(status_code=e.code, detail=f"HuggingFace returned {e.code}")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,15 @@
+[
+  {
+    "name": "Evidence",
+    "description": "Evidence is an open source framework for building data products with SQL - things like reports, decision-support tools, and embedded dashboards. It's a code-driven alternative to drag-and-drop BI tool",
+    "category": "cross_workflow",
+    "system": "Custom",
+    "sdk": "docker",
+    "source": "huggingface",
+    "hf_url": "https://huggingface.co/spaces/Ranikrishna/tesy1",
+    "hf_owner": "Ranikrishna",
+    "hf_repo": "tesy1",
+    "local_path": "/Users/kausalyarani.k/Documents/AgentWork-Simulator/hf_spaces/Evidence",
+    "imported_at": "2026-03-10T08:43:41.037946Z"
+  }
+]

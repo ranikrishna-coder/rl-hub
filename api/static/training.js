@@ -16,9 +16,29 @@
     var CATEGORY_MAP = {}; // { category: [env, ...] }
     var SYSTEM_MAP = {}; // { system: [env, ...] }
 
+    // Deferred environment preselection (set via ?preselect_env= param, applied on "New Training" click)
+    var _preselectedEnv = null;
+    // Persistent filter for training list — when opened embedded for a specific env, only show matching runs
+    var _envFilterCategory = null;
+
+    function _applyEnvPreselection(envId) {
+        if (!envId) return;
+        var env = findEnv(envId);
+        if (env && env.system) {
+            var primarySystem = env.system.split(',')[0].trim();
+            var systemSel = document.getElementById('tr-env-system');
+            if (systemSel) {
+                systemSel.value = primarySystem;
+                populateEnvironments();
+            }
+        }
+        document.getElementById('tr-env').value = envId;
+        onEnvironmentChange();
+    }
+
     // ─── Fetch live training jobs from backend ─────────────────
     // Set of hardcoded mock IDs that should not be overwritten by API
-    var MOCK_RUN_IDS = { 'run_grpo_001': true, 'run_ppo_003': true };
+    var MOCK_RUN_IDS = { 'run_grpo_001': true };
 
     function fetchLiveJobs() {
         var apiBase = window.API_BASE || '';
@@ -61,6 +81,12 @@
                     } else {
                         // New backend job — append
                         var fallbackName = (j.algorithm || '') + ' \u2014 ' + humanizeName(j.environment_name || '');
+                        // Resolve category: prefer API value, fallback to matching env from registry
+                        var jobCategory = j.category || '';
+                        if (!jobCategory && j.environment_name) {
+                            var envObj = findEnv(j.environment_name);
+                            if (envObj) jobCategory = envObj.category || '';
+                        }
                         CFG.trainingRuns.push({
                             id: j.job_id,
                             job_id: j.job_id,
@@ -69,6 +95,7 @@
                             status: j.status || 'unknown',
                             environment: j.environment_name || '',
                             environmentDisplay: humanizeName(j.environment_name || ''),
+                            category: jobCategory,
                             model: j.model || '\u2014',
                             algorithm: j.algorithm || '\u2014',
                             progress: j.progress || 0,
@@ -184,14 +211,55 @@
     // ─── Training List ──────────────────────────────────────────
     function renderTrainingList() {
         var runs = CFG.trainingRuns || [];
+
+        // When opened as embedded popup for a specific environment, filter runs
+        // to only show runs matching that environment's category
+        if (_envFilterCategory) {
+            runs = runs.filter(function (r) {
+                return r.category === _envFilterCategory;
+            });
+        }
+
         var body = document.getElementById('training-runs-body');
         var countEl = document.getElementById('run-count');
+        var headerNewBtn = document.getElementById('btn-new-run');
         if (countEl) countEl.textContent = runs.length + ' run' + (runs.length !== 1 ? 's' : '');
 
         if (!runs.length) {
-            body.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-secondary)">No training runs yet. Click <strong>New Training Run</strong> to get started.</div>';
+            // Hide the header "New Training" button when empty state has its own
+            if (headerNewBtn) headerNewBtn.style.display = 'none';
+            if (countEl) countEl.textContent = '0 runs';
+            body.innerHTML =
+                '<div class="training-empty-state">' +
+                    '<div class="training-empty-icon">' +
+                        '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' +
+                            '<path d="M22 10v6M2 10l10-5 10 5-10 5z"/>' +
+                            '<path d="M6 12v5c6 3 10 3 16 0v-5"/>' +
+                        '</svg>' +
+                    '</div>' +
+                    '<h3 class="training-empty-title">No training runs yet</h3>' +
+                    '<p class="training-empty-text">Run a training to see results here. Configure your environment, select an algorithm, and start your first training run.</p>' +
+                    '<button type="button" class="btn btn-primary training-empty-btn" id="btn-empty-new-run">' +
+                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+                        ' New Training' +
+                    '</button>' +
+                '</div>';
+            // Wire up the empty state button
+            var emptyBtn = document.getElementById('btn-empty-new-run');
+            if (emptyBtn) {
+                emptyBtn.addEventListener('click', function () {
+                    showView('new');
+                    if (_preselectedEnv) {
+                        _applyEnvPreselection(_preselectedEnv);
+                        _preselectedEnv = null;
+                    }
+                });
+            }
             return;
         }
+
+        // Show the header "New Training" button when there are runs
+        if (headerNewBtn) headerNewBtn.style.display = '';
 
         var html = '<table class="training-table"><thead><tr>';
         html += '<th>Name</th><th>Environment</th><th>Algorithm</th><th>Status</th><th>Progress</th><th>Episodes</th><th>Avg Reward</th><th>Started</th>';
@@ -773,12 +841,15 @@
         var statusLabel = capFirst(run.status);
 
         // Header
+        try {
         document.getElementById('detail-title').textContent = run.name;
         var badge = document.getElementById('detail-status');
         badge.textContent = statusLabel;
         badge.className = 'status-badge ' + run.status;
+        } catch (e) { console.warn('renderRunDetails: header error', e); }
 
         // Action buttons
+        try {
         var actionsEl = document.getElementById('detail-actions');
         var actionsHtml = '';
         if (run.status === 'completed' || run.status === 'awaiting_human_eval') {
@@ -803,8 +874,10 @@
                 }
             });
         }
+        } catch (e) { console.warn('renderRunDetails: actions error', e); }
 
         // Training Progress Stepper
+        try {
         var stepperEl = document.getElementById('detail-stepper');
         if (stepperEl) {
             var steps = [
@@ -848,8 +921,10 @@
             }
             stepperEl.innerHTML = stepperHtml;
         }
+        } catch (e) { console.warn('renderRunDetails: stepper error', e); }
 
         // Failure reason panel
+        try {
         var failurePanel = document.getElementById('detail-failure-reason');
         if (failurePanel) {
             if (run.status === 'failed') {
@@ -864,18 +939,22 @@
                 failurePanel.innerHTML = '';
             }
         }
+        } catch (e) { console.warn('renderRunDetails: failure panel error', e); }
 
         // Metric cards
+        try {
         var metrics = document.getElementById('detail-metrics');
-        var maxRewardLabel = run.results ? run.results.max_reward.toFixed(2) : '—';
+        var maxRewardLabel = (run.results && run.results.max_reward != null) ? run.results.max_reward.toFixed(2) : '—';
         metrics.innerHTML = metricCard('Episodes', run.episodes || '—') +
             metricCard('Success Rate', run.successRate != null ? run.successRate + '%' : '—') +
             metricCard('Avg Reward', run.avgReward != null ? run.avgReward.toFixed(2) : '—') +
             metricCard('Improvement', run.baselineReward != null && run.avgReward != null
                 ? '+' + ((run.avgReward - run.baselineReward) * 100).toFixed(0) + '%'
                 : '—', true);
+        } catch (e) { console.warn('renderRunDetails: metrics error', e); }
 
         // Training info panel
+        try {
         document.getElementById('detail-training-info').innerHTML =
             '<h3>Training Information</h3>' +
             infoRow('Environment', envDisplay) +
@@ -910,8 +989,10 @@
                 '</div>';
         }
         document.getElementById('detail-model-config').innerHTML = modelHtml;
+        } catch (e) { console.warn('renderRunDetails: info/model error', e); }
 
         // Rollout comparison — only show when training is complete
+        try {
         var rolloutEl = document.getElementById('detail-rollout');
         var rolloutWrap = rolloutEl ? rolloutEl.closest('.details-full') : null;
         if (run.status === 'completed' || run.status === 'awaiting_human_eval') {
@@ -926,7 +1007,18 @@
             if (rolloutWrap) rolloutWrap.style.display = 'none';
         }
 
+        // State diagram — render from rollout data above model artifact
+        var diagramEl = document.getElementById('detail-state-diagram');
+        if (diagramEl && (run.status === 'completed' || run.status === 'awaiting_human_eval')) {
+            renderStateDiagram(diagramEl, run);
+        } else if (diagramEl) {
+            var diagramWrap = document.getElementById('detail-state-diagram-wrap');
+            if (diagramWrap) diagramWrap.style.display = 'none';
+        }
+        } catch (e) { console.warn('renderRunDetails: rollout/diagram error', e); }
+
         // Model artifact
+        try {
         var artifactWrap = document.getElementById('detail-model-artifact-wrap');
         var artifactPanel = document.getElementById('detail-model-artifact');
         if (run.status === 'completed' && (run.model_url || run.model_saved)) {
@@ -971,12 +1063,14 @@
         } else {
             artifactWrap.style.display = 'none';
         }
+        } catch (e) { console.warn('renderRunDetails: artifact error', e); }
 
         // Canvas charts
-        renderProgressChart(run);
-        renderFailureChart(run);
+        try { renderProgressChart(run); } catch (e) { console.warn('renderRunDetails: progress chart error', e); }
+        try { renderFailureChart(run); } catch (e) { console.warn('renderRunDetails: failure chart error', e); }
 
         // Performance panel
+        try {
         document.getElementById('detail-performance').innerHTML =
             '<h3>Performance Improvement</h3>' +
             perfRow('Task Completion', '23%', run.successRate != null ? run.successRate + '%' : '—', run.successRate != null ? '+' + (run.successRate - 23).toFixed(0) + '%' : '') +
@@ -989,8 +1083,10 @@
             perfRow('Tokens per Episode', '1,240', '890', '-28%') +
             perfRow('Avg Latency', '3.2s', '2.1s', '-34%') +
             perfRow('Tool Calls per Task', '8.5', run._mock_trained_rollout ? String(run._mock_trained_rollout.total_steps) : '5.2', run._mock_trained_rollout ? '-' + Math.round((1 - run._mock_trained_rollout.total_steps / 8.5) * 100) + '%' : '-39%');
+        } catch (e) { console.warn('renderRunDetails: performance/efficiency error', e); }
 
         // Trade-off note
+        try {
         var note = document.getElementById('detail-tradeoff');
         if (run.status === 'completed') {
             note.style.display = '';
@@ -1001,6 +1097,7 @@
         } else {
             note.style.display = 'none';
         }
+        } catch (e) { console.warn('renderRunDetails: tradeoff error', e); }
     }
 
     // ─── Rollout Comparison ─────────────────────────────────────
@@ -1047,6 +1144,209 @@
             .catch(function () {
                 container.innerHTML = '<p style="color:var(--text-secondary);padding:1rem;">No rollout data available for this run.</p>';
             });
+    }
+
+    // ─── Rollout State Diagram (SVG flowchart) ─────────────────
+    function renderStateDiagram(container, run) {
+        if (!container) return;
+        var rollout = run._mock_trained_rollout || run._mock_baseline_rollout || null;
+        if (!rollout && run._fetched_trained_rollout) rollout = run._fetched_trained_rollout;
+        if (!rollout || !rollout.steps || !rollout.steps.length) {
+            container.closest('#detail-state-diagram-wrap').style.display = 'none';
+            return;
+        }
+        container.closest('#detail-state-diagram-wrap').style.display = '';
+
+        /* ── Layout constants ── */
+        var NW = 158, NH = 38, BR = 6;
+        var PAD = 30;
+        var HGAP = 62;
+        var VGAP = 52;
+        var STACK_GAP = 10;
+
+        /* ── Colour palette per node kind ── */
+        var CLR = {
+            user:  { bg:'#eff6ff', bdr:'#93c5fd', tx:'#1e40af' },
+            agent: { bg:'#f0fdf4', bdr:'#86efac', tx:'#166534' },
+            tool:  { bg:'#fefce8', bdr:'#fde68a', tx:'#92400e' },
+            final: { bg:'#f1f5f9', bdr:'#cbd5e1', tx:'#475569' },
+            vPass: { bg:'#f0fdf4', bdr:'#86efac', tx:'#166534' },
+            vFail: { bg:'#fdf2f8', bdr:'#f9a8d4', tx:'#9d174d' },
+            reward:{ bg:'#faf5ff', bdr:'#e9d5ff', tx:'#7c3aed' }
+        };
+
+        /* ── Helpers ── */
+        function trunc(s, m) { return !s ? '' : s.length > m ? s.slice(0, m - 1) + '\u2026' : s; }
+        function esvg(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+        /* ── Build node / edge arrays ── */
+        var gNodes = [], gEdges = [], nMap = {};
+        function addN(id, kind, label, detail, x, y) {
+            var n = { id: id, kind: kind, label: label, detail: detail || '', x: x, y: y, w: NW, h: NH };
+            gNodes.push(n); nMap[id] = n; return n;
+        }
+
+        var col = 0;
+
+        // 1) User Request
+        var uDet = '';
+        var s0 = rollout.steps[0];
+        if (s0 && s0.timeline_events) {
+            for (var q = 0; q < s0.timeline_events.length; q++) {
+                if (s0.timeline_events[q].event_type === 'SYSTEM') { uDet = s0.timeline_events[q].content || ''; break; }
+            }
+        }
+        addN('u0', 'user', 'User Request', trunc(uDet, 26), PAD + col * (NW + HGAP), PAD);
+        col++;
+
+        // 2) Steps  →  Agent node + tool chain below
+        for (var i = 0; i < rollout.steps.length; i++) {
+            var step = rollout.steps[i];
+            var cx = PAD + col * (NW + HGAP);
+            addN('a' + i, 'agent', 'Agent (Trained)', 'Step ' + step.step, cx, PAD);
+            gEdges.push({ f: (i === 0 ? 'u0' : 'a' + (i - 1)), t: 'a' + i, ty: 'solid' });
+
+            var evts = step.timeline_events || [];
+            var ti = 0;
+            for (var j = 0; j < evts.length; j++) {
+                if (evts[j].event_type === 'TOOL_CALL') {
+                    var tName = evts[j].tool_name || 'Tool';
+                    var tArgs = '';
+                    if (evts[j].tool_args) { try { tArgs = JSON.stringify(evts[j].tool_args); } catch (e) { /* */ } }
+                    var tid = 't' + i + '_' + ti;
+                    var ty = PAD + NH + VGAP + ti * (NH + STACK_GAP);
+                    addN(tid, 'tool', trunc(tName, 22), trunc(tArgs, 26), cx, ty);
+                    gEdges.push({ f: (ti === 0 ? 'a' + i : 't' + i + '_' + (ti - 1)), t: tid, ty: 'dashed-blue' });
+                    ti++;
+                }
+            }
+            if (step.reward != null) {
+                var rid = 'r' + i;
+                var ry = PAD + NH + VGAP + ti * (NH + STACK_GAP);
+                addN(rid, 'reward', 'Reward  +' + step.reward.toFixed(2), '', cx, ry);
+                gEdges.push({ f: (ti > 0 ? 't' + i + '_' + (ti - 1) : 'a' + i), t: rid, ty: 'dashed-blue' });
+                ti++;
+            }
+            col++;
+        }
+
+        // 3) Final State
+        var fs = rollout.final_environment_state || {};
+        var fsParts = [];
+        for (var fk in fs) { if (fs.hasOwnProperty(fk)) fsParts.push(fk.replace(/_/g, ' ') + ': ' + fs[fk]); }
+        var fx = PAD + col * (NW + HGAP);
+        addN('fin', 'final', 'Final State', trunc(fsParts.join(', '), 26), fx, PAD);
+        gEdges.push({ f: 'a' + (rollout.steps.length - 1), t: 'fin', ty: 'solid' });
+
+        // 4) Verifiers
+        var vrs = rollout.verifier_results || [];
+        for (var v = 0; v < vrs.length; v++) {
+            var vr = vrs[v];
+            var vKind = vr.passed ? 'vPass' : 'vFail';
+            var vid = 'v' + v;
+            var vy = PAD + NH + VGAP + v * (NH + STACK_GAP);
+            addN(vid, vKind, (vr.passed ? '\u2713 ' : '\u2717 ') + trunc(vr.check, 19), trunc(vr.detail, 26), fx, vy);
+            gEdges.push({ f: 'fin', t: vid, ty: 'dashed-red' });
+        }
+
+        /* ── SVG dimensions ── */
+        var maxX = 0, maxY = 0;
+        for (var ni = 0; ni < gNodes.length; ni++) {
+            var nd = gNodes[ni];
+            if (nd.x + nd.w > maxX) maxX = nd.x + nd.w;
+            if (nd.y + nd.h > maxY) maxY = nd.y + nd.h;
+        }
+        var svgW = maxX + PAD;
+        var svgH = maxY + PAD;
+
+        /* ── Render SVG ── */
+        var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + svgW + '" height="' + svgH +
+                  '" viewBox="0 0 ' + svgW + ' ' + svgH + '" style="font-family:Inter,system-ui,-apple-system,sans-serif;">';
+
+        // Defs: arrowhead markers + drop-shadow
+        svg += '<defs>';
+        svg += '<marker id="sd-a-s" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0L8,3L0,6Z" fill="#64748b"/></marker>';
+        svg += '<marker id="sd-a-b" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0L8,3L0,6Z" fill="#3b82f6"/></marker>';
+        svg += '<marker id="sd-a-r" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0L8,3L0,6Z" fill="#f43f5e"/></marker>';
+        svg += '<filter id="sd-sh" x="-4%" y="-8%" width="108%" height="120%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.06"/></filter>';
+        svg += '</defs>';
+
+        // ── Edges (drawn first, behind nodes) ──
+        for (var ei = 0; ei < gEdges.length; ei++) {
+            var ge = gEdges[ei];
+            var fn = nMap[ge.f], tn = nMap[ge.t];
+            if (!fn || !tn) continue;
+
+            var marker = ge.ty === 'dashed-red' ? 'sd-a-r' : (ge.ty === 'dashed-blue' ? 'sd-a-b' : 'sd-a-s');
+            var eCol = ge.ty === 'dashed-red' ? '#f43f5e' : (ge.ty === 'dashed-blue' ? '#3b82f6' : '#64748b');
+            var eW = ge.ty === 'solid' ? 1.5 : 1.2;
+            var dash = ge.ty === 'solid' ? '' : ' stroke-dasharray="6,3"';
+
+            var horiz = Math.abs(fn.y - tn.y) < 5;
+            var sameCol = Math.abs(fn.x - tn.x) < 5;
+            var pth;
+
+            if (horiz) {
+                // Horizontal: right-center → left-center
+                pth = 'M' + (fn.x + fn.w) + ',' + (fn.y + fn.h / 2) + ' L' + tn.x + ',' + (tn.y + tn.h / 2);
+            } else if (sameCol) {
+                // Vertical: bottom-center → top-center
+                pth = 'M' + (fn.x + fn.w / 2) + ',' + (fn.y + fn.h) + ' L' + (tn.x + tn.w / 2) + ',' + tn.y;
+            } else {
+                // Diagonal: cubic bezier curve
+                var sx = fn.x + fn.w / 2, sy = fn.y + fn.h;
+                var ex = tn.x + tn.w / 2, ey = tn.y;
+                var my = (sy + ey) / 2;
+                pth = 'M' + sx + ',' + sy + ' C' + sx + ',' + my + ' ' + ex + ',' + my + ' ' + ex + ',' + ey;
+            }
+
+            svg += '<path d="' + pth + '" fill="none" stroke="' + eCol + '" stroke-width="' + eW + '"' + dash + ' marker-end="url(#' + marker + ')"/>';
+        }
+
+        // ── Nodes ──
+        for (var ni2 = 0; ni2 < gNodes.length; ni2++) {
+            var n = gNodes[ni2];
+            var c = CLR[n.kind] || CLR.agent;
+
+            svg += '<g filter="url(#sd-sh)">';
+            svg += '<rect x="' + n.x + '" y="' + n.y + '" width="' + n.w + '" height="' + n.h + '" rx="' + BR + '" fill="' + c.bg + '" stroke="' + c.bdr + '" stroke-width="1.5"/>';
+
+            if (n.detail) {
+                svg += '<text x="' + (n.x + 10) + '" y="' + (n.y + 15) + '" font-size="11" font-weight="600" fill="' + c.tx + '">' + esvg(n.label) + '</text>';
+                svg += '<text x="' + (n.x + 10) + '" y="' + (n.y + 28) + '" font-size="9" fill="#64748b">' + esvg(n.detail) + '</text>';
+            } else {
+                svg += '<text x="' + (n.x + 10) + '" y="' + (n.y + n.h / 2 + 4) + '" font-size="11" font-weight="600" fill="' + c.tx + '">' + esvg(n.label) + '</text>';
+            }
+
+            // Tooltip on hover
+            svg += '<title>' + esvg(n.label + (n.detail ? ': ' + n.detail : '')) + '</title>';
+            svg += '</g>';
+        }
+
+        svg += '</svg>';
+
+        // ── Compose full HTML ──
+        var out = '<div class="sd-container">';
+        out += '<h3 class="sd-title">Rollout State Diagram</h3>';
+        out += '<p class="sd-subtitle">' + esc(rollout.scenario_name || rollout.environment_name || '') +
+               ' &middot; Policy: ' + esc(rollout.policy_name || '\u2014') +
+               ' &middot; ' + rollout.total_steps + ' steps &middot; Reward: ' +
+               (rollout.total_reward != null ? rollout.total_reward.toFixed(2) : '\u2014') + '</p>';
+        out += '<div class="sd-scroll">' + svg + '</div>';
+
+        // Legend: node types + edge types
+        out += '<div class="sd-legend">';
+        out += '<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#93c5fd"></span> User</span>';
+        out += '<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#86efac"></span> Agent</span>';
+        out += '<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#fde68a"></span> Tool Call</span>';
+        out += '<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#cbd5e1"></span> Final State</span>';
+        out += '<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#e9d5ff"></span> Reward</span>';
+        out += '<span class="sd-legend-item"><span class="sd-legend-line" style="color:#64748b"></span> Flow</span>';
+        out += '<span class="sd-legend-item"><span class="sd-legend-line dashed" style="color:#3b82f6"></span> Tool</span>';
+        out += '<span class="sd-legend-item"><span class="sd-legend-line dashed" style="color:#f43f5e"></span> Verify</span>';
+        out += '</div></div>';
+
+        container.innerHTML = out;
     }
 
     // ─── Canvas Charts ──────────────────────────────────────────
@@ -1701,30 +2001,49 @@
             filterAgents();
             refreshAndRenderList();
 
-            // Handle ?env= param from catalog navigation
+            // Handle ?env=, ?preselect_env=, and ?run= params
             var urlParams = new URLSearchParams(window.location.search);
-            var preselectedEnv = urlParams.get('env');
-            if (preselectedEnv) {
-                showView('new');
-                var env = findEnv(preselectedEnv);
-                // Preselect the system in the Environment dropdown
-                if (env && env.system) {
-                    var primarySystem = env.system.split(',')[0].trim();
-                    var systemSel = document.getElementById('tr-env-system');
-                    if (systemSel) {
-                        systemSel.value = primarySystem;
-                        populateEnvironments();
-                    }
-                }
-                // Preselect the RL environment in the Scenario dropdown (now in Section C)
-                document.getElementById('tr-env').value = preselectedEnv;
-                onEnvironmentChange();
+            var directEnv = urlParams.get('env');
+            var deferredEnv = urlParams.get('preselect_env');
+            var directRunId = urlParams.get('run');
+
+            if (directRunId) {
+                // Direct navigation to a specific run's full report
+                // (e.g. /training-console?run=abc123 — from env card "View Full Report")
+                showRunDetails(directRunId);
                 history.replaceState(null, '', window.location.pathname);
+            } else if (directEnv) {
+                // Direct navigation (e.g. /training-console?env=X) — auto-open new form
+                showView('new');
+                _applyEnvPreselection(directEnv);
+                history.replaceState(null, '', window.location.pathname);
+            } else if (deferredEnv) {
+                // Embedded popup — store env for later, stay on list view
+                _preselectedEnv = deferredEnv;
+                // Set persistent category filter for the training runs list
+                var deferredEnvObj = findEnv(deferredEnv);
+                if (deferredEnvObj) {
+                    _envFilterCategory = deferredEnvObj.category || null;
+                }
+                // Re-render list with filter applied
+                renderTrainingList();
+                // Clean the preselect_env param from URL, keep embedded
+                var cleanSearch = window.location.search
+                    .replace(/[?&]preselect_env=[^&]*/g, '')
+                    .replace(/^\?&/, '?')
+                    .replace(/^\?$/, '');
+                history.replaceState(null, '', window.location.pathname + cleanSearch);
             }
         });
 
         // Navigation
-        document.getElementById('btn-new-run').addEventListener('click', function () { showView('new'); });
+        document.getElementById('btn-new-run').addEventListener('click', function () {
+            showView('new');
+            if (_preselectedEnv) {
+                _applyEnvPreselection(_preselectedEnv);
+                _preselectedEnv = null;
+            }
+        });
         document.getElementById('btn-back-list').addEventListener('click', function () { showView('list'); refreshAndRenderList(); });
         document.getElementById('btn-back-list-2').addEventListener('click', function () { showView('list'); refreshAndRenderList(); });
         document.getElementById('btn-cancel-new').addEventListener('click', function () { showView('list'); });

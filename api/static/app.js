@@ -173,6 +173,315 @@ const environmentDetails = {
     }
 };
 
+// ─── Category Config Registry ───────────────────────────────────────────
+// Maps each environment category to default KPIs, config template, schema,
+// training defaults, and description/guidance generators.
+const CATEGORY_CONFIG_REGISTRY = {
+    jira: {
+        kpis: ['Tool Sequence Correct', 'Valid Transition Used', 'Steps to Resolution', 'Workflow Compliance'],
+        configTemplate: { scenario_id: 'default' },
+        configSchema: {
+            scenario_id: { type: 'select', options: ['default', 'in_progress_to_blocked', 'in_progress_to_done', 'create_subtask'], label: 'Scenario', default: 'default' }
+        },
+        trainingDefaults: { algorithm: 'SLM', episodes: 320, maxSteps: 50 },
+        descriptionTemplate: function(name, system) { return 'Jira workflow environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function(name) { return '<p>Validates the ' + formatEnvironmentName(name) + ' workflow using Jira API tool calls. The agent learns the correct sequence of API calls and valid parameters.</p>'; },
+        howToUseTemplate: function() { return '<p>Use action 0 for the correct next step. Run simulation or training to learn the optimal workflow sequence.</p>'; }
+    },
+    clinical: {
+        kpis: ['Risk Score', 'Pathway Length', 'Cost Effectiveness', 'Treatment Efficiency'],
+        configTemplate: { patient_severity: 'moderate', num_conditions: 2, initial_risk: 50 },
+        configSchema: {
+            patient_severity: { type: 'select', options: ['low', 'moderate', 'high', 'critical'], label: 'Patient Severity', default: 'moderate' },
+            num_conditions: { type: 'number', min: 1, max: 10, label: 'Number of Conditions', default: 2 },
+            initial_risk: { type: 'range', min: 0, max: 100, label: 'Initial Risk Score', default: 50 }
+        },
+        trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 1000 },
+        descriptionTemplate: function(name, system) { return 'Clinical environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function(name) { return '<p>Optimizes clinical decision-making for ' + formatEnvironmentName(name).toLowerCase() + '. The agent learns to balance clinical outcomes, efficiency, and cost-effectiveness.</p>'; },
+        howToUseTemplate: function() { return '<p>Configure patient parameters, select a training strategy, and run the simulation to optimize clinical workflows.</p>'; }
+    },
+    imaging: {
+        kpis: ['Queue Length', 'Equipment Utilization', 'Urgent Orders Waiting', 'Throughput'],
+        configTemplate: { queue_size: 15, ct_availability: 70, mri_availability: 60, xray_availability: 80 },
+        configSchema: {
+            queue_size: { type: 'number', min: 1, max: 100, label: 'Queue Size', default: 15 },
+            ct_availability: { type: 'range', min: 0, max: 100, label: 'CT Availability (%)', default: 70 },
+            mri_availability: { type: 'range', min: 0, max: 100, label: 'MRI Availability (%)', default: 60 },
+            xray_availability: { type: 'range', min: 0, max: 100, label: 'X-Ray Availability (%)', default: 80 }
+        },
+        trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 1000 },
+        descriptionTemplate: function(name, system) { return 'Imaging environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function(name) { return '<p>Optimizes imaging operations for ' + formatEnvironmentName(name).toLowerCase() + ', including scheduling, prioritization, and resource allocation.</p>'; },
+        howToUseTemplate: function() { return '<p>Configure imaging parameters such as queue size and equipment availability, then run simulations to optimize workflows.</p>'; }
+    },
+    revenue_cycle: {
+        kpis: ['Denial Rate', 'Collection Rate', 'Claims Processed', 'Revenue Leakage'],
+        configTemplate: { claim_volume: 100, denial_rate: 15, avg_claim_value: 500 },
+        configSchema: {
+            claim_volume: { type: 'number', min: 10, max: 10000, label: 'Claim Volume', default: 100 },
+            denial_rate: { type: 'range', min: 0, max: 100, label: 'Initial Denial Rate (%)', default: 15 },
+            avg_claim_value: { type: 'number', min: 50, max: 50000, label: 'Avg Claim Value ($)', default: 500 }
+        },
+        trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 1000 },
+        descriptionTemplate: function(name, system) { return 'Revenue cycle environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function(name) { return '<p>Optimizes revenue cycle operations for ' + formatEnvironmentName(name).toLowerCase() + ', including claims processing, denial management, and collections.</p>'; },
+        howToUseTemplate: function() { return '<p>Configure claim parameters, then run simulations to optimize revenue cycle performance.</p>'; }
+    },
+    hr_payroll: {
+        kpis: ['Processing Time', 'Compliance Rate', 'Error Rate', 'Employee Satisfaction'],
+        configTemplate: { employee_count: 500, pay_periods: 26, compliance_threshold: 95 },
+        configSchema: {
+            employee_count: { type: 'number', min: 10, max: 100000, label: 'Employee Count', default: 500 },
+            pay_periods: { type: 'number', min: 1, max: 52, label: 'Pay Periods/Year', default: 26 },
+            compliance_threshold: { type: 'range', min: 80, max: 100, label: 'Compliance Threshold (%)', default: 95 }
+        },
+        trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 500 },
+        descriptionTemplate: function(name, system) { return 'HR & Payroll environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function(name) { return '<p>Optimizes HR and payroll operations for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
+        howToUseTemplate: function() { return '<p>Configure employee and payroll parameters, then run simulations to optimize HR workflows.</p>'; }
+    },
+    telehealth: {
+        kpis: ['Wait Time', 'Provider Utilization', 'Visit Completion Rate', 'Patient Satisfaction'],
+        configTemplate: { provider_count: 10, avg_visit_duration: 15, max_queue: 20 },
+        configSchema: {
+            provider_count: { type: 'number', min: 1, max: 500, label: 'Provider Count', default: 10 },
+            avg_visit_duration: { type: 'number', min: 5, max: 120, label: 'Avg Visit Duration (min)', default: 15 },
+            max_queue: { type: 'number', min: 1, max: 200, label: 'Max Queue Size', default: 20 }
+        },
+        trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 500 },
+        descriptionTemplate: function(name, system) { return 'Telehealth environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function(name) { return '<p>Optimizes telehealth operations for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
+        howToUseTemplate: function() { return '<p>Configure telehealth parameters such as provider count and visit duration, then run simulations.</p>'; }
+    },
+    population_health: {
+        kpis: ['High Risk Identified', 'Patients Stratified', 'Intervention Coverage', 'Cost per Member'],
+        configTemplate: { population_size: 1000, high_risk_pct: 20, intervention_budget: 50000 },
+        configSchema: {
+            population_size: { type: 'number', min: 100, max: 1000000, label: 'Population Size', default: 1000 },
+            high_risk_pct: { type: 'range', min: 0, max: 100, label: 'High Risk (%)', default: 20 },
+            intervention_budget: { type: 'number', min: 1000, max: 10000000, label: 'Budget ($)', default: 50000 }
+        },
+        trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 1000 },
+        descriptionTemplate: function(name, system) { return 'Population health environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function(name) { return '<p>Optimizes population health management for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
+        howToUseTemplate: function() { return '<p>Configure population parameters and run simulations to optimize health strategies.</p>'; }
+    },
+    clinical_trials: {
+        kpis: ['Enrollment Rate', 'Protocol Compliance', 'Trial Duration', 'Data Quality'],
+        configTemplate: { target_enrollment: 200, num_sites: 5, trial_duration_months: 12 },
+        configSchema: {
+            target_enrollment: { type: 'number', min: 10, max: 10000, label: 'Target Enrollment', default: 200 },
+            num_sites: { type: 'number', min: 1, max: 100, label: 'Number of Sites', default: 5 },
+            trial_duration_months: { type: 'number', min: 1, max: 120, label: 'Duration (months)', default: 12 }
+        },
+        trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 1000 },
+        descriptionTemplate: function(name, system) { return 'Clinical trials environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function(name) { return '<p>Optimizes clinical trial operations for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
+        howToUseTemplate: function() { return '<p>Configure trial parameters such as enrollment targets and site count, then run simulations.</p>'; }
+    },
+    hospital_operations: {
+        kpis: ['Staff Utilization', 'Occupancy Rate', 'Queue Length', 'Revenue'],
+        configTemplate: { bed_count: 100, staff_count: 50, avg_los: 3 },
+        configSchema: {
+            bed_count: { type: 'number', min: 10, max: 5000, label: 'Bed Count', default: 100 },
+            staff_count: { type: 'number', min: 5, max: 2000, label: 'Staff Count', default: 50 },
+            avg_los: { type: 'number', min: 1, max: 30, label: 'Avg Length of Stay (days)', default: 3 }
+        },
+        trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 1000 },
+        descriptionTemplate: function(name, system) { return 'Hospital operations environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function(name) { return '<p>Optimizes hospital operations for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
+        howToUseTemplate: function() { return '<p>Configure hospital parameters such as bed count and staffing, then run simulations.</p>'; }
+    },
+    interoperability: {
+        kpis: ['Data Quality', 'Records Reconciled', 'Reconciliation Cost', 'Exchange Efficiency'],
+        configTemplate: { record_count: 1000, systems_count: 3, error_rate: 5 },
+        configSchema: {
+            record_count: { type: 'number', min: 100, max: 1000000, label: 'Record Count', default: 1000 },
+            systems_count: { type: 'number', min: 2, max: 20, label: 'Systems Count', default: 3 },
+            error_rate: { type: 'range', min: 0, max: 50, label: 'Error Rate (%)', default: 5 }
+        },
+        trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 500 },
+        descriptionTemplate: function(name, system) { return 'Interoperability environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function(name) { return '<p>Optimizes data interoperability for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
+        howToUseTemplate: function() { return '<p>Configure data exchange parameters, then run simulations to optimize interoperability.</p>'; }
+    },
+    cross_workflow: {
+        kpis: ['Journey Score', 'Risk Score', 'Journey Length', 'Journey Cost'],
+        configTemplate: { workflow_count: 3, complexity: 'medium', optimization_target: 'balanced' },
+        configSchema: {
+            workflow_count: { type: 'number', min: 2, max: 20, label: 'Workflow Count', default: 3 },
+            complexity: { type: 'select', options: ['low', 'medium', 'high'], label: 'Complexity', default: 'medium' },
+            optimization_target: { type: 'select', options: ['speed', 'quality', 'cost', 'balanced'], label: 'Optimization Target', default: 'balanced' }
+        },
+        trainingDefaults: { algorithm: 'PPO', episodes: 200, maxSteps: 2000 },
+        descriptionTemplate: function(name, system) { return 'Cross-workflow environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function(name) { return '<p>Multi-agent optimization for ' + formatEnvironmentName(name).toLowerCase() + ' across multiple workflows.</p>'; },
+        howToUseTemplate: function() { return '<p>Configure cross-workflow parameters and run simulations to optimize end-to-end processes.</p>'; }
+    }
+};
+
+const SDK_TRAINING_DEFAULTS = {
+    gradio: { framework: 'gradio', policyType: 'MLP' },
+    docker: { framework: 'custom', policyType: 'Custom' },
+    static: { framework: 'N/A', policyType: 'N/A' },
+    custom: { framework: 'custom', policyType: 'Custom' }
+};
+
+const SDK_TEMPLATES = {
+    gradio: [
+        { id: 'blank',          name: 'Blank',            logo: '',    color: '#9ca3af', blank: true },
+        { id: 'audio-class',    name: 'Audio Classification', logo: 'https://cdn.simpleicons.org/gradio/F97316', color: '#f97316' },
+        { id: 'chatbot',        name: 'Chatbot',          logo: 'https://cdn.simpleicons.org/gradio/F59E0B', color: '#f59e0b' },
+        { id: 'diffusion',      name: 'Diffusion',        logo: 'https://cdn.simpleicons.org/gradio/8B5CF6', color: '#8b5cf6' },
+        { id: 'image-class',    name: 'Image Classification', logo: 'https://cdn.simpleicons.org/gradio/06B6D4', color: '#06b6d4' },
+        { id: 'leaderboard',    name: 'Leaderboard',      logo: 'https://cdn.simpleicons.org/gradio/EAB308', color: '#eab308' },
+        { id: 'text-to-image',  name: 'Text to Image',    logo: 'https://cdn.simpleicons.org/gradio/A855F7', color: '#a855f7' },
+        { id: 'trackio',        name: 'Trackio',          logo: 'https://cdn.simpleicons.org/gradio/EC4899', color: '#ec4899' }
+    ],
+    docker: [
+        { id: 'blank',        name: 'Blank',            logo: '',    color: '#9ca3af', blank: true },
+        { id: 'aimstack',     name: 'AimStack',         logo: 'https://cdn.simpleicons.org/aim/7C3AED',        color: '#7c3aed' },
+        { id: 'argilla',      name: 'Argilla',          logo: 'https://cdn.simpleicons.org/argilla/00BCD4',    color: '#00bcd4' },
+        { id: 'chatui',       name: 'ChatUI',           logo: 'https://cdn.simpleicons.org/huggingface/FFD21E', color: '#ffd21e' },
+        { id: 'comfyui',      name: 'ComfyUI',          logo: 'https://cdn.simpleicons.org/comfyui/228B22',    color: '#228b22' },
+        { id: 'evidence',     name: 'Evidence',          logo: 'https://cdn.simpleicons.org/evidence/43A047',  color: '#43a047' },
+        { id: 'giskard',      name: 'Giskard',           logo: 'https://cdn.simpleicons.org/giskard/5C6BC0',  color: '#5c6bc0' },
+        { id: 'jupyterlab',   name: 'JupyterLab',        logo: 'https://cdn.simpleicons.org/jupyter/F57C00',  color: '#f57c00' },
+        { id: 'labelstudio',  name: 'Label Studio',      logo: 'https://cdn.simpleicons.org/labelstudio/FF6D00', color: '#ff6d00' },
+        { id: 'langfuse',     name: 'Langfuse',           logo: 'https://cdn.simpleicons.org/langfuse/EF5350', color: '#ef5350' },
+        { id: 'livebook',     name: 'Livebook',           logo: 'https://cdn.simpleicons.org/livebook/84CC16', color: '#84cc16' },
+        { id: 'marimo',       name: 'marimo',             logo: 'https://cdn.simpleicons.org/marimo/00ACC1',   color: '#00acc1' },
+        { id: 'mlflow',       name: 'MLflow',             logo: 'https://cdn.simpleicons.org/mlflow/0194E2',   color: '#0194e2' },
+        { id: 'panel',        name: 'Panel',              logo: 'https://cdn.simpleicons.org/holoviz/66BB6A',  color: '#66bb6a' },
+        { id: 'plotly',       name: 'Plotly Dash',        logo: 'https://cdn.simpleicons.org/plotly/3F4F75',   color: '#3f4f75' },
+        { id: 'quarto',       name: 'Quarto',             logo: 'https://cdn.simpleicons.org/quarto/4A90D9',   color: '#4a90d9' },
+        { id: 'shiny-py',     name: 'Shiny (Python)',     logo: 'https://cdn.simpleicons.org/rstudio/75AADB',  color: '#75aadb' },
+        { id: 'shiny-r',      name: 'Shiny (R)',          logo: 'https://cdn.simpleicons.org/r/276DC3',        color: '#276dc3' },
+        { id: 'streamlit',    name: 'Streamlit',          logo: 'https://cdn.simpleicons.org/streamlit/FF4B4B', color: '#ff4b4b' },
+        { id: 'tensorboard',  name: 'TensorBoard',        logo: 'https://cdn.simpleicons.org/tensorflow/FF6F00', color: '#ff6f00' },
+        { id: 'wandb',        name: 'W&B',                logo: 'https://cdn.simpleicons.org/weightsandbiases/FFBE00', color: '#ffbe00' },
+        { id: 'zenml',        name: 'ZenML',              logo: 'https://cdn.simpleicons.org/zenml/7C3AED',    color: '#7c3aed' }
+    ],
+    static: [
+        { id: 'blank',           name: 'Blank',             logo: '',    color: '#9ca3af', blank: true },
+        { id: 'angular',         name: 'Angular',            logo: 'https://cdn.simpleicons.org/angular/DD0031',     color: '#dd0031' },
+        { id: 'gradio-lite',     name: 'Gradio-Lite',        logo: 'https://cdn.simpleicons.org/gradio/F59E0B',     color: '#f59e0b' },
+        { id: 'nextjs',          name: 'Next.js',            logo: 'https://cdn.simpleicons.org/nextdotjs/000000',   color: '#000000' },
+        { id: 'paper-project',   name: 'Paper Project',      logo: 'https://cdn.simpleicons.org/files/78909C',      color: '#78909c' },
+        { id: 'preact',          name: 'Preact',             logo: 'https://cdn.simpleicons.org/preact/673AB8',      color: '#673ab8' },
+        { id: 'react',           name: 'React',              logo: 'https://cdn.simpleicons.org/react/61DAFB',      color: '#61dafb' },
+        { id: 'solid',           name: 'SolidJS',            logo: 'https://cdn.simpleicons.org/solid/2C4F7C',      color: '#2c4f7c' },
+        { id: 'svelte',          name: 'Svelte',             logo: 'https://cdn.simpleicons.org/svelte/FF3E00',     color: '#ff3e00' },
+        { id: 'transformers-js', name: 'Transformers.js',    logo: 'https://cdn.simpleicons.org/huggingface/FFD21E', color: '#ffd21e' },
+        { id: 'vue',             name: 'Vue',                logo: 'https://cdn.simpleicons.org/vuedotjs/4FC08D',   color: '#4fc08d' }
+    ],
+    custom: null
+};
+
+const DEFAULT_TERRAFORM_TEMPLATE = '# Welcome to Centific AgentWork Simulator - Terraform Template\n' +
+'# This template provisions a small web application for\n' +
+'# exploring reinforcement learning concepts.\n\n' +
+'terraform {\n' +
+'  required_providers {\n' +
+'    docker = {\n' +
+'      source  = "kreuzwerker/docker"\n' +
+'      version = "~> 3.0"\n' +
+'    }\n' +
+'  }\n' +
+'}\n\n' +
+'provider "docker" {}\n\n' +
+'resource "docker_image" "rl_app" {\n' +
+'  name = "rl-intro-app:latest"\n' +
+'  build {\n' +
+'    context    = "${path.module}/app"\n' +
+'    dockerfile = "Dockerfile"\n' +
+'  }\n' +
+'}\n\n' +
+'resource "docker_container" "rl_app" {\n' +
+'  name  = "rl-intro-app"\n' +
+'  image = docker_image.rl_app.image_id\n\n' +
+'  ports {\n' +
+'    internal = 7860\n' +
+'    external = 7860\n' +
+'  }\n\n' +
+'  env = [\n' +
+'    "APP_TITLE=Intro to Reinforcement Learning",\n' +
+'    "ENV_TYPE=custom",\n' +
+'    "GRID_SIZE=5",\n' +
+'    "MAX_STEPS=100"\n' +
+'  ]\n\n' +
+'  volumes {\n' +
+'    host_path      = "${path.cwd}/data"\n' +
+'    container_path = "/app/data"\n' +
+'  }\n' +
+'}\n\n' +
+'output "app_url" {\n' +
+'  value       = "http://localhost:7860"\n' +
+'  description = "URL for the Intro to RL web app"\n' +
+'}\n';
+
+const HARDWARE_TRAINING_DEFAULTS = {
+    'cpu-basic': { batchSize: 64, note: '2 vCPU / 16 GB' },
+    'cpu-upgrade': { batchSize: 256, note: '8 vCPU / 32 GB' },
+    'gpu-t4': { batchSize: 512, note: 'T4 GPU / 16 GB VRAM' },
+    'gpu-a10': { batchSize: 1024, note: 'A10G GPU / 24 GB VRAM' }
+};
+
+// ─── Generate environment details for custom environments ───
+function generateEnvironmentDetails(envData) {
+    var category = envData.category || 'cross_workflow';
+    var name = envData.name;
+    var system = envData.system || 'Custom';
+    var sdk = envData.sdk || 'gradio';
+    var hardware = envData.hardware || 'cpu-basic';
+    var source = envData.source || 'custom';
+
+    // For HuggingFace imports, skip RL defaults — details are populated separately via analyze
+    if (source === 'huggingface') {
+        return {
+            category: 'custom', system: system, description: envData.description || '',
+            sdk: sdk, hardware: hardware, source: 'huggingface', isCustom: true,
+            hf_url: envData.hf_url || ''
+        };
+    }
+
+    // For custom/terraform SDK environments, skip RL defaults
+    if (sdk === 'custom' || category === 'custom') {
+        return {
+            category: 'custom', system: system,
+            description: envData.description || 'Custom environment: ' + formatEnvironmentName(name),
+            sdk: sdk, hardware: hardware, source: source, isCustom: true,
+            terraformTemplate: envData.terraformTemplate || null,
+            template: envData.template || 'blank'
+        };
+    }
+
+    // Standard RL environments — use category registry
+    var registry = CATEGORY_CONFIG_REGISTRY[category] || CATEGORY_CONFIG_REGISTRY['cross_workflow'];
+    return {
+        category: category,
+        system: system,
+        description: envData.description || registry.descriptionTemplate(name, system),
+        stateFeatures: envData.stateFeatures || 10,
+        actionType: envData.actionType || 'Discrete',
+        actionSpace: envData.actionSpace || 4,
+        kpis: registry.kpis.slice(),
+        useCase: 'Custom environment for ' + formatEnvironmentName(name).toLowerCase() + '.',
+        whatItDoes: registry.whatItDoesTemplate(name),
+        howToUse: registry.howToUseTemplate(),
+        configTemplate: JSON.parse(JSON.stringify(registry.configTemplate)),
+        configSchema: registry.configSchema,
+        trainingDefaults: Object.assign({}, registry.trainingDefaults),
+        sdk: sdk,
+        hardware: hardware,
+        sdkDefaults: SDK_TRAINING_DEFAULTS[sdk] || SDK_TRAINING_DEFAULTS['gradio'],
+        hardwareDefaults: HARDWARE_TRAINING_DEFAULTS[hardware] || HARDWARE_TRAINING_DEFAULTS['cpu-basic'],
+        source: source,
+        isCustom: true
+    };
+}
+
 // User journey: industry -> persona -> catalog
 var JOURNEY_PERSONAS = {
     finance: [
@@ -207,9 +516,10 @@ function applyJourneyFromUrl() {
     if (!step1 || !step2 || !browse) return;
 
     if (!industry) {
-        step1.style.display = 'block';
+        step1.style.display = 'none';
         step2.style.display = 'none';
-        browse.style.display = 'none';
+        browse.style.display = 'block';
+        loadEnvironments();
         return;
     }
     if (industry && industry !== 'all' && !persona && JOURNEY_PERSONAS[industry]) {
@@ -243,16 +553,16 @@ function applyIndustryPersonaFilter() {
     var domainFilter = document.getElementById('domain-filter');
     var category = 'all';
     if (industry === 'enterprise') {
-        if (domainFilter) domainFilter.value = 'enterprise';
+        if (domainFilter) domainFilter.value = 'it-sim';
         category = persona && persona === 'jira' ? 'jira' : 'all';
     } else if (industry === 'human_resources') {
-        if (domainFilter) domainFilter.value = 'hr_payroll';
+        if (domainFilter) domainFilter.value = 'hr-sim';
         category = persona && persona !== 'all' ? 'hr_payroll' : 'all';
     } else if (industry === 'finance') {
-        if (domainFilter) domainFilter.value = 'healthcare';
+        if (domainFilter) domainFilter.value = 'fin-sim';
         category = persona && persona !== 'all' ? persona : 'revenue_cycle';
     } else if (industry === 'healthcare') {
-        if (domainFilter) domainFilter.value = 'healthcare';
+        if (domainFilter) domainFilter.value = 'med-sim';
         category = persona && persona !== 'all' ? persona : 'all';
     }
     updateFilterButtonsForDomain();
@@ -276,7 +586,77 @@ async function loadEnvironments() {
         
         const data = await response.json();
         allEnvironments = data.environments || [];
-        
+
+        // Load persisted custom environments from backend and merge
+        try {
+            const customRes = await fetch(`${API_BASE}/api/custom-environments`);
+            if (customRes.ok) {
+                const customData = await customRes.json();
+                const existingNames = new Set(allEnvironments.map(e => e.name));
+                (customData.environments || []).forEach(function(ce) {
+                    if (!existingNames.has(ce.name)) {
+                        var envEntry = {
+                            name: ce.name,
+                            description: ce.description || 'Custom environment',
+                            category: ce.category || 'custom',
+                            system: ce.system || 'Custom',
+                            sdk: ce.sdk || 'gradio',
+                            hardware: ce.hardware || 'cpu-basic',
+                            source: ce.source || 'custom',
+                            isCustom: true
+                        };
+                        if (ce.hf_url) {
+                            envEntry.hf_url = ce.hf_url;
+                            envEntry.source = 'huggingface';
+                            envEntry.hf_owner = ce.hf_owner || '';
+                            envEntry.hf_repo = ce.hf_repo || '';
+                        }
+                        if (ce.terraformTemplate) { envEntry.terraformTemplate = ce.terraformTemplate; }
+                        if (ce.owner) { envEntry.owner = ce.owner; }
+                        allEnvironments.push(envEntry);
+
+                        // For HF envs, fetch analysis to get rich details; otherwise generate RL defaults
+                        if (envEntry.source === 'huggingface') {
+                            environmentDetails[ce.name] = {
+                                source: 'huggingface',
+                                isCustom: true,
+                                hf_url: ce.hf_url,
+                                hf_owner: ce.hf_owner || '',
+                                hf_repo: ce.hf_repo || '',
+                                sdk: envEntry.sdk,
+                                description: envEntry.description,
+                                author: ce.hf_owner || '',
+                                tags: [],
+                                files: [],
+                                endpoints: [],
+                                models: {},
+                                readme: ''
+                            };
+                            // Asynchronously enrich with analysis data
+                            (function(eName) {
+                                fetch(API_BASE + '/api/environment/' + encodeURIComponent(eName) + '/analyze')
+                                    .then(function(r) { return r.ok ? r.json() : null; })
+                                    .then(function(analysis) {
+                                        if (analysis && environmentDetails[eName]) {
+                                            environmentDetails[eName].readme = analysis.readme_raw || '';
+                                            environmentDetails[eName].files = analysis.files || [];
+                                            environmentDetails[eName].endpoints = analysis.endpoints || [];
+                                            environmentDetails[eName].models = analysis.models || {};
+                                            environmentDetails[eName].frontMatter = analysis.front_matter || {};
+                                        }
+                                    }).catch(function() {});
+                            })(ce.name);
+                        } else {
+                            var generated = generateEnvironmentDetails(envEntry);
+                            environmentDetails[ce.name] = generated;
+                        }
+                        existingNames.add(ce.name);
+                    }
+                });
+                console.log('[Persistence] Loaded ' + (customData.environments || []).length + ' custom environments from backend');
+            }
+        } catch (e) { console.warn('[Persistence] Could not load custom environments:', e); }
+
         // Fallback: ensure JiraSubtaskManagement is in catalog (in case API hasn't been redeployed)
         if (!allEnvironments.some(e => e.name === 'JiraSubtaskManagement')) {
             const jiraSubtask = {
@@ -374,6 +754,15 @@ async function loadEnvironments() {
         document.getElementById('loading').style.display = 'none';
         applyIndustryPersonaFilter();
         var urlParams = new URLSearchParams(window.location.search);
+        // Pre-fill search from URL param (e.g., from landing page hero search)
+        var searchParam = urlParams.get('search');
+        if (searchParam) {
+            var searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.value = searchParam;
+                filterEnvironments(searchParam, getActiveCategory());
+            }
+        }
         var envParam = urlParams.get('env');
         if (envParam && allEnvironments.some(function(e) { return e.name === envParam; })) {
             showEnvironmentDetails(envParam);
@@ -523,7 +912,7 @@ function openHelpSection() {
                 <ol style="line-height: 2; padding-left: 1.5rem;">
                     <li><strong>Browse Environments:</strong> Use the search and filter options to find AgentWork Simulator relevant to your software systems and workflows.</li>
                     <li><strong>View Details:</strong> Click "View Details" on any environment card to learn about its capabilities and use cases.</li>
-                    <li><strong>Test with Simulation:</strong> Click "🧪 Simulation" to open the interactive console and test the environment with your parameters.</li>
+                    <li><strong>Test with Environment:</strong> Click "🧪 Environment" to open the interactive console and test the environment with your parameters.</li>
                     <li><strong>Train an Agent:</strong> Click "🎓 Start Training" to configure and train an RL agent for production use.</li>
                     <li><strong>Monitor Progress:</strong> Track training progress using the job ID provided after starting training.</li>
                 </ol>
@@ -572,18 +961,13 @@ function updateFilterButtonsForDomain() {
         const btnDomain = btn.dataset.domain || 'all';
         if (domain === 'all') {
             btn.style.display = '';
-        } else if (domain === 'enterprise') {
-            btn.style.display = (btnDomain === 'enterprise' || btn.dataset.category === 'all') ? '' : 'none';
-        } else if (domain === 'hr_payroll') {
-            btn.style.display = (btnDomain === 'hr_payroll' || btn.dataset.category === 'all') ? '' : 'none';
-        } else if (domain === 'healthcare') {
-            btn.style.display = (btnDomain === 'healthcare' || btn.dataset.category === 'all') ? '' : 'none';
+        } else {
+            btn.style.display = (btnDomain === domain || btn.dataset.category === 'all') ? '' : 'none';
         }
     });
+    // If active button is now hidden, reset to "All"
     const activeBtn = container.querySelector('.filter-btn.active');
-    const activeDomain = activeBtn ? (activeBtn.dataset.domain || 'all') : 'all';
-    const activeHidden = activeBtn && activeBtn.style.display === 'none';
-    if (activeHidden || (domain === 'enterprise' && (activeDomain === 'healthcare' || activeDomain === 'hr_payroll')) || (domain === 'healthcare' && (activeDomain === 'enterprise' || activeDomain === 'hr_payroll')) || (domain === 'hr_payroll' && (activeDomain === 'enterprise' || activeDomain === 'healthcare'))) {
+    if (activeBtn && activeBtn.style.display === 'none') {
         container.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         const allBtn = container.querySelector('.filter-btn[data-category="all"]');
         if (allBtn && allBtn.style.display !== 'none') allBtn.classList.add('active');
@@ -593,15 +977,32 @@ function updateFilterButtonsForDomain() {
 function updateSystemFilterOptions() {
     const domain = getActiveDomain();
     const systemFilter = document.getElementById('system-filter');
+    const systemFilterWrap = document.getElementById('system-filter-wrap');
     if (!systemFilter) return;
-    let envsForSystems = allEnvironments;
-    if (domain === 'enterprise') {
-        envsForSystems = allEnvironments.filter(env => env.category === 'jira');
-    } else if (domain === 'hr_payroll') {
-        envsForSystems = allEnvironments.filter(env => env.category === 'hr_payroll');
-    } else if (domain === 'healthcare') {
-        envsForSystems = allEnvironments.filter(env => env.category !== 'jira' && env.category !== 'hr_payroll');
+
+    // Hide system filter when no domain is selected (or "All" is selected)
+    if (domain === 'all') {
+        if (systemFilterWrap) systemFilterWrap.style.display = 'none';
+        systemFilter.value = 'all';
+        return;
     }
+
+    // Show system filter when a domain is selected
+    if (systemFilterWrap) systemFilterWrap.style.display = 'flex';
+
+    const medCategories = ['clinical', 'imaging', 'population_health', 'hospital_operations',
+                           'telehealth', 'interoperability', 'clinical_trials', 'cross_workflow'];
+    let envsForSystems = allEnvironments;
+    if (domain === 'it-sim') {
+        envsForSystems = allEnvironments.filter(env => env.category === 'jira' || (env.system || '').toLowerCase().includes('jira'));
+    } else if (domain === 'med-sim') {
+        envsForSystems = allEnvironments.filter(env => medCategories.includes(env.category));
+    } else if (domain === 'fin-sim') {
+        envsForSystems = allEnvironments.filter(env => env.category === 'revenue_cycle');
+    } else if (domain === 'hr-sim') {
+        envsForSystems = allEnvironments.filter(env => env.category === 'hr_payroll');
+    }
+
     const systems = new Set();
     envsForSystems.forEach(env => {
         (env.system || '').split(',').forEach(s => {
@@ -615,7 +1016,7 @@ function updateSystemFilterOptions() {
         systemList.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('');
     if (currentVal && systemList.includes(currentVal)) {
         systemFilter.value = currentVal;
-    } else if ((domain === 'enterprise' || domain === 'hr_payroll') && systemList.length === 1) {
+    } else if (systemList.length === 1) {
         systemFilter.value = systemList[0];
     }
 }
@@ -631,7 +1032,8 @@ function filterEnvironments(searchTerm, category) {
             (descText && descText.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (useCaseText && useCaseText.toLowerCase().includes(searchTerm.toLowerCase()));
         
-        const matchesCategory = category === 'all' || env.category === category;
+        const matchesCategory = category === 'all' ||
+            (category === 'custom' ? (env.isCustom === true || env.source === 'custom') : env.category === category);
         
         const envSystems = (env.system || '').split(',').map(s => s.trim()).filter(Boolean);
         const matchesSystem = system === 'all' || envSystems.includes(system);
@@ -639,9 +1041,12 @@ function filterEnvironments(searchTerm, category) {
         let matchesDomain = true;
         // When a specific system is selected, system filter takes precedence over domain
         if (system === 'all') {
-            if (domain === 'enterprise') matchesDomain = env.category === 'jira';
-            else if (domain === 'hr_payroll') matchesDomain = env.category === 'hr_payroll';
-            else if (domain === 'healthcare') matchesDomain = env.category !== 'jira' && env.category !== 'hr_payroll';
+            const medCategories = ['clinical', 'imaging', 'population_health', 'hospital_operations',
+                                   'telehealth', 'interoperability', 'clinical_trials', 'cross_workflow'];
+            if (domain === 'it-sim') matchesDomain = env.category === 'jira' || (env.system || '').toLowerCase().includes('jira');
+            else if (domain === 'med-sim') matchesDomain = medCategories.includes(env.category);
+            else if (domain === 'fin-sim') matchesDomain = env.category === 'revenue_cycle';
+            else if (domain === 'hr-sim') matchesDomain = env.category === 'hr_payroll';
         }
         
         return matchesSearch && matchesCategory && matchesSystem && matchesDomain;
@@ -663,19 +1068,8 @@ function renderEnvironments() {
     // Add click listener on entire card for view details
     document.querySelectorAll('.env-card').forEach(card => {
         card.addEventListener('click', (e) => {
-            // Don't trigger if clicking action buttons
-            if (e.target.closest('.env-actions')) return;
             const envName = card.dataset.env;
             if (envName) showEnvironmentDetails(envName);
-        });
-    });
-
-    // Also keep view-details button working
-    document.querySelectorAll('.btn-view-details').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const envName = e.target.dataset.env;
-            showEnvironmentDetails(envName);
         });
     });
 
@@ -983,44 +1377,49 @@ function updateSaveButton(envName) {
     }
 }
 
+// Data-driven chip definitions for environment cards.
+// Each entry maps a data key to a display format. Order = display priority.
+var CARD_CHIP_FIELDS = [
+    { key: 'category',      label: null,             format: 'badge',  cssClass: function(e) { return 'category-' + e.category; } },
+    { key: 'system',        label: 'System',         format: 'chip' },
+    { key: 'actionSpace',   label: 'Actions',        format: 'chip',   filter: function(v) { return v && v !== 'N/A'; } },
+    { key: 'stateFeatures', label: 'Features',       format: 'chip',   filter: function(v) { return v && v !== 'N/A'; } },
+    { key: 'actionType',    label: 'Type',           format: 'chip',   filter: function(v) { return v && v !== 'Discrete'; } },
+    { key: 'multi_agent',   label: 'Multi-Agent',    format: 'flag',   filter: function(v) { return v === true; } }
+];
+
 function createEnvCard(env) {
-    const categoryClass = `category-${env.category}`;
-    const multiAgentBadge = env.multi_agent ? '<span style="background: #fecdd3; color: #991b1b; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.7rem; margin-left: 0.5rem;">Multi-Agent</span>' : '';
-    const displayName = formatEnvironmentName(env.name);
-    const saved = isSaved(env.name);
-    const saveCount = getSavedCount(env.name);
-    
-    return `
-        <div class="env-card" data-env="${env.name}" style="cursor:pointer;">
-            <div class="env-card-header">
-                <div>
-                    <div class="env-name">${displayName}${multiAgentBadge}</div>
-                    <span class="env-category ${categoryClass}">${env.category || 'other'}</span>
-                </div>
-            </div>
-            <div class="env-description">
-                ${env.description || getEnvironmentDescription(env.name, env.category || 'other') || 'Reinforcement learning environment for workflow optimization.'}
-            </div>
-            <div class="env-use-case">
-                <span class="detail-label">Use case:</span>
-                <span class="detail-value">${getUseCaseDescription(env.name, env.category || 'other')}</span>
-            </div>
-            <div class="env-details">
-                <div class="detail-item">
-                    <span class="detail-label">Software system:</span>
-                    <span class="detail-value">${env.system || 'Multiple'}</span>
-                </div>
-            </div>
-            <div class="env-actions">
-                <button class="btn btn-primary btn-view-details" data-env="${env.name}">
-                    View Details
-                </button>
-                <button class="btn btn-secondary" onclick="event.stopPropagation(); window.location.href='/test-console?env=${encodeURIComponent(env.name)}'">
-                    Simulation
-                </button>
-            </div>
-        </div>
-    `;
+    var displayName = formatEnvironmentName(env.name);
+
+    // Build chip HTML from available metadata
+    var chips = '';
+    var isCustomEnv = env.isCustom === true || env.source === 'custom';
+    for (var ci = 0; ci < CARD_CHIP_FIELDS.length; ci++) {
+        var field = CARD_CHIP_FIELDS[ci];
+        if (isCustomEnv && (field.key === 'category' || field.key === 'system')) continue;
+        var val = env[field.key];
+        if (field.filter) { if (!field.filter(val)) continue; }
+        else if (val === undefined || val === null || val === '') continue;
+
+        if (field.format === 'badge') {
+            chips += '<span class="env-category ' + field.cssClass(env) + '">' + (val || 'other') + '</span>';
+        } else if (field.format === 'flag') {
+            chips += '<span class="env-chip env-chip--flag">' + field.label + '</span>';
+        } else {
+            var display = field.label ? field.label + ': ' + val : val;
+            chips += '<span class="env-chip">' + display + '</span>';
+        }
+    }
+
+    return '<div class="env-card" data-env="' + env.name + '" style="cursor:pointer;">' +
+        '<div class="env-card-header"><div>' +
+            '<div class="env-name">' + displayName + '</div>' +
+        '</div></div>' +
+        '<div class="env-description">' +
+            (env.description || getEnvironmentDescription(env.name, env.category || 'other') || 'Reinforcement learning environment for workflow optimization.') +
+        '</div>' +
+        '<div class="env-chip-row">' + chips + '</div>' +
+    '</div>';
 }
 
 function getDefaultWhatItDoes(category, envName) {
@@ -1817,7 +2216,7 @@ function getActionDescription(envName, action) {
 function getDefaultHowToUse(category, envName) {
     return `
         <ol>
-            <li><strong>Access the Simulation:</strong> Click the "🧪 Simulation" button to open the interactive simulation console.</li>
+            <li><strong>Access the Environment:</strong> Click the "🧪 Environment" button to open the interactive environment console.</li>
             <li><strong>Configure Parameters:</strong> Adjust the environment configuration parameters in the left panel to match your workflow setting (e.g., queue sizes, resource availability, urgency levels).</li>
             <li><strong>Select Agent Strategy:</strong> Choose an RL agent strategy (Random, Urgency First, Value First, or Balanced) to see how different approaches perform.</li>
             <li><strong>Initialize Environment:</strong> Click "Initialize Environment" to start a new simulation episode with your configured parameters.</li>
@@ -1837,79 +2236,1531 @@ function closeEnvDetailPage() {
     if (catalog) catalog.style.display = 'block';
 }
 
+// ─── Build Training Section for detail page ───
+function getTrainingRunsForEnv(envCategory) {
+    var cfg = window.TRAINING_CONFIG;
+    if (!cfg || !cfg.trainingRuns) return [];
+    return cfg.trainingRuns.filter(function(r) {
+        return r.category === envCategory;
+    });
+}
+
+function buildTrainingSection(envName, envCategory) {
+    var runs = getTrainingRunsForEnv(envCategory);
+    var encodedEnv = encodeURIComponent(envName);
+
+    if (!runs.length) {
+        // No runs → show collapsible with inline "New Training" button that opens config modal directly
+        return '<div class="detail-collapsible" id="section-training">' +
+            '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-training\')">' +
+                '<h2>' +
+                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg>' +
+                    ' Training' +
+                '</h2>' +
+                '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+            '</button>' +
+            '<div class="detail-collapsible-body" id="section-training-body">' +
+                '<div class="detail-collapsible-content">' +
+                    '<div class="training-empty-state">' +
+                        '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5" style="opacity:0.4;margin-bottom:0.75rem;"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg>' +
+                        '<p style="color:var(--text-secondary);margin-bottom:1rem;font-size:0.9rem;">No training runs yet. Configure and start your first training run.</p>' +
+                        '<button class="btn btn-primary" onclick="_openTrainingConfigModal(\'' + envName + '\')">' +
+                            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+                            ' New Training' +
+                        '</button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+    }
+
+    // Has runs → build collapsible section with tabular run list
+    var tableHtml = '<table class="train-runs-table"><thead><tr>' +
+        '<th>Name</th><th>Status</th><th>Environment</th><th>Model</th><th>Progress</th><th>Started</th>' +
+        '</tr></thead><tbody>';
+
+    runs.forEach(function(r, idx) {
+        var statusClass = r.status || 'pending';
+        var statusLabel = statusClass.charAt(0).toUpperCase() + statusClass.slice(1);
+        var runId = 'training-run-' + (r.id || idx);
+        var pct = r.progress || 0;
+        var envDisplay = r.environmentDisplay || r.environment || '\u2014';
+        var model = r.model || '\u2014';
+        var algo = r.algorithm || '';
+        var desc = algo ? algo + ' training on ' + envDisplay.toLowerCase().replace(/\s+/g, '-') : '';
+
+        // Store run data for popup rendering
+        _trainingRunDataMap[runId] = r;
+
+        tableHtml += '<tr onclick="toggleTrainingRun(\'' + runId + '\')" style="cursor:pointer;">' +
+            '<td class="trt-name">' + (r.name || r.id) + (desc ? '<small>' + desc + '</small>' : '') + '</td>' +
+            '<td><span class="trt-status ' + statusClass + '">' + statusLabel + '</span></td>' +
+            '<td>' + envDisplay + '</td>' +
+            '<td>' + model + '</td>' +
+            '<td><div class="trt-progress"><div class="trt-bar"><div class="trt-bar-fill ' + statusClass + '" style="width:' + pct + '%"></div></div><span class="trt-pct">' + pct + '%</span></div></td>' +
+            '<td>' + (r.started || '\u2014') + '</td>' +
+        '</tr>';
+    });
+
+    tableHtml += '</tbody></table>';
+
+    return '<div class="detail-collapsible" id="section-training">' +
+        '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-training\')">' +
+            '<h2>' +
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg>' +
+                ' Training' +
+            '</h2>' +
+            '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '</button>' +
+        '<div class="detail-collapsible-body" id="section-training-body">' +
+            '<div class="detail-collapsible-content">' +
+                '<div class="training-inline-header">' +
+                    '<span class="training-inline-count">' + runs.length + ' run' + (runs.length !== 1 ? 's' : '') + '</span>' +
+                    '<button class="btn btn-primary btn-small train-new-btn" onclick="_openTrainingConfigModal(\'' + envName + '\')">' +
+                        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+                        ' New' +
+                    '</button>' +
+                '</div>' +
+                tableHtml +
+            '</div>' +
+        '</div>' +
+    '</div>';
+}
+
+// ─── Refresh the Training section in the env detail page after a new run is started ───
+function _refreshTrainingSectionInDetail(envName, envCategory) {
+    var sectionBody = document.getElementById('section-training-body');
+    if (!sectionBody) return; // not on env detail page
+    var section = document.getElementById('section-training');
+    if (!section) return;
+    // Re-build the entire training section HTML and replace
+    var newHtml = buildTrainingSection(envName, envCategory);
+    var temp = document.createElement('div');
+    temp.innerHTML = newHtml;
+    var newSection = temp.firstElementChild;
+    if (newSection) {
+        section.replaceWith(newSection);
+        // Ensure the section is expanded so the user sees the new run
+        var newBody = document.getElementById('section-training-body');
+        if (newBody) newBody.style.display = 'block';
+        var newChevron = newBody ? newBody.previousElementSibling.querySelector('.detail-collapsible-chevron') : null;
+        if (newChevron) newChevron.style.transform = 'rotate(180deg)';
+    }
+}
+window._refreshTrainingSectionInDetail = _refreshTrainingSectionInDetail;
+
+// ─── Run data map for lazy inline report rendering ───
+var _trainingRunDataMap = {};
+
+// ─── Open training run report in a popup ───
+function toggleTrainingRun(runId) {
+    var run = _trainingRunDataMap[runId];
+    if (!run) return;
+    _openTrainingReportPopup(run);
+}
+window.toggleTrainingRun = toggleTrainingRun;
+
+// ─── Training report popup ───
+var _trainingReportOverlay = null;
+
+function _openTrainingReportPopup(run) {
+    if (!_trainingReportOverlay) {
+        _trainingReportOverlay = document.createElement('div');
+        _trainingReportOverlay.className = 'detail-popup-overlay training-report-popup';
+        _trainingReportOverlay.id = 'training-report-popup-overlay';
+        _trainingReportOverlay.onclick = function(e) {
+            if (e.target === _trainingReportOverlay) _closeTrainingReportPopup();
+        };
+        _trainingReportOverlay.innerHTML =
+            '<div class="detail-popup-box" onclick="event.stopPropagation()">' +
+                '<div class="detail-popup-header">' +
+                    '<h3 id="training-report-popup-title"></h3>' +
+                    '<button class="detail-popup-close" onclick="_closeTrainingReportPopup()" aria-label="Close">&times;</button>' +
+                '</div>' +
+                '<div class="detail-popup-body training-report-popup-body" id="training-report-popup-body"></div>' +
+            '</div>';
+        document.body.appendChild(_trainingReportOverlay);
+    }
+
+    var titleEl = document.getElementById('training-report-popup-title');
+    var bodyEl = document.getElementById('training-report-popup-body');
+
+    var algo = run.algorithm || '\u2014';
+    var name = run.name || run.id || 'Training Run';
+    titleEl.innerHTML = '<span class="train-run-algo">' + algo + '</span> ' + name;
+    bodyEl.innerHTML = _buildInlineReport(run);
+
+    _trainingReportOverlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    // Render canvas charts after DOM insertion (deferred so canvas has dimensions)
+    requestAnimationFrame(function() {
+        var progressCanvas = bodyEl.querySelector('.ir-chart-progress');
+        var failureCanvas = bodyEl.querySelector('.ir-chart-failures');
+        if (progressCanvas) _renderPopupProgressChart(progressCanvas, run);
+        if (failureCanvas) _renderPopupFailureChart(failureCanvas, run);
+    });
+}
+window._openTrainingReportPopup = _openTrainingReportPopup;
+
+function _closeTrainingReportPopup() {
+    if (_trainingReportOverlay) {
+        _trainingReportOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+window._closeTrainingReportPopup = _closeTrainingReportPopup;
+
+// ─── Inline report builder — renders full training report within the env card ───
+function _buildInlineReport(run) {
+    var results = run.results || {};
+    var baseline = run.baseline_results || {};
+    var statusClass = run.status || 'pending';
+    var reward = (run.avgReward != null) ? run.avgReward.toFixed(2) : '\u2014';
+    var episodes = (run.episodes != null) ? run.episodes : '\u2014';
+    var model = run.model || '\u2014';
+    var started = run.started || '\u2014';
+    var completed = run.completed || '\u2014';
+    var successRate = (run.successRate != null) ? run.successRate + '%' : '\u2014';
+    var pct = run.progress || 0;
+    var maxReward = (results.max_reward != null) ? results.max_reward.toFixed(2) : '\u2014';
+    var minReward = (results.min_reward != null) ? results.min_reward.toFixed(2) : '\u2014';
+    var baselineMean = (baseline.mean_reward != null) ? baseline.mean_reward.toFixed(2) : null;
+    var improvementPct = (run.avgReward != null && baseline.mean_reward != null)
+        ? '+' + ((run.avgReward - baseline.mean_reward) * 100).toFixed(0) + '%' : null;
+
+    var html = '';
+
+    // Progress bar (running only)
+    if (statusClass === 'running') {
+        html += '<div class="train-run-progress"><div class="train-run-progress-bar" style="width:' + pct + '%"></div></div>';
+    }
+
+    // ── 1. Progress Stepper ──
+    html += _buildInlineStepper(run);
+
+    // ── 2. Metric Cards ──
+    html += '<div class="train-run-metrics">' +
+        _metricCard('Episodes', episodes) +
+        _metricCard('Success Rate', successRate) +
+        _metricCard('Avg Reward', reward) +
+        _metricCard('Improvement', improvementPct || '\u2014', true) +
+    '</div>';
+
+    // ── 3. Info Panels — Training Info + Model Config side by side ──
+    html += '<div class="ir-panels">';
+    html += '<div class="ir-panel">' +
+        '<h4>Training Information</h4>' +
+        _infoRow('Environment', run.environmentDisplay || run.environment) +
+        _infoRow('Algorithm', run.algorithm || '\u2014') +
+        _infoRow('Status', statusClass.charAt(0).toUpperCase() + statusClass.slice(1)) +
+        _infoRow('Started', started) +
+        (completed !== '\u2014' ? _infoRow('Completed', completed) : '') +
+        _infoRow('Progress', pct + '%') +
+    '</div>';
+    html += '<div class="ir-panel">' +
+        '<h4>Model &amp; Compute</h4>' +
+        _infoRow('Base Model', model) +
+        _infoRow('LoRA r', '32') +
+        _infoRow('LoRA alpha', '16') +
+        _infoRow('Dropout', '0.05') +
+        _infoRow('Task Type', 'CAUSAL_LM') +
+    '</div>';
+    html += '</div>';
+
+    // ── 4. Results + Baseline side by side ──
+    if (results.mean_reward != null || baseline.mean_reward != null) {
+        html += '<div class="ir-panels">';
+        if (results.mean_reward != null) {
+            html += '<div class="ir-panel">' +
+                '<h4>Results</h4>' +
+                _infoRow('Mean Reward', results.mean_reward.toFixed(4)) +
+                _infoRow('Max Reward', maxReward) +
+                _infoRow('Min Reward', minReward) +
+            '</div>';
+        }
+        if (baseline.mean_reward != null) {
+            html += '<div class="ir-panel">' +
+                '<h4>Baseline</h4>' +
+                _infoRow('Mean Reward', baseline.mean_reward.toFixed(4)) +
+                (baseline.max_reward != null ? _infoRow('Max Reward', baseline.max_reward.toFixed(4)) : '') +
+                _infoRow('Episodes', baseline.episodes || '\u2014') +
+            '</div>';
+        }
+        html += '</div>';
+    }
+
+    // ── 5. Rollout Comparison ──
+    if ((run.status === 'completed' || run.status === 'awaiting_human_eval') &&
+        (run._mock_baseline_rollout || run._mock_trained_rollout)) {
+        html += _buildInlineRolloutComparison(run);
+    }
+
+    // ── 5b. State Diagram ──
+    if ((run.status === 'completed' || run.status === 'awaiting_human_eval') &&
+        (run._mock_trained_rollout || run._mock_baseline_rollout)) {
+        html += _buildPopupStateDiagram(run);
+    }
+
+    // ── 5c. Charts (Training Progress + Failure Modes) ──
+    if (run.status === 'completed' || run.status === 'running') {
+        html += '<div class="ir-panels">' +
+            '<div class="ir-panel"><h4>Training Progress</h4><canvas class="ir-chart-progress" style="width:100%;height:220px;"></canvas></div>' +
+            '<div class="ir-panel"><h4>Failure Modes</h4><canvas class="ir-chart-failures" style="width:100%;height:220px;"></canvas></div>' +
+        '</div>';
+    }
+
+    // ── 6. Performance + Efficiency ──
+    if (run.status === 'completed') {
+        html += '<div class="ir-panels">';
+        html += '<div class="ir-panel">' +
+            '<h4>Performance Improvement</h4>' +
+            _perfRow('Task Completion', '23%', successRate, run.successRate != null ? '+' + (run.successRate - 23).toFixed(0) + '%' : '') +
+            _perfRow('Avg Steps', '12.4', run._mock_trained_rollout ? String(run._mock_trained_rollout.total_steps) : '7.1', run._mock_trained_rollout ? '-' + Math.round((1 - run._mock_trained_rollout.total_steps / 12.4) * 100) + '%' : '-43%') +
+            _perfRow('Error Rate', '31%', '8.2%', '-74%') +
+        '</div>';
+        html += '<div class="ir-panel">' +
+            '<h4>Efficiency Gains</h4>' +
+            _perfRow('Tokens per Episode', '1,240', '890', '-28%') +
+            _perfRow('Avg Latency', '3.2s', '2.1s', '-34%') +
+            _perfRow('Tool Calls per Task', '8.5', run._mock_trained_rollout ? String(run._mock_trained_rollout.total_steps) : '5.2', run._mock_trained_rollout ? '-' + Math.round((1 - run._mock_trained_rollout.total_steps / 8.5) * 100) + '%' : '-39%') +
+        '</div>';
+        html += '</div>';
+
+        // Trade-off note
+        html += '<div class="ir-tradeoff"><strong>Trade-off Note:</strong> While overall success rate improved significantly, the model shows slightly higher latency on multi-step workflows. Consider fine-tuning with trajectory-focused verifiers for complex scenarios.</div>';
+    }
+
+    // ── 7. Model Artifact + Download ──
+    if (run.status === 'completed' && (run.model_url || run.model_saved)) {
+        html += '<div class="ir-panel ir-artifact">' +
+            '<h4>Model Artifact</h4>' +
+            _infoRow('Status', run.model_saved ? 'Saved' : 'Pending') +
+            _infoRow('Format', 'stable-baselines3 (.zip)') +
+            _infoRow('Algorithm', run.algorithm || '\u2014') +
+            _infoRow('Base Model', model) +
+            (run.model_url ? '<a class="train-run-download" href="' + run.model_url + '" style="margin-top:0.5rem;display:inline-flex">' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+                ' Download Model</a>' : '') +
+        '</div>';
+    }
+
+    return html;
+}
+
+function _buildInlineStepper(run) {
+    var steps = ['Configuration', 'Baseline Eval', 'Training', 'Evaluation', 'Complete'];
+    var statusMap = {
+        'pending': 0, 'configuring': 0,
+        'running': 2, 'training': 2,
+        'evaluating': 3,
+        'completed': 5, 'failed': -1,
+        'awaiting_human_eval': 4
+    };
+    var active = statusMap[run.status] != null ? statusMap[run.status] : 0;
+    var html = '<div class="ir-stepper">';
+    for (var i = 0; i < steps.length; i++) {
+        var cls = (i < active) ? 'done' : (i === active && run.status !== 'failed') ? 'active' : '';
+        html += '<div class="ir-stepper-step ' + cls + '">' +
+            '<div class="ir-stepper-circle">' + (cls === 'done' ? '\u2713' : (i + 1)) + '</div>' +
+            '<span>' + steps[i] + '</span>' +
+        '</div>';
+        if (i < steps.length - 1) {
+            html += '<div class="ir-stepper-line ' + (i < active ? 'done' : '') + '"></div>';
+        }
+    }
+    html += '</div>';
+    return html;
+}
+
+function _metricCard(label, value, highlight) {
+    return '<div class="train-run-metric' + (highlight ? ' highlight' : '') + '"><label>' + label + '</label><span>' + value + '</span></div>';
+}
+
+function _infoRow(label, value) {
+    return '<div class="ir-info-row"><span class="ir-info-label">' + label + '</span><span class="ir-info-value">' + value + '</span></div>';
+}
+
+function _perfRow(label, before, after, delta) {
+    var cls = delta && delta.charAt(0) === '+' ? 'positive' : 'negative';
+    return '<div class="ir-perf-row">' +
+        '<span class="ir-perf-label">' + label + '</span>' +
+        '<span class="ir-perf-before">' + before + '</span>' +
+        '<span class="ir-perf-arrow">\u2192</span>' +
+        '<strong>' + after + '</strong>' +
+        '<span class="ir-perf-delta ' + cls + '">' + delta + '</span>' +
+    '</div>';
+}
+
+function _buildInlineRolloutComparison(run) {
+    var bl = run._mock_baseline_rollout;
+    var tr = run._mock_trained_rollout;
+    if (!bl && !tr) return '';
+
+    var html = '<div class="ir-rollout-section">' +
+        '<h4>Rollout Comparison</h4>' +
+        '<div class="ir-rollout-meta">' +
+            '<span>Scenario: <strong>' + ((bl || tr).scenario_name || '\u2014') + '</strong></span>' +
+        '</div>' +
+        '<div class="ir-rollout-panels">';
+
+    if (bl) html += _buildRolloutPanel('Pre-trained Policy (Baseline)', bl);
+    if (tr) html += _buildRolloutPanel('Trained Policy (' + (run.algorithm || 'RL') + ')', tr);
+
+    html += '</div></div>';
+    return html;
+}
+
+function _buildRolloutPanel(title, rollout) {
+    var html = '<div class="ir-rollout-panel">' +
+        '<h5>' + title + '</h5>' +
+        '<div class="ir-rollout-header">' +
+            '<span>Policy: <strong>' + (rollout.policy_name || '\u2014') + '</strong></span>' +
+            '<span>Checkpoint: <code>' + (rollout.checkpoint_label || '\u2014') + '</code></span>' +
+            '<span>Reward: <strong>' + (rollout.total_reward != null ? rollout.total_reward.toFixed(2) : '\u2014') + '</strong></span>' +
+        '</div>';
+
+    // Timeline events
+    html += '<div class="ir-rollout-timeline">';
+    (rollout.steps || []).forEach(function(step) {
+        (step.timeline_events || []).forEach(function(ev) {
+            var ts = (ev.timestamp_ms / 1000).toFixed(3) + 's';
+            var evClass = (ev.event_type || '').toLowerCase().replace(/_/g, '-');
+            var content = ev.content || '';
+            if (ev.tool_name) {
+                content = ev.tool_name + '(' + JSON.stringify(ev.tool_args || {}) + ')';
+            }
+            html += '<div class="ir-timeline-event ' + evClass + '">' +
+                '<span class="ir-ts">[ ' + ts + ' ]</span>' +
+                '<span class="ir-ev-type">' + (ev.event_type || '') + '</span>' +
+                '<span class="ir-ev-content">' + content + '</span>' +
+            '</div>';
+        });
+    });
+    html += '</div>';
+
+    // Final state
+    if (rollout.final_environment_state) {
+        html += '<div class="ir-rollout-final"><h6>Final state</h6><pre>' +
+            Object.keys(rollout.final_environment_state).map(function(k) {
+                return '  ' + k + ': ' + JSON.stringify(rollout.final_environment_state[k]);
+            }).join('\n') +
+        '</pre></div>';
+    }
+
+    // Verifier results
+    if (rollout.verifier_results && rollout.verifier_results.length) {
+        html += '<div class="ir-rollout-verifiers"><h6>Verifier results</h6>';
+        rollout.verifier_results.forEach(function(v) {
+            html += '<div class="ir-verifier ' + (v.passed ? 'pass' : 'fail') + '">' +
+                '<span>' + (v.passed ? '\u2713' : '\u2717') + '</span> ' +
+                (v.check || v.name || '') +
+            '</div>';
+        });
+        html += '</div>';
+    }
+
+    html += '</div>';
+    return html;
+}
+
+// ─── State Diagram builder for popup ─────────────────────────────────────
+function _buildPopupStateDiagram(run) {
+    var rollout = run._mock_trained_rollout || run._mock_baseline_rollout || null;
+    if (!rollout || !rollout.steps || !rollout.steps.length) return '';
+
+    var NW = 158, NH = 38, BR = 6, PAD = 30, HGAP = 62, VGAP = 52, STACK_GAP = 10;
+    var CLR = {
+        user:{bg:'#eff6ff',bdr:'#93c5fd',tx:'#1e40af'}, agent:{bg:'#f0fdf4',bdr:'#86efac',tx:'#166534'},
+        tool:{bg:'#fefce8',bdr:'#fde68a',tx:'#92400e'}, final:{bg:'#f1f5f9',bdr:'#cbd5e1',tx:'#475569'},
+        vPass:{bg:'#f0fdf4',bdr:'#86efac',tx:'#166534'}, vFail:{bg:'#fdf2f8',bdr:'#f9a8d4',tx:'#9d174d'},
+        reward:{bg:'#faf5ff',bdr:'#e9d5ff',tx:'#7c3aed'}
+    };
+    function trunc(s,m){return !s?'':s.length>m?s.slice(0,m-1)+'\u2026':s;}
+    function esvg(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+    var gNodes=[], gEdges=[], nMap={};
+    function addN(id,kind,label,detail,x,y){var n={id:id,kind:kind,label:label,detail:detail||'',x:x,y:y,w:NW,h:NH};gNodes.push(n);nMap[id]=n;return n;}
+    var col=0;
+    var s0=rollout.steps[0], uDet='';
+    if(s0&&s0.timeline_events){for(var q=0;q<s0.timeline_events.length;q++){if(s0.timeline_events[q].event_type==='SYSTEM'){uDet=s0.timeline_events[q].content||'';break;}}}
+    addN('u0','user','User Request',trunc(uDet,26),PAD+col*(NW+HGAP),PAD); col++;
+
+    for(var i=0;i<rollout.steps.length;i++){
+        var step=rollout.steps[i], cx=PAD+col*(NW+HGAP);
+        addN('a'+i,'agent','Agent (Trained)','Step '+step.step,cx,PAD);
+        gEdges.push({f:(i===0?'u0':'a'+(i-1)),t:'a'+i,ty:'solid'});
+        var evts=step.timeline_events||[], ti=0;
+        for(var j=0;j<evts.length;j++){
+            if(evts[j].event_type==='TOOL_CALL'){
+                var tName=evts[j].tool_name||'Tool', tArgs='';
+                if(evts[j].tool_args){try{tArgs=JSON.stringify(evts[j].tool_args);}catch(e){}}
+                var tid='t'+i+'_'+ti, ty=PAD+NH+VGAP+ti*(NH+STACK_GAP);
+                addN(tid,'tool',trunc(tName,22),trunc(tArgs,26),cx,ty);
+                gEdges.push({f:(ti===0?'a'+i:'t'+i+'_'+(ti-1)),t:tid,ty:'dashed-blue'}); ti++;
+            }
+        }
+        if(step.reward!=null){
+            var rid='r'+i, ry=PAD+NH+VGAP+ti*(NH+STACK_GAP);
+            addN(rid,'reward','Reward  +'+step.reward.toFixed(2),'',cx,ry);
+            gEdges.push({f:(ti>0?'t'+i+'_'+(ti-1):'a'+i),t:rid,ty:'dashed-blue'}); ti++;
+        }
+        col++;
+    }
+
+    var fs=rollout.final_environment_state||{}, fsParts=[];
+    for(var fk in fs){if(fs.hasOwnProperty(fk))fsParts.push(fk.replace(/_/g,' ')+': '+fs[fk]);}
+    var fx=PAD+col*(NW+HGAP);
+    addN('fin','final','Final State',trunc(fsParts.join(', '),26),fx,PAD);
+    gEdges.push({f:'a'+(rollout.steps.length-1),t:'fin',ty:'solid'});
+
+    var vrs=rollout.verifier_results||[];
+    for(var v=0;v<vrs.length;v++){
+        var vr=vrs[v], vKind=vr.passed?'vPass':'vFail', vid='v'+v;
+        var vy=PAD+NH+VGAP+v*(NH+STACK_GAP);
+        addN(vid,vKind,(vr.passed?'\u2713 ':'\u2717 ')+trunc(vr.check,19),trunc(vr.detail,26),fx,vy);
+        gEdges.push({f:'fin',t:vid,ty:'dashed-red'});
+    }
+
+    var maxX=0,maxY=0;
+    for(var ni=0;ni<gNodes.length;ni++){var nd=gNodes[ni];if(nd.x+nd.w>maxX)maxX=nd.x+nd.w;if(nd.y+nd.h>maxY)maxY=nd.y+nd.h;}
+    var svgW=maxX+PAD, svgH=maxY+PAD;
+
+    var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+svgW+'" height="'+svgH+'" viewBox="0 0 '+svgW+' '+svgH+'" style="font-family:Inter,system-ui,-apple-system,sans-serif;">';
+    svg+='<defs>';
+    svg+='<marker id="sd-a-s" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0L8,3L0,6Z" fill="#64748b"/></marker>';
+    svg+='<marker id="sd-a-b" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0L8,3L0,6Z" fill="#3b82f6"/></marker>';
+    svg+='<marker id="sd-a-r" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0L8,3L0,6Z" fill="#f43f5e"/></marker>';
+    svg+='<filter id="sd-sh" x="-4%" y="-8%" width="108%" height="120%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.06"/></filter>';
+    svg+='</defs>';
+
+    for(var ei=0;ei<gEdges.length;ei++){
+        var ge=gEdges[ei], fn=nMap[ge.f], tn=nMap[ge.t];
+        if(!fn||!tn)continue;
+        var marker=ge.ty==='dashed-red'?'sd-a-r':(ge.ty==='dashed-blue'?'sd-a-b':'sd-a-s');
+        var eCol=ge.ty==='dashed-red'?'#f43f5e':(ge.ty==='dashed-blue'?'#3b82f6':'#64748b');
+        var eW=ge.ty==='solid'?1.5:1.2;
+        var dash=ge.ty==='solid'?'':' stroke-dasharray="6,3"';
+        var horiz=Math.abs(fn.y-tn.y)<5, sameCol=Math.abs(fn.x-tn.x)<5, pth;
+        if(horiz){pth='M'+(fn.x+fn.w)+','+(fn.y+fn.h/2)+' L'+tn.x+','+(tn.y+tn.h/2);}
+        else if(sameCol){pth='M'+(fn.x+fn.w/2)+','+(fn.y+fn.h)+' L'+(tn.x+tn.w/2)+','+tn.y;}
+        else{var sx=fn.x+fn.w/2,sy=fn.y+fn.h,ex=tn.x+tn.w/2,ey=tn.y,my=(sy+ey)/2;pth='M'+sx+','+sy+' C'+sx+','+my+' '+ex+','+my+' '+ex+','+ey;}
+        svg+='<path d="'+pth+'" fill="none" stroke="'+eCol+'" stroke-width="'+eW+'"'+dash+' marker-end="url(#'+marker+')"/>';
+    }
+
+    for(var ni2=0;ni2<gNodes.length;ni2++){
+        var n=gNodes[ni2], c=CLR[n.kind]||CLR.agent;
+        svg+='<g filter="url(#sd-sh)">';
+        svg+='<rect x="'+n.x+'" y="'+n.y+'" width="'+n.w+'" height="'+n.h+'" rx="'+BR+'" fill="'+c.bg+'" stroke="'+c.bdr+'" stroke-width="1.5"/>';
+        if(n.detail){
+            svg+='<text x="'+(n.x+10)+'" y="'+(n.y+15)+'" font-size="11" font-weight="600" fill="'+c.tx+'">'+esvg(n.label)+'</text>';
+            svg+='<text x="'+(n.x+10)+'" y="'+(n.y+28)+'" font-size="9" fill="#64748b">'+esvg(n.detail)+'</text>';
+        }else{
+            svg+='<text x="'+(n.x+10)+'" y="'+(n.y+n.h/2+4)+'" font-size="11" font-weight="600" fill="'+c.tx+'">'+esvg(n.label)+'</text>';
+        }
+        svg+='<title>'+esvg(n.label+(n.detail?': '+n.detail:''))+'</title></g>';
+    }
+    svg+='</svg>';
+
+    var out='<div class="sd-container" style="margin-top:0.75rem;">';
+    out+='<h4 class="sd-title" style="font-size:0.85rem;">Rollout State Diagram</h4>';
+    out+='<p class="sd-subtitle">'+((rollout.scenario_name||rollout.environment_name||'')+' \u00b7 Policy: '+(rollout.policy_name||'\u2014')+' \u00b7 '+rollout.total_steps+' steps \u00b7 Reward: '+(rollout.total_reward!=null?rollout.total_reward.toFixed(2):'\u2014'))+'</p>';
+    out+='<div class="sd-scroll">'+svg+'</div>';
+    out+='<div class="sd-legend">';
+    out+='<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#93c5fd"></span> User</span>';
+    out+='<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#86efac"></span> Agent</span>';
+    out+='<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#fde68a"></span> Tool Call</span>';
+    out+='<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#cbd5e1"></span> Final State</span>';
+    out+='<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#e9d5ff"></span> Reward</span>';
+    out+='<span class="sd-legend-item"><span class="sd-legend-line" style="color:#64748b"></span> Flow</span>';
+    out+='<span class="sd-legend-item"><span class="sd-legend-line dashed" style="color:#3b82f6"></span> Tool</span>';
+    out+='<span class="sd-legend-item"><span class="sd-legend-line dashed" style="color:#f43f5e"></span> Verify</span>';
+    out+='</div></div>';
+    return out;
+}
+
+// ─── Chart rendering for popup ───────────────────────────────────────────
+function _popupSeededRandom(seed) {
+    var s = seed;
+    return function() { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646; };
+}
+
+function _renderPopupProgressChart(canvas, run) {
+    if (!canvas || !canvas.getContext) return;
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    var rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    var w = rect.width, h = rect.height;
+    ctx.clearRect(0, 0, w, h);
+
+    var pad = { top: 20, right: 20, bottom: 35, left: 50 };
+    var plotW = w - pad.left - pad.right, plotH = h - pad.top - pad.bottom;
+    var targetReward = run.avgReward || 0.63, baselineReward = run.baselineReward || 0.22;
+    var totalEpisodes = run.episodes || 320, numPoints = 40;
+    var rng = _popupSeededRandom(42 + Math.round(targetReward * 1000));
+
+    var pts = [];
+    for (var i = 0; i <= numPoints; i++) {
+        var t = i / numPoints;
+        var base = baselineReward + (targetReward - baselineReward) * (1 - Math.exp(-4 * t));
+        var noise = (rng() - 0.5) * 0.04 * (1 - t * 0.6);
+        pts.push(Math.max(0, Math.min(1, base + noise)));
+    }
+    var smoothed = [];
+    for (var i = 0; i < pts.length; i++) {
+        var sum = 0, cnt = 0;
+        for (var j = Math.max(0, i - 2); j <= Math.min(pts.length - 1, i + 2); j++) { sum += pts[j]; cnt++; }
+        smoothed.push(sum / cnt);
+    }
+
+    var yMin = 0, yMax = 1.0, yRange = yMax - yMin;
+    ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 1;
+    [0, 0.2, 0.4, 0.6, 0.8, 1.0].forEach(function(v) {
+        var y = pad.top + plotH - ((v - yMin) / yRange) * plotH;
+        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + plotW, y); ctx.stroke();
+    });
+    ctx.strokeStyle = '#d1d5db'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + plotH); ctx.lineTo(pad.left + plotW, pad.top + plotH); ctx.stroke();
+    ctx.fillStyle = '#6b7280'; ctx.font = '11px -apple-system,BlinkMacSystemFont,sans-serif'; ctx.textAlign = 'right';
+    [0, 0.2, 0.4, 0.6, 0.8, 1.0].forEach(function(v) { ctx.fillText(v.toFixed(1), pad.left - 6, pad.top + plotH - ((v - yMin) / yRange) * plotH + 4); });
+    ctx.textAlign = 'center';
+    for (var i = 0; i <= 5; i++) { ctx.fillText(Math.round((i / 5) * totalEpisodes), pad.left + (i / 5) * plotW, pad.top + plotH + 16); }
+    ctx.fillStyle = '#9ca3af'; ctx.textAlign = 'center'; ctx.fillText('Episodes', pad.left + plotW / 2, h - 4);
+    ctx.save(); ctx.translate(13, pad.top + plotH / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('Mean Reward', 0, 0); ctx.restore();
+
+    var grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
+    grad.addColorStop(0, 'rgba(192,38,211,0.15)'); grad.addColorStop(1, 'rgba(192,38,211,0.02)');
+    ctx.fillStyle = grad; ctx.beginPath(); ctx.moveTo(pad.left, pad.top + plotH);
+    smoothed.forEach(function(v, idx) { ctx.lineTo(pad.left + (idx / numPoints) * plotW, pad.top + plotH - ((v - yMin) / yRange) * plotH); });
+    ctx.lineTo(pad.left + plotW, pad.top + plotH); ctx.closePath(); ctx.fill();
+
+    ctx.strokeStyle = '#c026d3'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.beginPath();
+    smoothed.forEach(function(v, idx) { var x = pad.left + (idx / numPoints) * plotW, y = pad.top + plotH - ((v - yMin) / yRange) * plotH; if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+    ctx.stroke();
+
+    var baseY = pad.top + plotH - ((baselineReward - yMin) / yRange) * plotH;
+    ctx.strokeStyle = '#9ca3af'; ctx.setLineDash([6, 4]); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(pad.left, baseY); ctx.lineTo(pad.left + plotW, baseY); ctx.stroke(); ctx.setLineDash([]);
+
+    ctx.font = '11px -apple-system,BlinkMacSystemFont,sans-serif';
+    var lx = pad.left + plotW - 120, ly = pad.top + 8;
+    ctx.strokeStyle = '#c026d3'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + 20, ly); ctx.stroke();
+    ctx.fillStyle = '#374151'; ctx.textAlign = 'left'; ctx.fillText('Trained', lx + 25, ly + 4);
+    ctx.strokeStyle = '#9ca3af'; ctx.setLineDash([6, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(lx, ly + 18); ctx.lineTo(lx + 20, ly + 18); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#9ca3af'; ctx.fillText('Baseline', lx + 25, ly + 22);
+}
+
+function _popupRoundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+}
+
+function _popupLighten(hex, factor) {
+    var r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    r = Math.min(255, Math.round(r + (255 - r) * factor)); g = Math.min(255, Math.round(g + (255 - g) * factor)); b = Math.min(255, Math.round(b + (255 - b) * factor));
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+function _renderPopupFailureChart(canvas, run) {
+    if (!canvas || !canvas.getContext) return;
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    var rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    var w = rect.width, h = rect.height;
+    ctx.clearRect(0, 0, w, h);
+
+    var modes = [
+        { label: 'Wrong transition', pct: 35, color: '#c026d3' },
+        { label: 'Timeout', pct: 25, color: '#7c3aed' },
+        { label: 'Missing comment', pct: 20, color: '#3b82f6' },
+        { label: 'Invalid status', pct: 12, color: '#06b6d4' },
+        { label: 'Other', pct: 8, color: '#9ca3af' }
+    ];
+    var mpad = { top: 15, right: 50, bottom: 10, left: 115 };
+    var plotW = w - mpad.left - mpad.right;
+    var barH = Math.min(28, (h - mpad.top - mpad.bottom - (modes.length - 1) * 10) / modes.length);
+    var gap = Math.min(12, (h - mpad.top - mpad.bottom - modes.length * barH) / (modes.length - 1));
+    var totalH = modes.length * barH + (modes.length - 1) * gap;
+    var startY = mpad.top + (h - mpad.top - mpad.bottom - totalH) / 2;
+
+    modes.forEach(function(m, i) {
+        var y = startY + i * (barH + gap), bw = (m.pct / 100) * plotW, radius = 4;
+        ctx.fillStyle = '#f3f4f6'; _popupRoundRect(ctx, mpad.left, y, plotW, barH, radius); ctx.fill();
+        if (bw > 0) {
+            var barGrad = ctx.createLinearGradient(mpad.left, y, mpad.left + bw, y);
+            barGrad.addColorStop(0, m.color); barGrad.addColorStop(1, _popupLighten(m.color, 0.2));
+            ctx.fillStyle = barGrad; _popupRoundRect(ctx, mpad.left, y, Math.max(bw, radius * 2), barH, radius); ctx.fill();
+        }
+        ctx.fillStyle = '#374151'; ctx.font = '12px -apple-system,BlinkMacSystemFont,sans-serif';
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(m.label, mpad.left - 10, y + barH / 2);
+        ctx.fillStyle = '#6b7280'; ctx.textAlign = 'left'; ctx.fillText(m.pct + '%', mpad.left + bw + 8, y + barH / 2);
+    });
+    ctx.textBaseline = 'alphabetic';
+}
+
+// ─── Configuration Editor Section Builder ───────────────────────────────────
+function buildConfigEditorSection(envName, details) {
+    var schema = details.configSchema;
+    var config = details.configTemplate;
+    // Only show config section for envs that have configSchema (custom envs always do)
+    if (!schema || !config) return '';
+
+    // Build config parameter fields
+    var fieldsHtml = '';
+    var fieldKeys = Object.keys(schema);
+    for (var i = 0; i < fieldKeys.length; i++) {
+        var key = fieldKeys[i];
+        var field = schema[key];
+        var value = config[key] !== undefined ? config[key] : (field.default || '');
+        var fieldHtml = '';
+
+        if (field.type === 'select') {
+            var optionsHtml = (field.options || []).map(function(opt) {
+                var sel = (String(value) === String(opt)) ? ' selected' : '';
+                var display = opt.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+                return '<option value="' + opt + '"' + sel + '>' + display + '</option>';
+            }).join('');
+            fieldHtml = '<select class="config-editor-input" data-config-key="' + key + '" data-env="' + envName + '">' + optionsHtml + '</select>';
+        } else if (field.type === 'range') {
+            fieldHtml =
+                '<div class="config-range-wrap">' +
+                    '<input type="range" class="config-editor-input config-range-input" data-config-key="' + key + '" data-env="' + envName + '" ' +
+                        'min="' + (field.min || 0) + '" max="' + (field.max || 100) + '" value="' + value + '" ' +
+                        'oninput="this.nextElementSibling.textContent=this.value">' +
+                    '<span class="config-range-value">' + value + '</span>' +
+                '</div>';
+        } else {
+            // number or text
+            var typeAttr = field.type === 'number' ? 'number' : 'text';
+            var minMax = '';
+            if (field.min !== undefined) minMax += ' min="' + field.min + '"';
+            if (field.max !== undefined) minMax += ' max="' + field.max + '"';
+            fieldHtml = '<input type="' + typeAttr + '" class="config-editor-input" data-config-key="' + key + '" data-env="' + envName + '" value="' + value + '"' + minMax + '>';
+        }
+
+        fieldsHtml +=
+            '<div class="config-editor-field">' +
+                '<label>' + (field.label || key) + '</label>' +
+                fieldHtml +
+            '</div>';
+    }
+
+    // Build KPI chips editor
+    var kpis = details.kpis || [];
+    var kpiChipsHtml = kpis.map(function(kpi, idx) {
+        return '<span class="kpi-chip-editable" data-idx="' + idx + '">' +
+            kpi +
+            '<button class="kpi-remove-btn" onclick="removeCustomKpi(\'' + envName + '\', ' + idx + ')" title="Remove KPI">&times;</button>' +
+        '</span>';
+    }).join('');
+
+    // Build infrastructure summary
+    var sdk = details.sdk || 'gradio';
+    var hardware = details.hardware || 'cpu-basic';
+    var sdkDef = details.sdkDefaults || SDK_TRAINING_DEFAULTS[sdk] || {};
+    var hwDef = details.hardwareDefaults || HARDWARE_TRAINING_DEFAULTS[hardware] || {};
+    var sdkLabel = sdk.charAt(0).toUpperCase() + sdk.slice(1);
+    var hwLabel = hardware.replace(/-/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+
+    return '<div class="detail-collapsible" id="section-configuration">' +
+        '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-configuration\')">' +
+            '<h2>' +
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>' +
+                ' Configuration' +
+            '</h2>' +
+            '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '</button>' +
+        '<div class="detail-collapsible-body" id="section-configuration-body">' +
+            '<div class="detail-collapsible-content">' +
+                // Config parameters grid
+                '<h3 style="margin-bottom:0.75rem;font-size:0.95rem;">Environment Parameters</h3>' +
+                '<div class="config-editor-grid">' + fieldsHtml + '</div>' +
+
+                // KPI editor
+                '<h3 style="margin-top:1.25rem;margin-bottom:0.75rem;font-size:0.95rem;">KPIs</h3>' +
+                '<div class="kpi-chips-editor" id="kpi-chips-editor-' + envName + '">' +
+                    kpiChipsHtml +
+                    '<div class="kpi-add-row">' +
+                        '<input type="text" class="config-editor-input kpi-add-input" id="kpi-add-input-' + envName + '" placeholder="Add KPI..." onkeydown="if(event.key===\'Enter\'){addCustomKpi(\'' + envName + '\');event.preventDefault();}">' +
+                        '<button class="btn btn-small kpi-add-btn" onclick="addCustomKpi(\'' + envName + '\')">+</button>' +
+                    '</div>' +
+                '</div>' +
+
+                // Infrastructure summary
+                '<h3 style="margin-top:1.25rem;margin-bottom:0.75rem;font-size:0.95rem;">Infrastructure</h3>' +
+                '<div class="config-infra-row">' +
+                    '<div class="config-infra-item"><label>SDK</label><span>' + sdkLabel + '</span></div>' +
+                    '<div class="config-infra-item"><label>Framework</label><span>' + (sdkDef.framework || 'N/A') + '</span></div>' +
+                    '<div class="config-infra-item"><label>Hardware</label><span>' + hwLabel + '</span></div>' +
+                    '<div class="config-infra-item"><label>Batch Size</label><span>' + (hwDef.batchSize || 64) + '</span></div>' +
+                '</div>' +
+
+                // Save / Reset buttons
+                '<div class="config-editor-actions">' +
+                    '<button class="btn btn-primary btn-small" onclick="saveEnvConfig(\'' + envName + '\')">Save Configuration</button>' +
+                    '<button class="btn btn-small" onclick="resetEnvConfig(\'' + envName + '\')">Reset to Defaults</button>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+}
+
+// ─── Save config from the editor UI back to environmentDetails ───
+function saveEnvConfig(envName) {
+    var details = environmentDetails[envName];
+    if (!details) return;
+
+    // Read all config-editor-input fields for this env
+    var inputs = document.querySelectorAll('[data-env="' + envName + '"][data-config-key]');
+    var newConfig = {};
+    inputs.forEach(function(el) {
+        var key = el.getAttribute('data-config-key');
+        var val = el.value;
+        // Try to convert to number if it looks like one
+        if (el.type === 'number' || el.type === 'range') {
+            val = parseFloat(val);
+            if (isNaN(val)) val = el.value;
+        }
+        newConfig[key] = val;
+    });
+
+    details.configTemplate = newConfig;
+    console.log('[ConfigEditor] Saved config for', envName, newConfig);
+
+    // Persist to backend
+    _persistCustomEnvConfig(envName, details);
+
+    if (window.showToast) showToast('Configuration saved for ' + formatEnvironmentName(envName), 'success');
+}
+window.saveEnvConfig = saveEnvConfig;
+
+// ─── Reset config to category defaults ───
+function resetEnvConfig(envName) {
+    var details = environmentDetails[envName];
+    if (!details) return;
+
+    var category = details.category || 'cross_workflow';
+    var registry = CATEGORY_CONFIG_REGISTRY[category] || CATEGORY_CONFIG_REGISTRY['cross_workflow'];
+
+    // Reset config template
+    details.configTemplate = JSON.parse(JSON.stringify(registry.configTemplate));
+    details.kpis = registry.kpis.slice();
+
+    console.log('[ConfigEditor] Reset config for', envName, 'to', category, 'defaults');
+
+    // Re-render the config section
+    showEnvironmentDetails(envName);
+
+    if (window.showToast) showToast('Configuration reset to ' + category + ' defaults', 'success');
+}
+window.resetEnvConfig = resetEnvConfig;
+
+// ─── Add a custom KPI chip ───
+function addCustomKpi(envName) {
+    var input = document.getElementById('kpi-add-input-' + envName);
+    if (!input) return;
+    var kpiName = input.value.trim();
+    if (!kpiName) return;
+
+    var details = environmentDetails[envName];
+    if (!details) return;
+
+    if (!details.kpis) details.kpis = [];
+    // Avoid duplicates
+    if (details.kpis.indexOf(kpiName) !== -1) {
+        if (window.showToast) showToast('KPI "' + kpiName + '" already exists.', 'error');
+        return;
+    }
+
+    details.kpis.push(kpiName);
+    input.value = '';
+
+    // Re-render the KPI chips
+    _rerenderKpiChips(envName);
+}
+window.addCustomKpi = addCustomKpi;
+
+// ─── Remove a KPI chip ───
+function removeCustomKpi(envName, idx) {
+    var details = environmentDetails[envName];
+    if (!details || !details.kpis) return;
+
+    details.kpis.splice(idx, 1);
+    _rerenderKpiChips(envName);
+}
+window.removeCustomKpi = removeCustomKpi;
+
+// ─── Re-render KPI chips in the editor ───
+function _rerenderKpiChips(envName) {
+    var container = document.getElementById('kpi-chips-editor-' + envName);
+    if (!container) return;
+
+    var details = environmentDetails[envName];
+    var kpis = (details && details.kpis) || [];
+
+    var chipsHtml = kpis.map(function(kpi, idx) {
+        return '<span class="kpi-chip-editable" data-idx="' + idx + '">' +
+            kpi +
+            '<button class="kpi-remove-btn" onclick="removeCustomKpi(\'' + envName + '\', ' + idx + ')" title="Remove KPI">&times;</button>' +
+        '</span>';
+    }).join('');
+
+    container.innerHTML = chipsHtml +
+        '<div class="kpi-add-row">' +
+            '<input type="text" class="config-editor-input kpi-add-input" id="kpi-add-input-' + envName + '" placeholder="Add KPI..." onkeydown="if(event.key===\'Enter\'){addCustomKpi(\'' + envName + '\');event.preventDefault();}">' +
+            '<button class="btn btn-small kpi-add-btn" onclick="addCustomKpi(\'' + envName + '\')">+</button>' +
+        '</div>';
+
+    // Also update the KPI list in the Description section
+    var kpiListEl = container.closest('.detail-collapsible-content');
+    // The Description section KPI list is separate, update it too
+    var descKpiList = document.querySelector('#section-description-body .kpi-list');
+    if (descKpiList) {
+        descKpiList.innerHTML = kpis.map(function(kpi) {
+            return '<span class="kpi-item">' + kpi + '</span>';
+        }).join('');
+    }
+}
+
+// ─── Persist custom env config to backend ───
+function _persistCustomEnvConfig(envName, details) {
+    fetch(API_BASE + '/api/custom-environments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            name: envName,
+            category: details.category,
+            kpis: details.kpis,
+            configTemplate: details.configTemplate,
+            trainingDefaults: details.trainingDefaults,
+            sdk: details.sdk,
+            hardware: details.hardware
+        })
+    }).then(function(res) {
+        if (!res.ok) console.warn('[ConfigEditor] Failed to persist config for', envName);
+        else console.log('[ConfigEditor] Persisted config for', envName);
+    }).catch(function(err) {
+        console.warn('[ConfigEditor] Error persisting config:', err);
+    });
+}
+
 function showEnvironmentDetails(envName) {
-    const env = allEnvironments.find(e => e.name === envName);
+    var env = allEnvironments.find(function(e) { return e.name === envName; });
     if (!env) return;
-    
-    const details = environmentDetails[envName] || {};
-    const kpis = details.kpis || ['Clinical Outcomes', 'Operational Efficiency', 'Financial Metrics'];
-    
-    // Get detailed information about what the environment does and how to use it
-    const whatItDoes = details.whatItDoes || getDefaultWhatItDoes(env.category, envName);
-    const howToUse = details.howToUse || getDefaultHowToUse(env.category, envName);
-    
-    const description = details.description || env.description || getEnvironmentDescription(env.name, env.category || 'other');
-    const shortDesc = description.length > 200 ? description.slice(0, 197) + '...' : description;
-    const useCase = details.useCase || getUseCaseDescription(env.name, env.category || 'other');
 
-    const detailBody = document.getElementById('env-detail-body');
-    detailBody.innerHTML = `
-        <div class="detail-hero">
-            <div class="detail-hero-left">
-                <h1 class="detail-page-title">${formatEnvironmentName(env.name)}</h1>
-                <span class="env-category category-${env.category}">${env.category}</span>
-            </div>
-            <div class="detail-action-bar">
-                <button class="btn btn-primary" onclick="window.location.href='/test-console?env=${encodeURIComponent(envName)}'" title="Open simulation console">🧪 Open Simulation</button>
-                <button class="btn btn-secondary" onclick="openTrainingConfig('${envName}')" title="Start PPO training">🎓 Start Training</button>
-            </div>
-        </div>
+    var details = environmentDetails[envName] || {};
 
-        <div class="detail-grid">
-            <div class="detail-card">
-                <h3>Overview</h3>
-                <p>${shortDesc}</p>
-                <p style="margin-top: 0.75rem; font-size: 0.85rem;"><strong>System:</strong> ${env.system || details.system || 'Multiple'}</p>
-                <p style="margin-top: 0.25rem; font-size: 0.85rem;"><strong>Use case:</strong> ${useCase}</p>
-            </div>
-            <div class="detail-card">
-                <h3>Specifications</h3>
-                <div class="spec-grid">
-                    <div class="spec-item"><label>State features</label><span>${details.stateFeatures || env.stateFeatures || 'N/A'}</span></div>
-                    <div class="spec-item"><label>Action type</label><span>${details.actionType || env.actionType || 'Discrete'}</span></div>
-                    <div class="spec-item"><label>Actions</label><span>${details.actionSpace || env.actionSpace || 'N/A'}</span></div>
-                    <div class="spec-item"><label>Multi-agent</label><span>${env.multi_agent ? 'Yes' : 'No'}</span></div>
-                </div>
-            </div>
-            <div class="detail-card">
-                <h3>KPIs</h3>
-                <div class="kpi-list">${kpis.map(kpi => `<span class="kpi-item">${kpi}</span>`).join('')}</div>
-            </div>
-            <div class="detail-card">
-                <h3>Action choices</h3>
-                ${env.actions && env.actions.length > 0 ? `
-                    <div class="action-chips">${env.actions.map((action, i) => {
-                        const display = action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                        return `<span class="action-chip" title="${getActionDescription(env.name, action) || ''}">${i + 1}. ${display}</span>`;
-                    }).join('')}</div>
-                ` : `<p>${env.actionType || 'Discrete'} · ${env.actionSpace || 'N/A'} actions</p>`}
-            </div>
-        </div>
+    // Route to source-specific detail views
+    if (details.source === 'huggingface' || env.source === 'huggingface') {
+        _showHFDetailView(env, details);
+        return;
+    }
+    if ((env.sdk === 'custom' || details.sdk === 'custom') && details.terraformTemplate) {
+        _showTerraformDetailView(env, details);
+        return;
+    }
 
-        <div class="detail-section" style="margin-top: 1.5rem;">
-            <h3>What it does</h3>
-            <div class="info-box">${whatItDoes}</div>
-        </div>
-        <div class="detail-section">
-            <h3>How to use</h3>
-            <div class="info-box">${howToUse}</div>
-        </div>
-    `;
-    
+    // Standard RL environment detail view
+    var kpis = details.kpis || ['Clinical Outcomes', 'Operational Efficiency', 'Financial Metrics'];
+    var whatItDoes = details.whatItDoes || getDefaultWhatItDoes(env.category, envName);
+    var howToUse = details.howToUse || getDefaultHowToUse(env.category, envName);
+    var description = details.description || env.description || getEnvironmentDescription(env.name, env.category || 'other');
+    var shortDesc = description.length > 200 ? description.slice(0, 197) + '...' : description;
+    var useCase = details.useCase || getUseCaseDescription(env.name, env.category || 'other');
+    var kpiHtml = kpis.map(function(kpi) { return '<span class="kpi-item">' + kpi + '</span>'; }).join('');
+    var actionsHtml;
+    if (env.actions && env.actions.length > 0) {
+        actionsHtml = '<div class="action-chips">' + env.actions.map(function(action, i) {
+            var display = action.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+            return '<span class="action-chip" title="' + (getActionDescription(env.name, action) || '') + '">' + (i + 1) + '. ' + display + '</span>';
+        }).join('') + '</div>';
+    } else {
+        actionsHtml = '<p>' + (env.actionType || 'Discrete') + ' &middot; ' + (env.actionSpace || 'N/A') + ' actions</p>';
+    }
+
+    var isCustomEnv = (details.isCustom || env.source === 'custom' || env.source === 'huggingface');
+    var deleteBtn = isCustomEnv ?
+        '<button class="btn btn-danger btn-small" onclick="deleteEnvironment(\'' + env.name.replace(/'/g, "\\'") + '\')">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+            ' Delete' +
+        '</button>' : '';
+
+    var detailBody = document.getElementById('env-detail-body');
+    detailBody.innerHTML =
+        '<div class="detail-hero">' +
+            '<div class="detail-hero-left">' +
+                '<h1 class="detail-page-title">' + formatEnvironmentName(env.name) + '</h1>' +
+                '<span class="howto-popover-wrap">' +
+                    '<button class="howto-trigger" aria-label="How to use this environment" tabindex="0">?</button>' +
+                    '<div class="howto-popover">' +
+                        '<strong style="display:block;margin-bottom:0.5rem;font-size:0.95rem;">How to Use</strong>' +
+                        howToUse +
+                    '</div>' +
+                '</span>' +
+                '<span class="env-category category-' + env.category + '">' + env.category + '</span>' +
+            '</div>' +
+        '</div>' +
+        '<div class="detail-collapsible open" id="section-description">' +
+            '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-description\')">' +
+                '<h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Description</h2>' +
+                '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+            '</button>' +
+            '<div class="detail-collapsible-body" id="section-description-body">' +
+                '<div class="detail-collapsible-content">' +
+                    '<div class="detail-grid">' +
+                        '<div class="detail-card"><h3>Overview</h3><p>' + shortDesc + '</p>' +
+                            '<p style="margin-top:0.75rem;font-size:0.85rem;"><strong>System:</strong> ' + (env.system || details.system || 'Multiple') + '</p>' +
+                            '<p style="margin-top:0.25rem;font-size:0.85rem;"><strong>Use case:</strong> ' + useCase + '</p></div>' +
+                        '<div class="detail-card"><h3>Specifications</h3><div class="spec-grid">' +
+                            '<div class="spec-item"><label>State features</label><span>' + (details.stateFeatures || env.stateFeatures || 'N/A') + '</span></div>' +
+                            '<div class="spec-item"><label>Action type</label><span>' + (details.actionType || env.actionType || 'Discrete') + '</span></div>' +
+                            '<div class="spec-item"><label>Actions</label><span>' + (details.actionSpace || env.actionSpace || 'N/A') + '</span></div>' +
+                            '<div class="spec-item"><label>Multi-agent</label><span>' + (env.multi_agent ? 'Yes' : 'No') + '</span></div>' +
+                        '</div></div>' +
+                        '<div class="detail-card"><h3>KPIs</h3><div class="kpi-list">' + kpiHtml + '</div></div>' +
+                        '<div class="detail-card"><h3>Action choices</h3>' + actionsHtml + '</div>' +
+                    '</div>' +
+                    '<div class="detail-section" style="margin-top:1.25rem;"><h3>What it does</h3><div class="info-box">' + whatItDoes + '</div></div>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        buildConfigEditorSection(envName, details) +
+        '<div class="detail-collapsible" id="section-environment">' +
+            '<button class="detail-collapsible-header" onclick="openDetailPopup(\'environment\', \'/test-console?env=' + encodeURIComponent(envName) + '&embedded=1\', \'Environment\')">' +
+                '<h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Environment</h2>' +
+                '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+            '</button>' +
+        '</div>' +
+        buildTrainingSection(envName, env.category) +
+        '<div class="detail-popup-overlay" id="detail-popup-overlay" onclick="closeDetailPopup(event)">' +
+            '<div class="detail-popup-box" onclick="event.stopPropagation()">' +
+                '<div class="detail-popup-header"><h3 id="detail-popup-title">Console</h3>' +
+                    '<button class="detail-popup-close" onclick="closeDetailPopup()" aria-label="Close">&times;</button></div>' +
+                '<div class="detail-popup-body" id="detail-popup-body"><div class="detail-popup-loading">Loading\u2026</div></div>' +
+            '</div>' +
+        '</div>' +
+        (deleteBtn ? '<div class="env-delete-bottom">' + deleteBtn + '</div>' : '');
+
+    requestAnimationFrame(function() {
+        var descBody = document.getElementById('section-description-body');
+        if (descBody) {
+            descBody.style.maxHeight = descBody.scrollHeight + 'px';
+            setTimeout(function() { descBody.style.maxHeight = 'none'; }, 500);
+        }
+    });
+
     document.getElementById('catalog-container').style.display = 'none';
     document.getElementById('env-detail-page').style.display = 'block';
-
 }
+
+// ─── HuggingFace Environment Detail View ───
+function _showHFDetailView(env, details) {
+    var detailBody = document.getElementById('env-detail-body');
+    var name = env.name;
+    var sdk = details.sdk || env.sdk || 'unknown';
+    var hfUrl = details.hf_url || env.hf_url || '';
+    var hfOwner = details.hf_owner || env.hf_owner || '';
+    var hfRepo = details.hf_repo || env.hf_repo || '';
+    // Parse owner/repo from URL if not stored directly
+    if ((!hfOwner || !hfRepo) && hfUrl) {
+        var _m = hfUrl.match(/huggingface\.co\/spaces\/([^/]+)\/([^/?#]+)/i);
+        if (_m) { hfOwner = _m[1]; hfRepo = _m[2]; }
+    }
+    var author = details.author || hfOwner || '';
+    var license = details.license || '';
+    var tags = details.tags || [];
+    var files = details.files || [];
+    var endpoints = details.endpoints || [];
+    var models = details.models || {};
+    var readme = details.readme || '';
+    var openenv = details.openenv || {};
+    var pyproject = details.pyproject || {};
+    var desc = details.description || env.description || '';
+
+    // Tags HTML
+    var tagsHtml = tags.map(function(t) { return '<span class="hf-tag">' + t + '</span>'; }).join('');
+
+    // Metadata grid
+    var metaItems = [
+        { label: 'SDK', value: sdk },
+        { label: 'Runtime', value: openenv.runtime || sdk },
+        { label: 'Port', value: openenv.port || (details.frontMatter || {}).app_port || '—' },
+        { label: 'Author', value: author },
+        { label: 'License', value: license || 'Not specified' },
+        { label: 'Likes', value: (details.likes || 0) + '' }
+    ];
+    var metaHtml = metaItems.map(function(m) {
+        return '<div class="hf-meta-item"><span class="hf-meta-label">' + m.label + '</span><span class="hf-meta-value">' + m.value + '</span></div>';
+    }).join('');
+
+    // Endpoints HTML
+    var endpointsHtml = '';
+    if (endpoints.length > 0) {
+        endpointsHtml = '<div class="hf-endpoints"><h3>API Endpoints</h3><div class="hf-endpoint-list">' +
+            endpoints.map(function(ep) {
+                return '<div class="hf-endpoint"><span class="hf-method hf-method-' + ep.method.toLowerCase() + '">' + ep.method + '</span><code>' + ep.path + '</code></div>';
+            }).join('') + '</div></div>';
+    }
+
+    // Models HTML
+    var modelsHtml = '';
+    var modelKeys = Object.keys(models);
+    if (modelKeys.length > 0) {
+        modelsHtml = '<div class="hf-models"><h3>Data Models</h3>' +
+            modelKeys.map(function(mk) {
+                var m = models[mk];
+                var fieldsHtml = m.fields.map(function(f) {
+                    if (f.value) return '<div class="hf-model-field"><code>' + f.name + '</code> = <code>"' + f.value + '"</code></div>';
+                    return '<div class="hf-model-field"><code>' + f.name + '</code><span class="hf-model-type">' + (f.type || '') + '</span>' +
+                        (f.description ? '<span class="hf-model-desc">' + f.description + '</span>' : '') + '</div>';
+                }).join('');
+                return '<div class="hf-model-card"><h4>' + mk + (m.doc ? ' <span class="hf-model-doc">' + m.doc + '</span>' : '') + '</h4>' + fieldsHtml + '</div>';
+            }).join('') + '</div>';
+    }
+
+    // Files HTML
+    var filesHtml = '';
+    if (files.length > 0) {
+        filesHtml = files.map(function(f) {
+            var sizeStr = f.size < 1024 ? f.size + ' B' : (f.size < 1048576 ? (f.size / 1024).toFixed(1) + ' KB' : (f.size / 1048576).toFixed(1) + ' MB');
+            var ext = f.path.split('.').pop().toLowerCase();
+            var icon = ext === 'py' ? '🐍' : ext === 'md' ? '📄' : ext === 'yaml' || ext === 'yml' ? '⚙️' : ext === 'toml' ? '📦' : ext === 'json' ? '{}' : ext === 'html' ? '🌐' : '📁';
+            return '<div class="hf-file" onclick="viewEnvFile(\'' + name + '\', \'' + f.path.replace(/'/g, "\\'") + '\')">' +
+                '<span class="hf-file-icon">' + icon + '</span>' +
+                '<span class="hf-file-name">' + f.path + '</span>' +
+                '<span class="hf-file-size">' + sizeStr + '</span></div>';
+        }).join('');
+    }
+
+    // Dependencies
+    var depsHtml = '';
+    if (pyproject.dependencies && pyproject.dependencies.length > 0) {
+        depsHtml = '<div class="hf-deps"><h3>Dependencies</h3><div class="hf-dep-list">' +
+            pyproject.dependencies.map(function(d) { return '<span class="hf-dep">' + d + '</span>'; }).join('') +
+            '</div></div>';
+    }
+
+    // Simple markdown-to-html for README (headers, code blocks, paragraphs)
+    var readmeHtml = '';
+    if (readme) {
+        readmeHtml = _simpleMarkdown(readme);
+    }
+
+    var hfDeleteBtn = '<button class="btn btn-danger btn-small" onclick="deleteEnvironment(\'' + name.replace(/'/g, "\\'") + '\')">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+        ' Delete</button>';
+
+    detailBody.innerHTML =
+        // Hero
+        '<div class="detail-hero">' +
+            '<div class="detail-hero-left">' +
+                '<h1 class="detail-page-title">' + formatEnvironmentName(name) + '</h1>' +
+                '<span class="hf-badge hf-badge-sdk">' + sdk + '</span>' +
+                (hfUrl ? '<a href="' + hfUrl + '" target="_blank" class="hf-source-link">View on HuggingFace ↗</a>' : '') +
+            '</div>' +
+        '</div>' +
+        (desc ? '<p class="hf-description">' + desc + '</p>' : '') +
+        (tagsHtml ? '<div class="hf-tags-row">' + tagsHtml + '</div>' : '') +
+
+        // Metadata grid
+        '<div class="hf-meta-grid">' + metaHtml + '</div>' +
+
+        // Tabbed content: App / Files / README / API
+        '<div class="hf-tabs" id="hf-tabs">' +
+            '<button class="hf-tab active" data-tab="hf-tab-app" onclick="switchHFTab(this)">App</button>' +
+            '<button class="hf-tab" data-tab="hf-tab-files" onclick="switchHFTab(this)">Files <span class="hf-tab-count">' + files.length + '</span></button>' +
+            '<button class="hf-tab" data-tab="hf-tab-readme" onclick="switchHFTab(this)">README</button>' +
+            (endpoints.length > 0 ? '<button class="hf-tab" data-tab="hf-tab-api" onclick="switchHFTab(this)">API</button>' : '') +
+        '</div>' +
+
+        // Tab: App (embedded directly via HF Space embed URL)
+        '<div class="hf-tab-panel active" id="hf-tab-app">' +
+            (hfUrl && hfOwner && hfRepo ?
+                '<div class="hf-iframe-wrap"><iframe id="hf-app-iframe" class="hf-iframe" src="https://' + hfOwner + '-' + hfRepo + '.hf.space" allow="accelerometer; camera; encrypted-media; geolocation; gyroscope; microphone" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" loading="lazy"></iframe></div>' +
+                '<p style="text-align:center;font-size:0.75rem;color:#888;margin-top:0.5rem;">Embedded from <a href="' + hfUrl + '" target="_blank" style="color:var(--primary-color);">' + hfUrl + '</a></p>' :
+            '<div class="hf-empty-state">No live preview available. The environment has been cloned locally.</div>') +
+        '</div>' +
+
+        // Tab: Files
+        '<div class="hf-tab-panel" id="hf-tab-files">' +
+            '<div class="hf-file-browser">' + filesHtml + '</div>' +
+            '<div class="hf-file-viewer" id="hf-file-viewer" style="display:none;">' +
+                '<div class="hf-file-viewer-header"><span id="hf-file-viewer-title"></span>' +
+                    '<button class="hf-file-close-btn" onclick="closeFileViewer()" title="Close (Esc)"><kbd>Esc</kbd></button></div>' +
+                '<pre class="hf-file-content" id="hf-file-content"></pre>' +
+            '</div>' +
+        '</div>' +
+
+        // Tab: README
+        '<div class="hf-tab-panel" id="hf-tab-readme">' +
+            (readmeHtml ? '<div class="hf-readme">' + readmeHtml + '</div>' : '<div class="hf-empty-state">No README found.</div>') +
+        '</div>' +
+
+        // Tab: API
+        '<div class="hf-tab-panel" id="hf-tab-api">' +
+            endpointsHtml + modelsHtml + depsHtml +
+        '</div>' +
+        '<div class="env-delete-bottom">' + hfDeleteBtn + '</div>';
+
+    // No proxy needed - iframe uses direct HF Space embed URL
+
+    document.getElementById('catalog-container').style.display = 'none';
+    document.getElementById('env-detail-page').style.display = 'block';
+}
+
+function switchHFTab(btn) {
+    var tabId = btn.getAttribute('data-tab');
+    document.querySelectorAll('.hf-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.hf-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    var panel = document.getElementById(tabId);
+    if (panel) panel.classList.add('active');
+}
+window.switchHFTab = switchHFTab;
+
+function viewEnvFile(envName, filePath) {
+    var viewer = document.getElementById('hf-file-viewer');
+    var titleEl = document.getElementById('hf-file-viewer-title');
+    var contentEl = document.getElementById('hf-file-content');
+    if (!viewer || !contentEl) return;
+    viewer.style.display = 'block';
+    titleEl.textContent = filePath;
+    contentEl.textContent = 'Loading...';
+    fetch(API_BASE + '/api/environment/' + encodeURIComponent(envName) + '/file?path=' + encodeURIComponent(filePath))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.content) contentEl.textContent = data.content;
+            else contentEl.textContent = '(File too large or binary)';
+        })
+        .catch(function() { contentEl.textContent = '(Error loading file)'; });
+}
+window.viewEnvFile = viewEnvFile;
+
+function closeFileViewer() {
+    var v = document.getElementById('hf-file-viewer');
+    if (v) v.style.display = 'none';
+}
+window.closeFileViewer = closeFileViewer;
+
+// Close file viewer on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        var v = document.getElementById('hf-file-viewer');
+        if (v && v.style.display !== 'none') {
+            v.style.display = 'none';
+            e.preventDefault();
+        }
+    }
+});
+
+function _simpleMarkdown(md) {
+    // Very simple markdown renderer: headers, code blocks, bold, links, paragraphs
+    var html = '';
+    var inCode = false;
+    var lines = md.split('\n');
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        if (line.startsWith('```')) {
+            if (inCode) { html += '</code></pre>'; inCode = false; }
+            else { html += '<pre class="hf-code-block"><code>'; inCode = true; }
+            continue;
+        }
+        if (inCode) { html += line.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '\n'; continue; }
+        if (line.startsWith('### ')) { html += '<h4>' + line.slice(4) + '</h4>'; continue; }
+        if (line.startsWith('## ')) { html += '<h3>' + line.slice(3) + '</h3>'; continue; }
+        if (line.startsWith('# ')) { html += '<h2>' + line.slice(2) + '</h2>'; continue; }
+        if (line.trim() === '') { html += '<br>'; continue; }
+        // Inline formatting
+        line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        line = line.replace(/`([^`]+)`/g, '<code class="hf-inline-code">$1</code>');
+        line = line.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+        if (line.startsWith('- ')) { html += '<li>' + line.slice(2) + '</li>'; continue; }
+        html += '<p>' + line + '</p>';
+    }
+    if (inCode) html += '</code></pre>';
+    return html;
+}
+
+// ─── Terraform/Custom Environment Detail View ───
+function _showTerraformDetailView(env, details) {
+    var detailBody = document.getElementById('env-detail-body');
+    var name = env.name;
+    var desc = details.description || env.description || '';
+    var tf = details.terraformTemplate || '';
+    var sdk = details.sdk || 'custom';
+    var hardware = details.hardware || env.hardware || 'cpu-basic';
+
+    var tfDeleteBtn = '<button class="btn btn-danger btn-small" onclick="deleteEnvironment(\'' + name.replace(/'/g, "\\'") + '\')">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+        ' Delete</button>';
+
+    detailBody.innerHTML =
+        '<div class="detail-hero">' +
+            '<div class="detail-hero-left">' +
+                '<h1 class="detail-page-title">' + formatEnvironmentName(name) + '</h1>' +
+                '<span class="hf-badge hf-badge-sdk">Terraform</span>' +
+                '<span class="hf-badge" style="background:#444;color:#fff;">' + hardware + '</span>' +
+            '</div>' +
+        '</div>' +
+        (desc ? '<p class="hf-description" style="color:#333;">' + desc + '</p>' : '') +
+
+        // Tabs: Infrastructure / Container / Configuration
+        '<div class="hf-tabs" id="tf-tabs">' +
+            '<button class="hf-tab active" data-tab="tf-tab-infra" onclick="switchHFTab(this)">Infrastructure</button>' +
+            '<button class="hf-tab" data-tab="tf-tab-container" onclick="switchHFTab(this)">Container</button>' +
+            '<button class="hf-tab" data-tab="tf-tab-config" onclick="switchHFTab(this)">Configuration</button>' +
+        '</div>' +
+
+        '<div class="hf-tab-panel active" id="tf-tab-infra">' +
+            '<div class="tf-code-wrap">' +
+                '<div class="tf-code-header"><span>main.tf</span></div>' +
+                '<pre class="hf-code-block"><code>' + tf.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code></pre>' +
+            '</div>' +
+        '</div>' +
+
+        // Simulated mini-container
+        '<div class="hf-tab-panel" id="tf-tab-container">' +
+            '<div class="sim-container">' +
+                '<div class="sim-container-header">' +
+                    '<div class="sim-container-status"><span class="sim-status-dot"></span> Running</div>' +
+                    '<span class="sim-container-id">' + name.toLowerCase().replace(/[^a-z0-9]/g, '') + '-' + Math.random().toString(36).slice(2, 8) + '</span>' +
+                '</div>' +
+                '<div class="sim-terminal" id="sim-terminal">' +
+                    '<div class="sim-terminal-line sim-line-system">AgentWork Container Runtime v0.1.0</div>' +
+                    '<div class="sim-terminal-line sim-line-system">Initializing environment: <span style="color:#7dd3fc;">' + formatEnvironmentName(name) + '</span></div>' +
+                    '<div class="sim-terminal-line sim-line-system">Hardware: ' + hardware + '</div>' +
+                    '<div class="sim-terminal-line sim-line-system">---</div>' +
+                '</div>' +
+                '<div class="sim-input-row">' +
+                    '<span class="sim-prompt">$</span>' +
+                    '<input type="text" class="sim-input" id="sim-cmd-input" placeholder="Type a command..." autocomplete="off">' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+
+        '<div class="hf-tab-panel" id="tf-tab-config">' +
+            '<div class="hf-empty-state" style="color:#555;">Custom configuration will be defined by the environment workflow.<br>No RL parameters apply to this environment.</div>' +
+        '</div>' +
+        '<div class="env-delete-bottom">' + tfDeleteBtn + '</div>';
+
+    // Wire up simulated terminal
+    _initSimTerminal(name, hardware);
+
+    document.getElementById('catalog-container').style.display = 'none';
+    document.getElementById('env-detail-page').style.display = 'block';
+}
+
+function _initSimTerminal(envName, hardware) {
+    var input = document.getElementById('sim-cmd-input');
+    var terminal = document.getElementById('sim-terminal');
+    if (!input || !terminal) return;
+
+    var envState = { step: 0, reward: 0, done: false };
+
+    input.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter') return;
+        var cmd = input.value.trim();
+        if (!cmd) return;
+        input.value = '';
+
+        // Echo command
+        var cmdLine = document.createElement('div');
+        cmdLine.className = 'sim-terminal-line';
+        cmdLine.innerHTML = '<span class="sim-prompt-echo">$ </span>' + cmd.replace(/</g, '&lt;');
+        terminal.appendChild(cmdLine);
+
+        // Process command
+        var output = _processSimCmd(cmd, envName, hardware, envState);
+        output.forEach(function(line) {
+            var outLine = document.createElement('div');
+            outLine.className = 'sim-terminal-line ' + (line.cls || '');
+            outLine.innerHTML = line.text;
+            terminal.appendChild(outLine);
+        });
+
+        terminal.scrollTop = terminal.scrollHeight;
+    });
+
+    // Auto-focus when container tab is shown
+    input.focus();
+}
+
+function _processSimCmd(cmd, envName, hardware, state) {
+    var parts = cmd.toLowerCase().split(/\s+/);
+    var action = parts[0];
+
+    if (action === 'help') {
+        return [
+            { text: 'Available commands:', cls: 'sim-line-info' },
+            { text: '  status    — Show container status' },
+            { text: '  env       — Show environment info' },
+            { text: '  reset     — Reset environment state' },
+            { text: '  step [n]  — Advance simulation by n steps' },
+            { text: '  observe   — Get current observation' },
+            { text: '  act <id>  — Take an action (0-3)' },
+            { text: '  logs      — View recent logs' },
+            { text: '  clear     — Clear terminal' },
+            { text: '  help      — Show this help' }
+        ];
+    }
+    if (action === 'clear') {
+        var terminal = document.getElementById('sim-terminal');
+        if (terminal) terminal.innerHTML = '<div class="sim-terminal-line sim-line-system">Terminal cleared.</div>';
+        return [];
+    }
+    if (action === 'status') {
+        return [
+            { text: 'Container: <span style="color:#4ade80;">RUNNING</span>', cls: 'sim-line-info' },
+            { text: 'Uptime: ' + Math.floor(Math.random() * 3600) + 's' },
+            { text: 'Memory: ' + (Math.random() * 200 + 50).toFixed(0) + ' MB / ' + (hardware.includes('32') ? '32 GB' : '16 GB') },
+            { text: 'CPU: ' + (Math.random() * 15 + 1).toFixed(1) + '%' }
+        ];
+    }
+    if (action === 'env') {
+        return [
+            { text: 'Environment: ' + envName, cls: 'sim-line-info' },
+            { text: 'SDK: custom (terraform)' },
+            { text: 'Hardware: ' + hardware },
+            { text: 'Step: ' + state.step + '  Reward: ' + state.reward.toFixed(2) + '  Done: ' + state.done }
+        ];
+    }
+    if (action === 'reset') {
+        state.step = 0; state.reward = 0; state.done = false;
+        return [{ text: 'Environment reset. Step=0, Reward=0.00', cls: 'sim-line-success' }];
+    }
+    if (action === 'step') {
+        var n = parseInt(parts[1]) || 1;
+        for (var i = 0; i < n && !state.done; i++) {
+            state.step++;
+            var r = (Math.random() - 0.3) * 2;
+            state.reward += r;
+            if (state.step >= 50) state.done = true;
+        }
+        return [
+            { text: 'Advanced ' + n + ' step(s).', cls: 'sim-line-info' },
+            { text: 'Step: ' + state.step + '  Reward: ' + state.reward.toFixed(2) + (state.done ? '  [DONE]' : '') }
+        ];
+    }
+    if (action === 'observe') {
+        var obs = [];
+        for (var j = 0; j < 4; j++) obs.push((Math.random() * 2 - 1).toFixed(3));
+        return [{ text: 'Observation: [' + obs.join(', ') + ']', cls: 'sim-line-info' }];
+    }
+    if (action === 'act') {
+        var aid = parseInt(parts[1]);
+        if (isNaN(aid) || aid < 0 || aid > 3) return [{ text: 'Invalid action. Use 0-3.', cls: 'sim-line-error' }];
+        state.step++;
+        var rw = (Math.random() - 0.2) * 2;
+        state.reward += rw;
+        if (state.step >= 50) state.done = true;
+        return [
+            { text: 'Action ' + aid + ' executed.', cls: 'sim-line-info' },
+            { text: 'Reward: ' + rw.toFixed(3) + '  Total: ' + state.reward.toFixed(2) + '  Step: ' + state.step + (state.done ? '  [DONE]' : '') }
+        ];
+    }
+    if (action === 'logs') {
+        var ts = new Date().toISOString().slice(11, 19);
+        return [
+            { text: '[' + ts + '] INFO  Container started', cls: 'sim-line-dim' },
+            { text: '[' + ts + '] INFO  Environment loaded: ' + envName, cls: 'sim-line-dim' },
+            { text: '[' + ts + '] INFO  Waiting for agent commands...', cls: 'sim-line-dim' }
+        ];
+    }
+    return [{ text: 'Unknown command: ' + cmd + '. Type "help" for available commands.', cls: 'sim-line-error' }];
+}
+window._initSimTerminal = _initSimTerminal;
+
+// ─── Toggle collapsible detail sections ───
+function toggleDetailSection(sectionId) {
+    var section = document.getElementById(sectionId);
+    if (!section) return;
+    var body = document.getElementById(sectionId + '-body');
+    if (!body) return;
+
+    if (section.classList.contains('open')) {
+        // Collapse: set explicit height first, then transition to 0
+        body.style.maxHeight = body.scrollHeight + 'px';
+        body.offsetHeight; // force reflow
+        body.style.maxHeight = '0';
+        section.classList.remove('open');
+    } else {
+        // Expand: set max-height to scrollHeight, then switch to none after transition
+        section.classList.add('open');
+        body.style.maxHeight = body.scrollHeight + 'px';
+        setTimeout(function() {
+            if (section.classList.contains('open')) {
+                body.style.maxHeight = 'none';
+            }
+        }, 400);
+    }
+}
+
+// ─── Open/Close Detail Popup (for Environment / Training) ───
+function openDetailPopup(id, src, title) {
+    var overlay = document.getElementById('detail-popup-overlay');
+    var titleEl = document.getElementById('detail-popup-title');
+    var bodyEl  = document.getElementById('detail-popup-body');
+    if (!overlay || !bodyEl) return;
+
+    titleEl.textContent = title || 'Console';
+    // Clear previous content and show loading
+    bodyEl.innerHTML = '';
+    var loadingDiv = document.createElement('div');
+    loadingDiv.className = 'detail-popup-loading';
+    loadingDiv.textContent = 'Loading\u2026';
+    bodyEl.appendChild(loadingDiv);
+
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden'; // prevent background scroll
+
+    // Create iframe
+    var iframe = document.createElement('iframe');
+    iframe.setAttribute('title', title || 'Console');
+    iframe.style.opacity = '0';
+    iframe.onload = function() {
+        // Remove loading text, reveal iframe
+        if (loadingDiv.parentNode) loadingDiv.remove();
+        iframe.style.opacity = '1';
+    };
+    bodyEl.appendChild(iframe);
+    // Set src AFTER appending to DOM to ensure proper loading
+    iframe.src = src;
+}
+
+function closeDetailPopup(event) {
+    // If called from overlay click, only close if clicking the overlay itself
+    if (event && event.target !== document.getElementById('detail-popup-overlay')) return;
+
+    var overlay = document.getElementById('detail-popup-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+
+    // Clean up iframe to stop any running content
+    var bodyEl = document.getElementById('detail-popup-body');
+    if (bodyEl) bodyEl.innerHTML = '';
+}
+
+// Close popup on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        if (_trainingReportOverlay && _trainingReportOverlay.classList.contains('active')) {
+            _closeTrainingReportPopup();
+            return;
+        }
+        var overlay = document.getElementById('detail-popup-overlay');
+        if (overlay && overlay.classList.contains('active')) {
+            closeDetailPopup();
+        }
+    }
+});
 
 async function testEnvironment(envName) {
     try {
@@ -1945,6 +3796,15 @@ function _openTrainingConfigModal(envName) {
     const envSystemsList = systemStr.split(',').map(s => s.trim()).filter(Boolean);
     const hasMultiple = envSystemsList.length > 1;
     const isJiraEnv = JIRA_ENVS.includes(envName);
+
+    // Read custom training defaults from environmentDetails (for custom environments)
+    const envDetails = environmentDetails[envName] || {};
+    const trainingDefaults = envDetails.trainingDefaults || {};
+    const hwDefaults = envDetails.hardwareDefaults || {};
+    const sdkDefaults = envDetails.sdkDefaults || {};
+    const defaultAlgorithm = trainingDefaults.algorithm || 'PPO';
+    const defaultEpisodes = trainingDefaults.episodes || 100;
+    const defaultMaxSteps = trainingDefaults.maxSteps || 1000;
     const defaultJiraWorkflow = JIRA_ENV_TO_WORKFLOW[envName] || 'issue_resolution';
     const hasVerifierForWorkflow = JIRA_ENV_VERIFIERS.some(v => v.value === 'jira_workflow:' + defaultJiraWorkflow);
     const verifierOptionsHtml = isJiraEnv
@@ -1988,11 +3848,11 @@ function _openTrainingConfigModal(envName) {
                     <div class="form-group">
                         <label>Agent model</label>
                         <select id="training-algorithm" onchange="updateModelInfo()">
-                            <option value="PPO" selected>PPO (Proximal Policy Optimization)</option>
-                            <option value="DQN">DQN (Deep Q-Network)</option>
-                            <option value="A2C">A2C (Advantage Actor-Critic)</option>
-                            <option value="SAC">SAC (Soft Actor-Critic)</option>
-                            <option value="SLM">SLM (Small Language Model – Jira)</option>
+                            <option value="PPO"${defaultAlgorithm === 'PPO' ? ' selected' : ''}>PPO (Proximal Policy Optimization)</option>
+                            <option value="DQN"${defaultAlgorithm === 'DQN' ? ' selected' : ''}>DQN (Deep Q-Network)</option>
+                            <option value="A2C"${defaultAlgorithm === 'A2C' ? ' selected' : ''}>A2C (Advantage Actor-Critic)</option>
+                            <option value="SAC"${defaultAlgorithm === 'SAC' ? ' selected' : ''}>SAC (Soft Actor-Critic)</option>
+                            <option value="SLM"${defaultAlgorithm === 'SLM' ? ' selected' : ''}>SLM (Small Language Model – Jira)</option>
                         </select>
                         <small id="model-info">PPO uses an MLP policy network with separate actor and critic. Default: [64, 64] hidden layers.</small>
                     </div>
@@ -2038,12 +3898,12 @@ function _openTrainingConfigModal(envName) {
                     <div class="form-row">
                         <div class="form-group">
                             <label>Episodes</label>
-                            <input type="number" id="training-episodes" value="100" min="10" max="10000" />
+                            <input type="number" id="training-episodes" value="${defaultEpisodes}" min="10" max="10000" />
                             <small>More episodes = longer training.</small>
                         </div>
                         <div class="form-group">
                             <label>Max steps per episode</label>
-                            <input type="number" id="training-max-steps" value="1000" min="100" max="10000" />
+                            <input type="number" id="training-max-steps" value="${defaultMaxSteps}" min="100" max="10000" />
                             <small>Steps before episode ends.</small>
                         </div>
                     </div>
@@ -2080,6 +3940,18 @@ function _openTrainingConfigModal(envName) {
                     </div>
                 </section>
                 
+                ${envDetails.isCustom ? `
+                <div class="training-hw-profile">
+                    <h4>⚡ Hardware Profile</h4>
+                    <div class="config-infra-row" style="margin-top:0.5rem;">
+                        <div class="config-infra-item"><label>SDK</label><span>${(envDetails.sdk || 'gradio').charAt(0).toUpperCase() + (envDetails.sdk || 'gradio').slice(1)}</span></div>
+                        <div class="config-infra-item"><label>Framework</label><span>${sdkDefaults.framework || 'stable-baselines3'}</span></div>
+                        <div class="config-infra-item"><label>Hardware</label><span>${(envDetails.hardware || 'cpu-basic').replace(/-/g, ' ').replace(/\\b\\w/g, l => l.toUpperCase())}</span></div>
+                        <div class="config-infra-item"><label>Batch Size</label><span>${hwDefaults.batchSize || 64}</span></div>
+                    </div>
+                </div>
+                ` : ''}
+
                 <div class="model-storage-block">
                     <h4>📦 Model storage & usage</h4>
                     <ul style="padding-left: 1.25rem; margin: 0;">
@@ -2262,7 +4134,11 @@ function getExampleConfig(envName) {
             scenario_id: 'create_subtask'
         }
     };
-    return examples[envName] || { queue_size: 10, resource_availability: 70 };
+    if (examples[envName]) return examples[envName];
+    // For custom environments, use their generated config template
+    var det = environmentDetails[envName];
+    if (det && det.configTemplate) return JSON.parse(JSON.stringify(det.configTemplate));
+    return { queue_size: 10, resource_availability: 70 };
 }
 
 function switchConfigTab(tab) {
@@ -2614,13 +4490,16 @@ async function startTraining(envName, algorithm = 'PPO', numEpisodes = 100, maxS
             }
         }
 
+        const envObj = allEnvironments.find(e => e.name === envName);
+        const envCategory = envObj ? (envObj.category || '') : '';
         const requestBody = {
             environment_name: envName,
             algorithm: algorithm,
             num_episodes: numEpisodes,
             max_steps: maxSteps,
             dataset_url: datasetUrl,
-            config: config
+            config: config,
+            category: envCategory
         };
 
         // Add verifier config if provided
@@ -2649,6 +4528,39 @@ async function startTraining(envName, algorithm = 'PPO', numEpisodes = 100, maxS
         }
         
         const data = await response.json();
+
+        // Add the new run to TRAINING_CONFIG so it appears in training lists immediately
+        const newRun = {
+            id: data.job_id,
+            job_id: data.job_id,
+            name: data.run_name || (algorithm + ' — ' + formatEnvironmentName(envName)),
+            description: algorithm + ' training on ' + formatEnvironmentName(envName),
+            status: 'running',
+            environment: envName,
+            environmentDisplay: formatEnvironmentName(envName),
+            category: envCategory,
+            model: algorithm,
+            algorithm: algorithm,
+            progress: 0,
+            started: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            episodes: 0,
+            successRate: null,
+            avgReward: null,
+            baselineReward: null,
+            results: null,
+            baseline_results: null,
+            model_saved: false,
+            model_url: null,
+            hil_required: verifierConfig && (verifierConfig.type === 'human_evaluation' || verifierConfig.type === 'human-eval'),
+            human_evaluations: []
+        };
+        if (window.TRAINING_CONFIG && window.TRAINING_CONFIG.trainingRuns) {
+            window.TRAINING_CONFIG.trainingRuns.unshift(newRun);
+        }
+
+        // Refresh the training section in the env detail page if visible
+        _refreshTrainingSectionInDetail(envName, envCategory);
+
         const modelInfo = `
 📦 Model Information:
 • Model will be saved to: ./models/${algorithm.toLowerCase()}/${envName}_{job_id}.zip
@@ -2656,7 +4568,7 @@ async function startTraining(envName, algorithm = 'PPO', numEpisodes = 100, maxS
 • Load in Python: from stable_baselines3 import ${algorithm}; model = ${algorithm}.load("path/to/model.zip")
 • Use for predictions: action, _ = model.predict(observation)
         `.trim();
-        
+
         const isHilJob = verifierConfig && (verifierConfig.type === 'human_evaluation' || verifierConfig.type === 'human-eval');
         const hilReminder = isHilJob ? `\n⚠️ HIL REQUIRED: This job will pause for human evaluation after training episodes complete. Open /human-eval?job_id=${data.job_id} to review.\n` : '';
         const monitorMessage = `Would you like to open the Training Monitor to track this job's progress?`;
@@ -2673,7 +4585,7 @@ async function startTraining(envName, algorithm = 'PPO', numEpisodes = 100, maxS
               `Monitor progress at: ${API_BASE}/training/${data.job_id}\n\n` +
               `Once training completes, check the job status to get the model download URL.\n\n` +
               monitorMessage);
-        
+
         if (openMonitor) {
             openTrainingMonitor(data.job_id);
         }
@@ -3136,3 +5048,538 @@ async function openRolloutComparisonFromJob(jobId, envName) {
     }
 }
 window.openRolloutComparisonFromJob = openRolloutComparisonFromJob;
+
+// ─── Add Environment Page Functions ──────────────────────────────────
+function showAddEnvironmentPage() {
+    document.getElementById('catalog-container').style.display = 'none';
+    document.getElementById('env-detail-page').style.display = 'none';
+    document.getElementById('add-env-page').style.display = 'block';
+    window.scrollTo(0, 0);
+    renderSdkTemplateGrid('gradio');
+}
+window.showAddEnvironmentPage = showAddEnvironmentPage;
+
+function closeAddEnvironmentPage() {
+    document.getElementById('add-env-page').style.display = 'none';
+    document.getElementById('catalog-container').style.display = 'block';
+}
+window.closeAddEnvironmentPage = closeAddEnvironmentPage;
+
+function switchAddEnvTab(tab) {
+    var tabs = document.querySelectorAll('.add-env-tab');
+    tabs.forEach(function(t) {
+        t.classList.toggle('active', t.getAttribute('data-tab') === tab);
+    });
+    document.getElementById('add-env-panel-form').style.display = (tab === 'form') ? 'block' : 'none';
+    document.getElementById('add-env-panel-import').style.display = (tab === 'import') ? 'block' : 'none';
+}
+window.switchAddEnvTab = switchAddEnvTab;
+
+// ─── Segmented control selector ───
+function selectEnvSegment(btn, group) {
+    var seg = btn.parentElement;
+    seg.querySelectorAll('.add-env-seg-btn').forEach(function(c) { c.classList.remove('selected'); });
+    btn.classList.add('selected');
+    var hiddenId = (group === 'sdk') ? 'add-env-sdk' : 'add-env-hardware';
+    var hidden = document.getElementById(hiddenId);
+    if (hidden) hidden.value = btn.getAttribute('data-value');
+    if (group === 'sdk') renderSdkTemplateGrid(btn.getAttribute('data-value'));
+}
+window.selectEnvSegment = selectEnvSegment;
+
+// ─── SDK Template (dropdown select) ───
+function renderSdkTemplateGrid(sdkValue) {
+    var container = document.getElementById('add-env-template-container');
+    if (!container) return;
+    container.innerHTML = '';
+    var hiddenTemplate = document.getElementById('add-env-template');
+    if (hiddenTemplate) hiddenTemplate.value = 'blank';
+
+    if (sdkValue === 'custom') {
+        container.innerHTML = _renderTerraformImportArea();
+        container.style.display = 'block';
+        var tfTextarea = document.getElementById('add-env-terraform-content');
+        if (tfTextarea) tfTextarea.value = DEFAULT_TERRAFORM_TEMPLATE;
+        return;
+    }
+
+    var templates = SDK_TEMPLATES[sdkValue];
+    if (!templates || templates.length === 0) { container.style.display = 'none'; return; }
+
+    var label = document.createElement('label');
+    label.textContent = 'Template';
+    label.className = 'add-env-inline-label';
+    label.setAttribute('for', 'add-env-template-select');
+
+    var select = document.createElement('select');
+    select.id = 'add-env-template-select';
+    select.className = 'add-env-template-select';
+    templates.forEach(function(tmpl) {
+        var opt = document.createElement('option');
+        opt.value = tmpl.id;
+        opt.textContent = tmpl.name;
+        select.appendChild(opt);
+    });
+    select.onchange = function() {
+        if (hiddenTemplate) hiddenTemplate.value = select.value;
+    };
+
+    container.appendChild(label);
+    container.appendChild(select);
+    container.style.display = 'block';
+}
+window.renderSdkTemplateGrid = renderSdkTemplateGrid;
+
+function _renderTerraformImportArea() {
+    return '' +
+        '<label class="add-env-template-label">Terraform Template</label>' +
+        '<div class="add-env-terraform-area">' +
+            '<div class="add-env-terraform-info">' +
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
+                '<span>Import your own Terraform template (.tf) or use the built-in default template below.</span>' +
+            '</div>' +
+            '<div class="add-env-terraform-actions">' +
+                '<label class="btn btn-outline btn-small add-env-terraform-upload-btn">' +
+                    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
+                    ' Import .tf file' +
+                    '<input type="file" id="add-env-terraform-file" accept=".tf,.tf.json" style="display:none;" onchange="handleTerraformFileImport(this)">' +
+                '</label>' +
+                '<button type="button" class="btn btn-outline btn-small" onclick="resetTerraformToDefault()">Reset to Default</button>' +
+            '</div>' +
+            '<textarea id="add-env-terraform-content" class="add-env-terraform-editor" rows="12" spellcheck="false" placeholder="Paste or import your Terraform template..."></textarea>' +
+        '</div>';
+}
+
+function handleTerraformFileImport(input) {
+    if (!input.files || !input.files[0]) return;
+    var file = input.files[0];
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var tfTextarea = document.getElementById('add-env-terraform-content');
+        if (tfTextarea) tfTextarea.value = e.target.result;
+        if (window.showToast) showToast('Terraform template "' + file.name + '" loaded.', 'success');
+    };
+    reader.readAsText(file);
+}
+window.handleTerraformFileImport = handleTerraformFileImport;
+
+function resetTerraformToDefault() {
+    var tfTextarea = document.getElementById('add-env-terraform-content');
+    if (tfTextarea) tfTextarea.value = DEFAULT_TERRAFORM_TEMPLATE;
+    if (window.showToast) showToast('Reset to default template.', 'info');
+}
+window.resetTerraformToDefault = resetTerraformToDefault;
+
+
+// ─── Domain-to-category mapping for new environments ───
+var _categoryToDomain = {
+    jira: 'it-sim', clinical: 'med-sim', imaging: 'med-sim', revenue_cycle: 'fin-sim',
+    hr_payroll: 'hr-sim', population_health: 'med-sim', clinical_trials: 'med-sim',
+    hospital_operations: 'med-sim', telehealth: 'med-sim', interoperability: 'med-sim',
+    cross_workflow: 'med-sim'
+};
+
+function _addEnvironmentToGrid(envData) {
+    // Add to allEnvironments array so filters work
+    allEnvironments.push(envData);
+    // Re-run current filter to include the new environment in the grid
+    var searchInput = document.getElementById('search-input');
+    var searchTerm = searchInput ? searchInput.value.trim() : '';
+    var activeCategory = 'all';
+    var activeBtn = document.querySelector('.filter-btn.active');
+    if (activeBtn) activeCategory = activeBtn.getAttribute('data-category') || 'all';
+    filterEnvironments(searchTerm, activeCategory);
+    // Update total count
+    var totalEl = document.getElementById('total-envs');
+    if (totalEl) totalEl.textContent = allEnvironments.length;
+}
+
+function submitAddEnvironment(event) {
+    event.preventDefault();
+
+    var name = document.getElementById('add-env-name').value.trim();
+    var owner = document.getElementById('add-env-owner').value.trim() || 'centific';
+    var desc = document.getElementById('add-env-desc').value.trim();
+    var license = document.getElementById('add-env-license').value;
+    var category = 'custom';
+    var system = 'Custom';
+    var sdk = document.getElementById('add-env-sdk').value;
+    var hardware = document.getElementById('add-env-hardware').value;
+    var template = document.getElementById('add-env-template') ? document.getElementById('add-env-template').value : 'blank';
+    var terraformContent = '';
+    if (sdk === 'custom') {
+        var tfEl = document.getElementById('add-env-terraform-content');
+        terraformContent = tfEl ? tfEl.value : '';
+    }
+    var stateFeatures = 10;
+    var actionSpace = 4;
+    var actionType = 'Discrete';
+
+    if (!name) {
+        if (window.showToast) showToast('Please enter an environment name.', 'error');
+        else alert('Please enter an environment name.');
+        return;
+    }
+
+    var newEnv = {
+        name: name,
+        description: desc || 'Custom environment created by ' + owner,
+        category: category,
+        system: system,
+        domain: _categoryToDomain[category] || 'med-sim',
+        sdk: sdk,
+        hardware: hardware,
+        template: template,
+        terraformTemplate: terraformContent || null,
+        stateFeatures: stateFeatures,
+        actionSpace: actionSpace,
+        actionType: actionType,
+        actions: [],
+        owner: owner,
+        license: license,
+        source: 'custom'
+    };
+
+    console.log('[AddEnvironment] Creating environment:', newEnv);
+
+    var generated = generateEnvironmentDetails(newEnv);
+    environmentDetails[name] = generated;
+    console.log('[AddEnvironment] Generated environmentDetails for:', name, generated);
+
+    _addEnvironmentToGrid(newEnv);
+
+    // Persist to backend so environment survives refresh
+    fetch(API_BASE + '/api/custom-environments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newEnv)
+    }).catch(function(err) { console.warn('[AddEnvironment] Backend persist failed:', err); });
+
+    if (window.showToast) showToast('Environment "' + owner + '/' + name + '" created successfully!', 'success');
+
+    // Reset form
+    document.getElementById('add-env-form').reset();
+    document.getElementById('add-env-owner').value = 'centific';
+    document.getElementById('add-env-sdk').value = 'gradio';
+    document.getElementById('add-env-hardware').value = 'cpu-basic';
+    document.querySelectorAll('#add-env-sdk-seg .add-env-seg-btn').forEach(function(c, i) {
+        c.classList.toggle('selected', i === 0);
+    });
+    document.querySelectorAll('#add-env-hw-seg .add-env-seg-btn').forEach(function(c, i) {
+        c.classList.toggle('selected', i === 0);
+    });
+    renderSdkTemplateGrid('gradio');
+
+    setTimeout(function() { closeAddEnvironmentPage(); }, 800);
+}
+window.submitAddEnvironment = submitAddEnvironment;
+
+// ─── HuggingFace Import Functions ───
+var _hfImportedMeta = null;
+
+function _parseHuggingFaceUrl(url) {
+    // Parse: https://huggingface.co/spaces/org/repo-name
+    var match = url.match(/huggingface\.co\/spaces\/([^\/]+)\/([^\/\?#]+)/);
+    if (match) return { owner: match[1], repo: match[2] };
+    return null;
+}
+
+function previewHuggingFaceSpace() {
+    var urlInput = document.getElementById('add-env-import-path');
+    var url = urlInput ? urlInput.value.trim() : '';
+    if (!url) {
+        if (window.showToast) showToast('Please enter a HuggingFace Environment URL.', 'error');
+        return;
+    }
+    var parsed = _parseHuggingFaceUrl(url);
+    if (!parsed) {
+        if (window.showToast) showToast('Invalid HuggingFace Environment URL. Expected format: https://huggingface.co/spaces/owner/env-name', 'error');
+        return;
+    }
+
+    // Show loading status
+    var statusEl = document.getElementById('add-env-import-status');
+    var statusText = document.getElementById('add-env-import-status-text');
+    if (statusEl) statusEl.style.display = 'block';
+    if (statusText) statusText.textContent = 'Fetching environment metadata from HuggingFace...';
+
+    // Call backend API to fetch space metadata
+    fetch(API_BASE + '/api/huggingface/space-info?owner=' + encodeURIComponent(parsed.owner) + '&repo=' + encodeURIComponent(parsed.repo))
+        .then(function(res) {
+            if (!res.ok) throw new Error('Failed to fetch space info (HTTP ' + res.status + ')');
+            return res.json();
+        })
+        .then(function(data) {
+            _hfImportedMeta = data;
+            if (statusEl) statusEl.style.display = 'none';
+            _showHFPreview(data, url);
+            // Show step 2
+            var step2 = document.getElementById('import-step-details');
+            if (step2) step2.style.display = 'block';
+            // Auto-fill name from repo slug
+            var parsed2 = _parseHuggingFaceUrl(url);
+            if (parsed2) {
+                var nameInput = document.getElementById('add-env-import-name');
+                if (nameInput && !nameInput.value) nameInput.value = parsed2.repo;
+            }
+        })
+        .catch(function(err) {
+            if (statusEl) statusEl.style.display = 'none';
+            console.error('[HF Import] Error:', err);
+            if (window.showToast) showToast('Error fetching space: ' + err.message, 'error');
+        });
+}
+window.previewHuggingFaceSpace = previewHuggingFaceSpace;
+
+function _showHFPreview(data, url) {
+    var preview = document.getElementById('add-env-import-preview');
+    var metaEl = document.getElementById('add-env-import-meta');
+    if (!preview || !metaEl) return;
+
+    var tags = (data.tags || []).map(function(t) { return '<span class="add-env-import-tag">' + t + '</span>'; }).join('');
+    var html = '' +
+        '<div class="add-env-import-meta-row"><span class="add-env-import-meta-label">Environment</span><span class="add-env-import-meta-value"><a href="' + url + '" target="_blank">' + (data.id || data.owner + '/' + data.repo) + '</a></span></div>' +
+        '<div class="add-env-import-meta-row"><span class="add-env-import-meta-label">Author</span><span class="add-env-import-meta-value">' + (data.author || data.owner || '—') + '</span></div>' +
+        '<div class="add-env-import-meta-row"><span class="add-env-import-meta-label">SDK</span><span class="add-env-import-meta-value">' + (data.sdk || 'Unknown') + '</span></div>' +
+        '<div class="add-env-import-meta-row"><span class="add-env-import-meta-label">License</span><span class="add-env-import-meta-value">' + (data.license || 'Not specified') + '</span></div>' +
+        (data.likes !== undefined ? '<div class="add-env-import-meta-row"><span class="add-env-import-meta-label">Likes</span><span class="add-env-import-meta-value">' + data.likes + '</span></div>' : '') +
+        (tags ? '<div class="add-env-import-meta-row"><span class="add-env-import-meta-label">Tags</span><span class="add-env-import-meta-value"><div class="add-env-import-tags">' + tags + '</div></span></div>' : '') +
+        (data.last_modified ? '<div class="add-env-import-meta-row"><span class="add-env-import-meta-label">Updated</span><span class="add-env-import-meta-value">' + new Date(data.last_modified).toLocaleDateString() + '</span></div>' : '');
+
+    metaEl.innerHTML = html;
+}
+
+// ─── Import source selector ───
+var _importSource = 'huggingface';
+
+function selectImportSource(btn) {
+    var seg = btn.parentElement;
+    seg.querySelectorAll('.add-env-seg-btn').forEach(function(c) { c.classList.remove('selected'); });
+    btn.classList.add('selected');
+    _importSource = btn.getAttribute('data-value');
+
+    var urlInput = document.getElementById('add-env-import-path');
+    var hint = document.getElementById('import-url-hint');
+    var title = document.getElementById('import-step1-title');
+    var fetchBtn = document.getElementById('btn-preview-hf');
+    var step2 = document.getElementById('import-step-details');
+
+    // Reset step 2 when source changes
+    if (step2) step2.style.display = 'none';
+
+    if (_importSource === 'huggingface') {
+        if (urlInput) urlInput.placeholder = 'https://huggingface.co/spaces/org/env-name';
+        if (hint) hint.textContent = 'Paste the full URL of a public HuggingFace Space';
+        if (title) title.textContent = 'Enter HuggingFace URL';
+        if (fetchBtn) fetchBtn.style.display = '';
+    } else if (_importSource === 'github') {
+        if (urlInput) urlInput.placeholder = 'https://github.com/owner/repo';
+        if (hint) hint.textContent = 'Paste the URL of a public GitHub repository';
+        if (title) title.textContent = 'Enter GitHub URL';
+        if (fetchBtn) fetchBtn.style.display = 'none';
+        if (step2) step2.style.display = 'block';
+    } else {
+        if (urlInput) urlInput.placeholder = 'https://example.com/my-environment';
+        if (hint) hint.textContent = 'Paste a URL to any publicly accessible environment';
+        if (title) title.textContent = 'Enter URL';
+        if (fetchBtn) fetchBtn.style.display = 'none';
+        if (step2) step2.style.display = 'block';
+    }
+}
+window.selectImportSource = selectImportSource;
+
+function fetchImportSource() {
+    if (_importSource === 'huggingface') {
+        previewHuggingFaceSpace();
+    }
+}
+window.fetchImportSource = fetchImportSource;
+
+function clearEnvImport() {
+    var metaEl = document.getElementById('add-env-import-meta');
+    var statusEl = document.getElementById('add-env-import-status');
+    var step2 = document.getElementById('import-step-details');
+    if (metaEl) metaEl.innerHTML = '';
+    if (statusEl) statusEl.style.display = 'none';
+    if (step2) step2.style.display = 'none';
+    var nameInput = document.getElementById('add-env-import-name');
+    var descInput = document.getElementById('add-env-import-desc');
+    var urlInput = document.getElementById('add-env-import-path');
+    if (nameInput) nameInput.value = '';
+    if (descInput) descInput.value = '';
+    if (urlInput) urlInput.value = '';
+    _hfImportedMeta = null;
+    // Reset source selector to HuggingFace
+    _importSource = 'huggingface';
+    var srcBtns = document.querySelectorAll('#add-env-import-source-seg .add-env-seg-btn');
+    srcBtns.forEach(function(b, i) { b.classList.toggle('selected', i === 0); });
+    var fetchBtn = document.getElementById('btn-preview-hf');
+    if (fetchBtn) fetchBtn.style.display = '';
+    var hint = document.getElementById('import-url-hint');
+    if (hint) hint.textContent = 'Paste the full URL of a public HuggingFace Space';
+    var title = document.getElementById('import-step1-title');
+    if (title) title.textContent = 'Enter HuggingFace URL';
+}
+window.clearEnvImport = clearEnvImport;
+
+function submitImportedEnvironment() {
+    var nameInput = document.getElementById('add-env-import-name');
+    var descInput = document.getElementById('add-env-import-desc');
+    var urlInput = document.getElementById('add-env-import-path');
+    var name = nameInput ? nameInput.value.trim() : '';
+    var desc = descInput ? descInput.value.trim() : '';
+    var url = urlInput ? urlInput.value.trim() : '';
+
+    if (!name) {
+        if (window.showToast) showToast('Please enter an environment name.', 'error');
+        return;
+    }
+    if (!url) {
+        if (window.showToast) showToast('Please enter a URL.', 'error');
+        return;
+    }
+
+    // Branch by import source
+    if (_importSource === 'github' || _importSource === 'url') {
+        // Direct import — no clone, just persist as custom env with source_url
+        var newEnv = {
+            name: name,
+            description: desc || 'Imported from ' + (_importSource === 'github' ? 'GitHub' : 'URL'),
+            category: 'custom',
+            system: 'Custom',
+            domain: 'custom',
+            sdk: 'custom',
+            actions: [],
+            source: _importSource,
+            source_url: url,
+            isCustom: true
+        };
+        environmentDetails[name] = generateEnvironmentDetails(newEnv);
+        _addEnvironmentToGrid(newEnv);
+        // Persist
+        fetch(API_BASE + '/api/custom-environments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newEnv)
+        }).catch(function(err) { console.warn('[Import] Backend persist failed:', err); });
+        if (window.showToast) showToast('Environment "' + name + '" imported from ' + (_importSource === 'github' ? 'GitHub' : 'URL') + '!', 'success');
+        clearEnvImport();
+        setTimeout(function() { closeAddEnvironmentPage(); }, 800);
+        return;
+    }
+
+    // HuggingFace import (existing flow)
+    var parsed = _parseHuggingFaceUrl(url);
+    if (!parsed) {
+        if (window.showToast) showToast('Invalid HuggingFace URL. Expected: https://huggingface.co/spaces/owner/repo', 'error');
+        return;
+    }
+
+    var statusEl = document.getElementById('add-env-import-status');
+    var statusText = document.getElementById('add-env-import-status-text');
+    if (statusEl) statusEl.style.display = 'block';
+    if (statusText) statusText.textContent = 'Cloning HuggingFace environment and setting up locally...';
+
+    fetch(API_BASE + '/api/huggingface/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            name: name,
+            description: desc,
+            hf_url: url,
+            hf_owner: parsed.owner,
+            hf_repo: parsed.repo
+        })
+    })
+    .then(function(res) {
+        if (!res.ok) return res.json().then(function(d) { throw new Error(d.detail || 'Import failed'); });
+        return res.json();
+    })
+    .then(function(data) {
+        if (statusText) statusText.textContent = 'Analyzing environment structure...';
+
+        var newEnv = {
+            name: name,
+            description: desc || (data.description || 'Imported from HuggingFace'),
+            category: 'custom',
+            system: 'Custom',
+            domain: 'custom',
+            sdk: data.sdk || (_hfImportedMeta ? _hfImportedMeta.sdk : 'gradio'),
+            actions: [],
+            source: 'huggingface',
+            hf_url: url,
+            isCustom: true
+        };
+
+        return fetch(API_BASE + '/api/environment/' + encodeURIComponent(name) + '/analyze')
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(analysis) {
+                if (statusEl) statusEl.style.display = 'none';
+
+                var hfMeta = _hfImportedMeta || {};
+                var details = {
+                    source: 'huggingface',
+                    isCustom: true,
+                    hf_url: url,
+                    hf_owner: parsed.owner,
+                    hf_repo: parsed.repo,
+                    sdk: newEnv.sdk,
+                    description: newEnv.description,
+                    author: hfMeta.author || parsed.owner,
+                    license: hfMeta.license || 'Not specified',
+                    tags: hfMeta.tags || [],
+                    likes: hfMeta.likes || 0,
+                    lastModified: hfMeta.last_modified || '',
+                    readme: analysis ? analysis.readme_raw : '',
+                    frontMatter: analysis ? analysis.front_matter : {},
+                    openenv: analysis ? analysis.openenv : {},
+                    pyproject: analysis ? analysis.pyproject : {},
+                    files: analysis ? analysis.files : [],
+                    endpoints: analysis ? analysis.endpoints : [],
+                    models: analysis ? analysis.models : {},
+                    localPath: analysis ? analysis.local_path : ''
+                };
+                environmentDetails[name] = details;
+
+                _addEnvironmentToGrid(newEnv);
+                if (window.showToast) showToast('Environment "' + name + '" imported from HuggingFace!', 'success');
+                clearEnvImport();
+                setTimeout(function() { closeAddEnvironmentPage(); }, 800);
+            });
+    })
+    .catch(function(err) {
+        if (statusEl) statusEl.style.display = 'none';
+        console.error('[HF Import] Error:', err);
+        if (window.showToast) showToast('Import failed: ' + err.message, 'error');
+    });
+}
+window.submitImportedEnvironment = submitImportedEnvironment;
+
+// ─── Delete Environment ───
+function deleteEnvironment(envName) {
+    if (!confirm('Are you sure you want to delete the environment "' + envName + '"? This action cannot be undone.')) {
+        return;
+    }
+    fetch(API_BASE + '/api/custom-environments/' + encodeURIComponent(envName), { method: 'DELETE' })
+        .then(function(res) {
+            if (!res.ok) return res.json().then(function(d) { throw new Error(d.detail || 'Delete failed'); });
+            return res.json();
+        })
+        .then(function() {
+            // Remove from local arrays
+            allEnvironments = allEnvironments.filter(function(e) { return e.name !== envName; });
+            delete environmentDetails[envName];
+            if (window.showToast) showToast('Environment "' + envName + '" deleted.', 'success');
+            // Go back to catalog
+            document.getElementById('env-detail-page').style.display = 'none';
+            document.getElementById('catalog-container').style.display = 'block';
+            var totalEl = document.getElementById('total-envs');
+            if (totalEl) totalEl.textContent = allEnvironments.length;
+            var searchInput = document.getElementById('search-input');
+            filterEnvironments(searchInput ? searchInput.value.trim() : '', getActiveCategory());
+        })
+        .catch(function(err) {
+            if (window.showToast) showToast('Delete failed: ' + err.message, 'error');
+        });
+}
+window.deleteEnvironment = deleteEnvironment;

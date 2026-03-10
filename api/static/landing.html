@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Centific AgentWork Simulator</title>
-    <link rel="stylesheet" href="/static/landing.css">
+    <link rel="stylesheet" href="/static/landing.css?v=5">
     <link rel="stylesheet" href="/static/global-nav.css">
     <link rel="stylesheet" href="/static/toast.css">
     <script>
@@ -25,7 +25,8 @@
             </a>
             <nav class="landing-nav">
                 <a href="/catalog" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.125em"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Catalog</a>
-                <a href="/test-console" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.125em"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Simulation</a>
+                <!-- Hidden for now — re-enable by uncommenting
+                <a href="/test-console" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.125em"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Environment</a>
                 <div class="nav-dropdown">
                     <button type="button" class="nav-link nav-trigger" aria-expanded="false" aria-haspopup="true" id="nav-rl-trigger">Industries</button>
                     <div class="nav-dropdown-menu" id="nav-rl-menu" aria-hidden="true">
@@ -36,6 +37,7 @@
                         <a href="/catalog" class="nav-dropdown-more">More — View full catalog</a>
                     </div>
                 </div>
+                -->
                 <a href="#contact" class="nav-link">Contact us</a>
             </nav>
         </div>
@@ -48,7 +50,23 @@
                 <div class="hero-left">
                     <h1>AgentWork Simulator<br>for <span class="hero-highlight">Real-World Workflows</span></h1>
                     <p class="landing-pitch">Train and evaluate AI agents in production-ready reinforcement learning environments designed for real enterprise decisions. From revenue cycle management and claims processing to clinical pathways and complex enterprise workflows, our environments allow agents to practice tasks, receive structured feedback, and continuously improve performance. Each environment integrates with enterprise systems and scales from safe simulation to real-world deployment.</p>
-                    <a href="#contact" class="landing-cta landing-cta-demo">Book a Demo <span class="cta-arrow" aria-hidden="true">→</span></a>
+                    <form class="hero-search-form" id="hero-search-form" action="/catalog" method="get">
+                        <div class="hero-search-box">
+                            <span class="hero-search-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                </svg>
+                            </span>
+                            <input type="text" name="search" class="hero-search-input" placeholder="Search environments... e.g. Claims Routing, Jira, ICU" autocomplete="off">
+                            <button type="submit" class="hero-search-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                    <polyline points="12 5 19 12 12 19"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </form>
                     <div class="hero-stats hero-stats-inline">
                         <span class="stat-item-inline"><span class="stat-num" id="hero-stat-envs">100+</span> <span class="stat-label">AgentWork Simulators</span></span>
                         <span class="stat-sep" aria-hidden="true">·</span>
@@ -76,27 +94,56 @@
         </section>
 
         <section class="landing-section">
-            <h2 class="landing-section-title">Browse Popular AgentWork Simulators</h2>
-            <p class="landing-section-desc">Finance workflows: optimize claims, payments, and revenue cycle with RL.</p>
-            <div class="landing-cards">
-                <a href="/catalog?industry=finance&persona=revenue_cycle&env=ClaimsRouting" class="landing-card">
-                    <span class="card-icon">📋</span>
-                    <h3>Claims routing</h3>
-                    <p>Route insurance claims to the right processors for faster adjudication and higher collection rates.</p>
-                    <span class="landing-card-tag">Finance</span>
-                </a>
-                <a href="/catalog?industry=finance&persona=revenue_cycle&env=PaymentReconciliation" class="landing-card">
-                    <span class="card-icon">💰</span>
-                    <h3>Payment reconciliation</h3>
-                    <p>Optimize payment matching and reconciliation to reduce exceptions and accelerate cash flow.</p>
-                    <span class="landing-card-tag">Finance</span>
-                </a>
-                <a href="/catalog?industry=finance&persona=revenue_cycle&env=RevenueLeakageDetection" class="landing-card">
-                    <span class="card-icon">📊</span>
-                    <h3>Revenue leakage detection</h3>
-                    <p>Identify and prioritize revenue leakage sources with RL-driven prioritization and intervention sequencing.</p>
-                    <span class="landing-card-tag">Finance</span>
-                </a>
+            <h2 class="landing-section-title">Popular AgentWork Simulators</h2>
+            <div class="domain-strip">
+                <!-- fin-sim -->
+                <div class="domain-tile">
+                    <div class="domain-tile-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="14" rx="2" stroke="#7c3aed" stroke-width="1.5"/><path d="M2 10h20" stroke="#7c3aed" stroke-width="1.5"/><circle cx="6" cy="15" r="1.5" fill="#a78bfa"/><path d="M10 15h6" stroke="#c4b5fd" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    </div>
+                    <h3 class="domain-tile-title">fin-sim</h3>
+                    <ul class="domain-tile-links">
+                        <li><a href="/catalog?env=ClaimsRouting">Claims Routing</a></li>
+                        <li><a href="/catalog?env=PaymentReconciliation">Payment Reconciliation</a></li>
+                        <li><a href="/catalog?env=RevenueLeakageDetection">Revenue Leakage Detection</a></li>
+                    </ul>
+                </div>
+                <!-- med-sim -->
+                <div class="domain-tile">
+                    <div class="domain-tile-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M8 2v4M16 2v4" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/><rect x="3" y="4" width="18" height="16" rx="2" stroke="#7c3aed" stroke-width="1.5"/><path d="M12 9v6M9 12h6" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    </div>
+                    <h3 class="domain-tile-title">med-sim</h3>
+                    <ul class="domain-tile-links">
+                        <li><a href="/catalog?env=TreatmentPathwayOptimization">Treatment Pathway</a></li>
+                        <li><a href="/catalog?env=SepsisEarlyIntervention">Sepsis Early Intervention</a></li>
+                        <li><a href="/catalog?env=ICUResourceAllocation">ICU Resource Allocation</a></li>
+                    </ul>
+                </div>
+                <!-- it-sim -->
+                <div class="domain-tile">
+                    <div class="domain-tile-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#7c3aed" stroke-width="1.5"/><path d="M3 9h18" stroke="#7c3aed" stroke-width="1.5"/><circle cx="6" cy="6" r="1" fill="#a78bfa"/><circle cx="9" cy="6" r="1" fill="#c4b5fd"/><path d="M7 13h10M7 17h6" stroke="#c4b5fd" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    </div>
+                    <h3 class="domain-tile-title">it-sim</h3>
+                    <ul class="domain-tile-links">
+                        <li><a href="/catalog?env=JiraIssueResolution">Jira Issue Resolution</a></li>
+                        <li><a href="/catalog?env=JiraStatusUpdate">Jira Status Update</a></li>
+                        <li><a href="/catalog?env=JiraCommentManagement">Jira Comment Mgmt</a></li>
+                    </ul>
+                </div>
+                <!-- hr-sim -->
+                <div class="domain-tile">
+                    <div class="domain-tile-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="7" r="3" stroke="#7c3aed" stroke-width="1.5"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" stroke="#7c3aed" stroke-width="1.5"/><path d="M17 8l2 2 4-4" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <h3 class="domain-tile-title">hr-sim</h3>
+                    <ul class="domain-tile-links">
+                        <li><a href="/catalog?env=EmployeeOnboarding">Employee Onboarding</a></li>
+                        <li><a href="/catalog?env=PayrollProcessing">Payroll Processing</a></li>
+                        <li><a href="/catalog?env=LeaveManagement">Leave Management</a></li>
+                    </ul>
+                </div>
             </div>
         </section>
 
@@ -134,8 +181,9 @@
 
     <footer class="landing-footer">
         <div class="landing-footer-inner">
-            <a href="/catalog">Catalog</a>
-            <a href="/test-console">Simulation</a>
+            <a href="#">Terms of Use</a>
+            <a href="#">Privacy</a>
+            <a href="#">Cookie Policy</a>
         </div>
     </footer>
 
@@ -214,6 +262,20 @@
                         var mailtoBody = 'Use case: ' + useCase + '\n\nOrganization: ' + org + '\n\n-- ' + name + ' (' + email + ')';
                         window.location.href = 'mailto:kausalyarani.k@centific.com?subject=' + encodeURIComponent('AgentWork Simulator: ' + name) + '&body=' + encodeURIComponent(mailtoBody);
                     });
+                });
+            }
+            // Hero search form: navigate to catalog with search param
+            var heroSearchForm = document.getElementById('hero-search-form');
+            if (heroSearchForm) {
+                heroSearchForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    var input = heroSearchForm.querySelector('.hero-search-input');
+                    var query = input ? input.value.trim() : '';
+                    if (query) {
+                        window.location.href = '/catalog?search=' + encodeURIComponent(query);
+                    } else {
+                        window.location.href = '/catalog';
+                    }
                 });
             }
             (function loadHeroStats() {

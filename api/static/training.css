@@ -1,5 +1,10 @@
 /* ── Training Console Styles ─────────────────────────────────── */
 
+/* Embedded mode: hide chrome when loaded inside an iframe */
+.embedded-mode .gn-bar { display: none !important; }
+.embedded-mode .container { padding-top: 0.5rem; }
+.embedded-mode .landing-footer { display: none !important; }
+
 /* Views */
 .training-view { display: none; }
 .training-view.active { display: block; }
@@ -188,14 +193,14 @@
     margin-bottom: 1rem;
 }
 
-/* 2-column form rows */
+/* Form rows (2-column grid to optimize space) */
 .training-form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.75rem;
     margin-bottom: 0.75rem;
 }
-@media (max-width: 900px) {
+@media (max-width: 700px) {
     .training-form-row { grid-template-columns: 1fr; }
 }
 
@@ -677,6 +682,24 @@ textarea.code-textarea:focus {
     padding: 0.5rem 1rem;
     font-size: 0.85rem;
 }
+/* Ghost button - subtle table action style */
+.btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border-color, #e8e4ef);
+    color: var(--text-secondary, #5a5568);
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+.btn-ghost:hover {
+    background: var(--bg-secondary, #faf8fc);
+    border-color: var(--primary-color, #c026d3);
+    color: var(--primary-color, #c026d3);
+    transform: none;
+    box-shadow: none;
+}
+.btn-ghost svg {
+    stroke: currentColor;
+}
 .btn-outline {
     background: transparent;
     border: 1px solid var(--primary-color);
@@ -686,6 +709,42 @@ textarea.code-textarea:focus {
     background: var(--primary-color);
     color: #fff;
 }
+
+/* State Diagram – SVG flowchart */
+.sd-container { padding: 0.5rem 0; }
+.sd-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; color: var(--text-primary); }
+.sd-subtitle { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem; }
+.sd-scroll { overflow-x: auto; padding-bottom: 0.5rem; }
+.sd-scroll svg { display: block; min-height: 100px; }
+/* Legend */
+.sd-legend {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color, #e8e4ef);
+}
+.sd-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+}
+.sd-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.sd-legend-line {
+    width: 22px;
+    height: 0;
+    border-top: 2px solid currentColor;
+    flex-shrink: 0;
+}
+.sd-legend-line.dashed { border-top-style: dashed; }
 
 /* Sample data banner */
 .sample-data-banner {
@@ -1144,6 +1203,47 @@ textarea.code-textarea:focus {
     border-radius: 4px;
     display: inline-block;
     margin-top: 0.2rem;
+}
+
+/* ── Training Empty State ────────────────────────────────────── */
+.training-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    text-align: center;
+}
+.training-empty-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: #f3e8ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    color: var(--primary-color);
+}
+.training-empty-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+}
+.training-empty-text {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    max-width: 400px;
+    line-height: 1.6;
+    margin: 0 0 1.5rem 0;
+}
+.training-empty-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.95rem;
+    padding: 0.65rem 1.5rem;
 }
 
 /* ── Responsive ────────────────────────────────────────────── */

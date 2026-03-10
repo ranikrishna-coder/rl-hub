@@ -1,4 +1,4 @@
-// Generic Simulation Console for AgentWork Simulator
+// Generic Environment Console for AgentWork Simulator
 
 // API Base URL - auto-detected or set by config.js
 const API_BASE = window.API_BASE || (() => {
@@ -870,7 +870,7 @@ function selectEnvironment(envName) {
     
     // Update title
     const displayName = formatEnvironmentName(envName);
-    document.getElementById('console-title').textContent = `🩻 ${displayName} - Simulation Console`;
+    document.getElementById('console-title').textContent = `🩻 ${displayName} - Environment Console`;
     
     // Show verifier section with system-appropriate verifiers
     showVerifierSection(envName);

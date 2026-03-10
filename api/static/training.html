@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/static/styles.css">
     <link rel="stylesheet" href="/static/global-nav.css">
     <link rel="stylesheet" href="/static/toast.css">
-    <link rel="stylesheet" href="/static/training.css">
+    <link rel="stylesheet" href="/static/training.css?v=8">
     <script>
         (function() {
             var hostname = window.location.hostname;
@@ -22,6 +22,10 @@
     <script>
         (function() {
             document.documentElement.setAttribute('data-theme', 'light');
+            // Embedded mode: hide chrome when loaded inside an iframe
+            if (new URLSearchParams(window.location.search).get('embedded') === '1') {
+                document.documentElement.classList.add('embedded-mode');
+            }
         })();
     </script>
 </head>
@@ -36,8 +40,8 @@
         </button>
         <ul class="gn-links">
             <li><a href="/catalog" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Catalog</a></li>
-            <li><a href="/test-console" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Simulation</a></li>
-            <li><a href="/training-console" class="gn-link gn-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg> Training</a></li>
+            <!-- <li><a href="/training-console" class="gn-link gn-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg> Training</a></li> -->
+            <li><a href="/#contact" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Contact us</a></li>
         </ul>
     </nav>
 
@@ -52,16 +56,12 @@
                     </h1>
                     <p>Manage training runs and inspect rollout episodes</p>
                 </div>
-                <button type="button" class="btn btn-primary" id="btn-new-run">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    New Training Run
-                </button>
             </div>
 
-            <!-- Tab switcher: Training Runs | Rollouts -->
+            <!-- Tab switcher: Training Runs only (Rollouts hidden for now) -->
             <div class="training-tabs" id="training-tabs">
                 <button type="button" class="training-tab active" data-tab="runs">Training Runs</button>
-                <button type="button" class="training-tab" data-tab="rollouts">Rollouts</button>
+                <!-- <button type="button" class="training-tab" data-tab="rollouts">Rollouts</button> -->
             </div>
 
             <!-- Tab Content: Training Runs -->
@@ -76,8 +76,14 @@
 
                 <div class="training-runs-card">
                     <div class="card-header">
-                        <h3>Recent Runs</h3>
-                        <span id="run-count" style="font-size:0.85rem;color:var(--text-secondary)"></span>
+                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                            <h3>Recent Runs</h3>
+                            <span id="run-count" style="font-size:0.85rem;color:var(--text-secondary)"></span>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-small" id="btn-new-run" style="flex:none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            New Training
+                        </button>
                     </div>
                     <div id="training-runs-body"></div>
                 </div>
@@ -471,6 +477,11 @@
                 </div>
             </div>
 
+            <!-- Rollout State Diagram -->
+            <div class="details-full" id="detail-state-diagram-wrap" style="display:none">
+                <div class="info-panel" id="detail-state-diagram"></div>
+            </div>
+
             <!-- Model Artifact -->
             <div class="details-full" id="detail-model-artifact-wrap" style="display:none">
                 <div class="info-panel" id="detail-model-artifact"></div>
@@ -499,10 +510,18 @@
         </div>
     </div>
 
+    <footer class="landing-footer">
+        <div class="landing-footer-inner">
+            <a href="#">Terms of Use</a>
+            <a href="#">Privacy</a>
+            <a href="#">Cookie Policy</a>
+        </div>
+    </footer>
+
     <script src="/static/toast.js"></script>
     <script src="/static/verifier-data.js"></script>
-    <script src="/static/training-config-data.js?v=2"></script>
+    <script src="/static/training-config-data.js?v=3"></script>
     <script src="/static/rollout-comparison.js?v=2"></script>
-    <script src="/static/training.js?v=2"></script>
+    <script src="/static/training.js?v=10"></script>
 </body>
 </html>
