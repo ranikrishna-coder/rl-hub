@@ -5248,12 +5248,36 @@ function submitAddEnvironment(event) {
 
     _addEnvironmentToGrid(newEnv);
 
-    // Persist to backend so environment survives refresh
+    // Persist to backend (auto-classifies on save) then update local state
     fetch(API_BASE + '/api/custom-environments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newEnv)
-    }).catch(function(err) { console.warn('[AddEnvironment] Backend persist failed:', err); });
+    }).then(function() {
+        // Fetch classification to update local grid/details
+        return fetch(API_BASE + '/api/classify-environment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name, description: desc || '' })
+        });
+    }).then(function(r) { return r && r.ok ? r.json() : null; })
+    .then(function(cls) {
+        if (cls && cls.category) {
+            newEnv.category = cls.category;
+            newEnv.system = cls.system;
+            newEnv.domain = cls.domain;
+            newEnv.workflow = cls.workflow;
+            newEnv.tags = cls.tags;
+            environmentDetails[name] = generateEnvironmentDetails(newEnv);
+            // Refresh catalog grid to show updated tags
+            if (typeof filterEnvironments === 'function') {
+                var searchVal = document.getElementById('env-search') ? document.getElementById('env-search').value : '';
+                var catVal = document.querySelector('.catalog-tab.active') ? document.querySelector('.catalog-tab.active').getAttribute('data-category') || 'all' : 'all';
+                filterEnvironments(searchVal, catVal);
+            }
+            console.log('[AddEnvironment] Classified:', name, cls);
+        }
+    }).catch(function(err) { console.warn('[AddEnvironment] Backend persist/classify failed:', err); });
 
     if (window.showToast) showToast('Environment "' + owner + '/' + name + '" created successfully!', 'success');
 
@@ -5456,12 +5480,34 @@ function submitImportedEnvironment() {
         };
         environmentDetails[name] = generateEnvironmentDetails(newEnv);
         _addEnvironmentToGrid(newEnv);
-        // Persist
+        // Persist (auto-classifies) then update local state
         fetch(API_BASE + '/api/custom-environments', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newEnv)
-        }).catch(function(err) { console.warn('[Import] Backend persist failed:', err); });
+        }).then(function() {
+            return fetch(API_BASE + '/api/classify-environment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, description: desc || '' })
+            });
+        }).then(function(r) { return r && r.ok ? r.json() : null; })
+        .then(function(cls) {
+            if (cls && cls.category) {
+                newEnv.category = cls.category;
+                newEnv.system = cls.system;
+                newEnv.domain = cls.domain;
+                newEnv.workflow = cls.workflow;
+                newEnv.tags = cls.tags;
+                environmentDetails[name] = generateEnvironmentDetails(newEnv);
+                if (typeof filterEnvironments === 'function') {
+                    var searchVal = document.getElementById('env-search') ? document.getElementById('env-search').value : '';
+                    var catVal = document.querySelector('.catalog-tab.active') ? document.querySelector('.catalog-tab.active').getAttribute('data-category') || 'all' : 'all';
+                    filterEnvironments(searchVal, catVal);
+                }
+                console.log('[Import] Classified:', name, cls);
+            }
+        }).catch(function(err) { console.warn('[Import] Backend persist/classify failed:', err); });
         if (window.showToast) showToast('Environment "' + name + '" imported from ' + (_importSource === 'github' ? 'GitHub' : 'URL') + '!', 'success');
         clearEnvImport();
         setTimeout(function() { closeAddEnvironmentPage(); }, 800);
@@ -5542,6 +5588,35 @@ function submitImportedEnvironment() {
                 environmentDetails[name] = details;
 
                 _addEnvironmentToGrid(newEnv);
+
+                // Async classify the imported environment
+                fetch(API_BASE + '/api/classify-environment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name, description: newEnv.description })
+                }).then(function(r) { return r.ok ? r.json() : null; })
+                .then(function(cls) {
+                    if (cls && cls.category) {
+                        newEnv.category = cls.category;
+                        newEnv.system = cls.system;
+                        newEnv.domain = cls.domain;
+                        newEnv.workflow = cls.workflow;
+                        newEnv.tags = cls.tags;
+                        // Re-persist with classified fields
+                        fetch(API_BASE + '/api/custom-environments', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(newEnv)
+                        });
+                        if (typeof filterEnvironments === 'function') {
+                            var searchVal = document.getElementById('env-search') ? document.getElementById('env-search').value : '';
+                            var catVal = document.querySelector('.catalog-tab.active') ? document.querySelector('.catalog-tab.active').getAttribute('data-category') || 'all' : 'all';
+                            filterEnvironments(searchVal, catVal);
+                        }
+                        console.log('[HF Import] Classified:', name, cls);
+                    }
+                }).catch(function(err) { console.warn('[HF Import] Classify failed:', err); });
+
                 if (window.showToast) showToast('Environment "' + name + '" imported from HuggingFace!', 'success');
                 clearEnvImport();
                 setTimeout(function() { closeAddEnvironmentPage(); }, 800);

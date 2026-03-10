@@ -2584,6 +2584,119 @@ async def import_huggingface_space(req: HuggingFaceImportRequest, background_tas
     }
 
 
+# ── AI Environment Classification ──────────────────────────────────
+
+_CATEGORY_KEYWORDS = {
+    "clinical": ["patient", "clinical", "hospital", "medical", "health", "ehr", "icu", "sepsis", "treatment", "diagnosis", "pharmacy", "nurse", "doctor", "vitals", "triage", "pathology", "radiology", "oncology", "cardiology", "surgery", "prescription", "discharge", "admission", "lab result", "blood", "imaging"],
+    "claims": ["claim", "insurance", "policy", "underwriting", "adjudication", "premium", "coverage", "deductible", "reimbursement", "payer", "copay", "denial", "appeals", "billing"],
+    "payment": ["payment", "reconciliation", "transaction", "ledger", "settlement", "invoice", "accounts receivable", "accounts payable", "remittance", "wire transfer", "ach", "fintech"],
+    "revenue": ["revenue", "leakage", "billing", "charge", "pricing", "audit", "compliance", "fraud", "anomaly", "discrepancy", "chargeback", "collection"],
+    "jira": ["jira", "ticket", "issue", "sprint", "backlog", "kanban", "agile", "scrum", "story point", "epic", "subtask", "assignee", "workflow", "status update"],
+    "servicenow": ["servicenow", "incident", "change request", "cmdb", "itil", "sla", "service desk", "service catalog", "problem management", "configuration item"],
+    "devops": ["deploy", "pipeline", "ci/cd", "kubernetes", "docker", "terraform", "ansible", "jenkins", "github actions", "helm", "monitoring", "alerting", "infrastructure", "container", "microservice"],
+    "hr": ["employee", "onboarding", "payroll", "leave", "attendance", "recruitment", "hiring", "resume", "candidate", "performance review", "compensation", "benefits", "offboarding", "workforce"],
+    "crm": ["customer", "salesforce", "hubspot", "lead", "opportunity", "pipeline", "contact", "account", "deal", "engagement", "retention", "churn", "nps", "satisfaction"],
+    "supply_chain": ["supply chain", "inventory", "warehouse", "logistics", "shipping", "procurement", "vendor", "purchase order", "forecast", "demand planning", "distribution"],
+    "cross_workflow": ["workflow", "automation", "integration", "etl", "data pipeline", "orchestration", "scheduler", "batch", "api", "webhook"],
+}
+
+_SYSTEM_KEYWORDS = {
+    "Epic": ["epic", "epic systems", "mychart", "hyperspace", "epic ehr"],
+    "Cerner": ["cerner", "oracle health", "powerchart"],
+    "FHIR": ["fhir", "hl7", "smart on fhir"],
+    "Jira": ["jira", "atlassian", "confluence"],
+    "ServiceNow": ["servicenow", "snow", "service-now"],
+    "Salesforce": ["salesforce", "sfdc", "apex", "soql"],
+    "SAP": ["sap", "s4hana", "sap hana", "abap"],
+    "Workday": ["workday"],
+    "Oracle": ["oracle", "oracle cloud", "peoplesoft"],
+    "Stripe": ["stripe", "stripe api"],
+    "QuickBooks": ["quickbooks", "qbo", "intuit"],
+    "Kubernetes": ["kubernetes", "k8s", "kubectl", "helm"],
+    "AWS": ["aws", "amazon web services", "ec2", "s3", "lambda"],
+    "Azure": ["azure", "microsoft azure"],
+    "GCP": ["gcp", "google cloud"],
+    "GitHub": ["github", "github actions", "git"],
+    "Jenkins": ["jenkins", "jenkinsfile"],
+    "Docker": ["docker", "dockerfile", "container"],
+    "Terraform": ["terraform", "hcl", "tfstate"],
+    "HuggingFace": ["huggingface", "hugging face", "transformers", "gradio"],
+    "Custom": [],
+}
+
+_CATEGORY_TO_DEFAULT_SYSTEM = {
+    "clinical": "Epic", "claims": "Custom", "payment": "Custom",
+    "revenue": "Custom", "jira": "Jira", "servicenow": "ServiceNow",
+    "devops": "Kubernetes", "hr": "Workday", "crm": "Salesforce",
+    "supply_chain": "SAP", "cross_workflow": "Custom",
+}
+
+_CATEGORY_TO_DOMAIN = {
+    "clinical": "med-sim", "claims": "fin-sim", "payment": "fin-sim",
+    "revenue": "fin-sim", "jira": "it-sim", "servicenow": "it-sim",
+    "devops": "it-sim", "hr": "hr-sim", "crm": "fin-sim",
+    "supply_chain": "fin-sim", "cross_workflow": "cross-domain",
+}
+
+_CATEGORY_TO_WORKFLOW = {
+    "clinical": "Clinical", "claims": "Claims Processing",
+    "payment": "Payment Processing", "revenue": "Revenue Audit",
+    "jira": "IT Service Management", "servicenow": "IT Operations",
+    "devops": "DevOps", "hr": "Human Resources", "crm": "CRM",
+    "supply_chain": "Supply Chain", "cross_workflow": "Cross-Workflow",
+}
+
+
+def _classify_environment(name: str, description: str) -> dict:
+    """Classify an environment by keyword matching on name + description."""
+    text = (name + " " + description).lower()
+
+    # Score categories
+    cat_scores = {}
+    for cat, keywords in _CATEGORY_KEYWORDS.items():
+        score = sum(1 for kw in keywords if kw in text)
+        if score > 0:
+            cat_scores[cat] = score
+
+    best_cat = max(cat_scores, key=cat_scores.get) if cat_scores else "cross_workflow"
+    confidence = min(cat_scores.get(best_cat, 0) / 3.0, 1.0) if cat_scores else 0.1
+
+    # Detect system
+    detected_system = None
+    best_sys_score = 0
+    for sys_name, keywords in _SYSTEM_KEYWORDS.items():
+        score = sum(1 for kw in keywords if kw in text)
+        if score > best_sys_score:
+            best_sys_score = score
+            detected_system = sys_name
+
+    system = detected_system if best_sys_score > 0 else _CATEGORY_TO_DEFAULT_SYSTEM.get(best_cat, "Custom")
+    domain = _CATEGORY_TO_DOMAIN.get(best_cat, "cross-domain")
+    workflow = _CATEGORY_TO_WORKFLOW.get(best_cat, "Cross-Workflow")
+
+    # Build tags
+    tags = [best_cat, system.lower(), domain]
+    if workflow:
+        tags.append(workflow.lower().replace(" ", "-"))
+
+    return {
+        "category": best_cat,
+        "system": system,
+        "domain": domain,
+        "workflow": workflow,
+        "tags": list(set(tags)),
+        "confidence": round(confidence, 2),
+    }
+
+
+@app.post("/api/classify-environment")
+async def classify_environment_endpoint(request: Request):
+    """Classify an environment name+description into category/system/domain/workflow."""
+    data = await request.json()
+    result = _classify_environment(data.get("name", ""), data.get("description", ""))
+    return result
+
+
 @app.get("/api/custom-environments")
 async def list_custom_environments():
     """List all custom / imported environments."""
@@ -2630,8 +2743,16 @@ async def save_custom_environment_config(request: Request):
         else:
             # Create new record - store all incoming data
             record = dict(data)
-            record.setdefault("category", "cross_workflow")
             record.setdefault("source", "custom")
+            # Auto-classify if category is generic or missing
+            cur_cat = record.get("category", "")
+            if not cur_cat or cur_cat in ("custom", "cross_workflow"):
+                cls = _classify_environment(name, record.get("description", ""))
+                record["category"] = cls["category"]
+                record["system"] = cls["system"]
+                record["domain"] = cls["domain"]
+                record["workflow"] = cls["workflow"]
+                record["tags"] = cls["tags"]
             custom_environments.append(record)
             _persist_environments()
             return {"status": "created", "name": name}

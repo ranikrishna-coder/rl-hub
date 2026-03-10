@@ -520,6 +520,17 @@ body {
     text-align: center;
     letter-spacing: -0.01em;
     transition: color var(--transition);
+    position: relative;
+    padding-bottom: 0.75rem;
+}
+.landing-section-title::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 3px;
+    background: var(--accent, #7c3aed);
+    margin: 0.5rem auto 0;
+    border-radius: 2px;
 }
 .landing-section-desc {
     font-size: 0.9375rem;
@@ -618,7 +629,7 @@ body {
 .domain-tile-icon {
     width: 48px;
     height: 48px;
-    border-radius: 10px;
+    border-radius: 50%;
     background: var(--accent-bg, #f5f3ff);
     display: flex;
     align-items: center;
@@ -649,8 +660,34 @@ body {
     line-height: 1.65;
     transition: color 0.15s;
 }
+.domain-tile-links a::before {
+    content: '\2022';
+    color: var(--accent, #7c3aed);
+    margin-right: 0.5rem;
+    font-weight: 700;
+}
 .domain-tile-links a:hover {
     color: var(--accent, #7c3aed);
+}
+
+/* CTA row */
+.landing-cta-row {
+    text-align: center;
+    margin-top: 2.5rem;
+}
+.btn-landing-cta {
+    display: inline-block;
+    padding: 0.85rem 2.5rem;
+    background: linear-gradient(135deg, #e879a8, #9b59b6, #7c3aed);
+    color: #fff;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+.btn-landing-cta:hover {
+    opacity: 0.9;
 }
 
 /* Contact form – compact, readable */

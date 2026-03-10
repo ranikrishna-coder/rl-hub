@@ -2350,10 +2350,52 @@ h1 svg, h2 svg, h3 svg, h4 svg {
     color: #555;
 }
 .add-env-seg-free {
+    display: inline-block;
+    background: #dcfce7;
     color: #16a34a;
-    font-weight: 800;
-    font-size: 0.62rem;
+    font-weight: 700;
+    font-size: 0.6rem;
     letter-spacing: 0.3px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+}
+.add-env-seg-info {
+    color: #999;
+    font-size: 0.75rem;
+    margin-left: 0.25rem;
+    cursor: help;
+}
+
+/* ── Card-select variant (separate bordered cards) ── */
+.add-env-card-select {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    border: none !important;
+    background: transparent !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+}
+.add-env-card-select .add-env-seg-btn {
+    border: 1.5px solid var(--border-color, #e0dce5) !important;
+    border-radius: 12px !important;
+    padding: 0.85rem 1rem;
+    background: var(--card-bg, #fff);
+    transition: all 0.15s ease;
+}
+.add-env-card-select .add-env-seg-btn:hover {
+    border-color: var(--primary-color) !important;
+    background: rgba(192, 38, 211, 0.03);
+}
+.add-env-card-select .add-env-seg-btn.selected {
+    border-color: var(--primary-color) !important;
+    background: rgba(192, 38, 211, 0.04);
+    box-shadow: none;
+}
+.add-env-card-select .add-env-seg-btn:last-child {
+    border-right: 1.5px solid var(--border-color, #e0dce5) !important;
 }
 
 /* Inline label above segmented controls */
@@ -2367,7 +2409,9 @@ h1 svg, h2 svg, h3 svg, h4 svg {
 
 /* ── Template dropdown ── */
 .add-env-template-select {
-    width: 100%;
+    width: auto;
+    min-width: 200px;
+    max-width: 300px;
     padding: 0.55rem 0.75rem;
     border: 1px solid var(--border-color, #e8e4ef);
     border-radius: 8px;
@@ -2653,6 +2697,9 @@ h1 svg, h2 svg, h3 svg, h4 svg {
     }
     .add-env-segmented-specs .add-env-seg-btn {
         flex: 1 1 45%;
+    }
+    .add-env-card-select {
+        grid-template-columns: repeat(2, 1fr) !important;
     }
 }
 

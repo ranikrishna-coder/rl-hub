@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Centific AgentWork Simulator - Catalog</title>
-    <link rel="stylesheet" href="/static/styles.css?v=22">
+    <link rel="stylesheet" href="/static/styles.css?v=23">
     <link rel="stylesheet" href="/static/global-nav.css?v=3">
     <link rel="stylesheet" href="/static/toast.css?v=3">
     <script>
@@ -118,7 +118,7 @@
                     <!-- SDK Section -->
                     <div class="add-env-field">
                         <label class="add-env-inline-label">SDK</label>
-                        <div class="add-env-segmented" id="add-env-sdk-seg">
+                        <div class="add-env-segmented add-env-card-select" id="add-env-sdk-seg">
                             <button type="button" class="add-env-seg-btn selected" data-value="gradio" onclick="selectEnvSegment(this, 'sdk')">
                                 <span class="add-env-seg-title">Gradio</span>
                             </button>
@@ -142,22 +142,22 @@
                     <!-- Compute Section -->
                     <div class="add-env-field">
                         <label class="add-env-inline-label">Compute</label>
-                        <div class="add-env-segmented add-env-segmented-specs" id="add-env-hw-seg">
+                        <div class="add-env-segmented add-env-segmented-specs add-env-card-select" id="add-env-hw-seg">
                             <button type="button" class="add-env-seg-btn selected" data-value="cpu-basic" onclick="selectEnvSegment(this, 'hardware')">
-                                <span class="add-env-seg-title">CPU basic</span>
-                                <span class="add-env-seg-spec">2 vCPU · 16 GB <span class="add-env-seg-free">FREE</span></span>
+                                <span class="add-env-seg-title">CPU basic <span class="add-env-seg-free">FREE</span></span>
+                                <span class="add-env-seg-spec">2 vCPU - 16 GB</span>
                             </button>
                             <button type="button" class="add-env-seg-btn" data-value="cpu-upgrade" onclick="selectEnvSegment(this, 'hardware')">
-                                <span class="add-env-seg-title">CPU upgrade</span>
-                                <span class="add-env-seg-spec">8 vCPU · 32 GB</span>
+                                <span class="add-env-seg-title">CPU upgrade <span class="add-env-seg-info" title="Requires billing">&#9432;</span></span>
+                                <span class="add-env-seg-spec">8 vCPU - 32 GB</span>
                             </button>
                             <button type="button" class="add-env-seg-btn" data-value="gpu-t4" onclick="selectEnvSegment(this, 'hardware')">
                                 <span class="add-env-seg-title">GPU T4</span>
-                                <span class="add-env-seg-spec">1x T4 · 16 GB</span>
+                                <span class="add-env-seg-spec">1x T4 - 16 GB</span>
                             </button>
                             <button type="button" class="add-env-seg-btn" data-value="gpu-a10" onclick="selectEnvSegment(this, 'hardware')">
                                 <span class="add-env-seg-title">GPU A10G</span>
-                                <span class="add-env-seg-spec">1x A10G · 24 GB</span>
+                                <span class="add-env-seg-spec">1x A10G - 24 GB</span>
                             </button>
                         </div>
                         <input type="hidden" id="add-env-hardware" value="cpu-basic">
