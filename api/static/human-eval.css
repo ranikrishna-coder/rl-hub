@@ -195,11 +195,11 @@ pre, .code-block {
 
 .btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .he-btn {
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
+    padding: 0.6rem 1.35rem;
+    border-radius: 10px;
     border: none;
-    font-size: 0.85rem;
-    font-weight: 500;
+    font-size: 0.875rem;
+    font-weight: 600;
     cursor: pointer;
     transition: filter 0.15s, background-color 0.15s;
 }

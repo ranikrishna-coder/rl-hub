@@ -677,17 +677,18 @@ body {
 }
 .btn-landing-cta {
     display: inline-block;
-    padding: 0.85rem 2.5rem;
-    background: linear-gradient(135deg, #e879a8, #9b59b6, #7c3aed);
+    padding: 0.65rem 1.35rem;
+    background: linear-gradient(135deg, var(--accent-pink, #ec4899) 0%, var(--primary-hover, #7c3aed) 100%);
     color: #fff;
-    border-radius: 30px;
-    font-weight: 700;
-    font-size: 0.95rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.875rem;
     text-decoration: none;
-    transition: opacity 0.2s;
+    transition: all 0.3s;
 }
 .btn-landing-cta:hover {
-    opacity: 0.9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
 }
 
 /* Contact form – compact, readable */

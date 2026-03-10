@@ -291,8 +291,8 @@
     cursor: pointer;
     transition: all 0.2s;
 }
-.verifier-toggle button:first-child { border-radius: 6px 0 0 6px; }
-.verifier-toggle button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+.verifier-toggle button:first-child { border-radius: 10px 0 0 10px; }
+.verifier-toggle button:last-child { border-radius: 0 10px 10px 0; border-left: 0; }
 .verifier-toggle button.active {
     background: var(--primary-color);
     color: #fff;
@@ -680,12 +680,13 @@ textarea.code-textarea:focus {
 /* Small button variant */
 .btn-small {
     padding: 0.5rem 1rem;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
 }
 /* Ghost button - subtle table action style */
 .btn-ghost {
     background: transparent;
     border: 1px solid var(--border-color, #e8e4ef);
+    border-radius: 10px;
     color: var(--text-secondary, #5a5568);
     font-weight: 500;
     transition: all 0.2s ease;
@@ -702,8 +703,9 @@ textarea.code-textarea:focus {
 }
 .btn-outline {
     background: transparent;
-    border: 1px solid var(--primary-color);
+    border: 1.5px solid var(--primary-color);
     color: var(--primary-color);
+    border-radius: 10px;
 }
 .btn-outline:hover {
     background: var(--primary-color);
