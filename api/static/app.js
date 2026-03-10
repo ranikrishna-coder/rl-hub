@@ -600,6 +600,9 @@ async function loadEnvironments() {
                             description: ce.description || 'Custom environment',
                             category: ce.category || 'custom',
                             system: ce.system || 'Custom',
+                            workflow: ce.workflow || '',
+                            domain: ce.domain || '',
+                            tags: ce.tags || [],
                             sdk: ce.sdk || 'gradio',
                             hardware: ce.hardware || 'cpu-basic',
                             source: ce.source || 'custom',
@@ -1381,7 +1384,8 @@ function updateSaveButton(envName) {
 // Each entry maps a data key to a display format. Order = display priority.
 var CARD_CHIP_FIELDS = [
     { key: 'category',      label: null,             format: 'badge',  cssClass: function(e) { return 'category-' + e.category; } },
-    { key: 'system',        label: 'System',         format: 'chip' },
+    { key: 'system',        label: 'System',         format: 'chip',   filter: function(v) { return v && v !== 'Custom' && v !== ''; } },
+    { key: 'workflow',      label: 'Workflow',       format: 'chip',   filter: function(v) { return v && v !== 'Cross-Workflow' && v !== ''; } },
     { key: 'actionSpace',   label: 'Actions',        format: 'chip',   filter: function(v) { return v && v !== 'N/A'; } },
     { key: 'stateFeatures', label: 'Features',       format: 'chip',   filter: function(v) { return v && v !== 'N/A'; } },
     { key: 'actionType',    label: 'Type',           format: 'chip',   filter: function(v) { return v && v !== 'Discrete'; } },
@@ -1393,10 +1397,8 @@ function createEnvCard(env) {
 
     // Build chip HTML from available metadata
     var chips = '';
-    var isCustomEnv = env.isCustom === true || env.source === 'custom';
     for (var ci = 0; ci < CARD_CHIP_FIELDS.length; ci++) {
         var field = CARD_CHIP_FIELDS[ci];
-        if (isCustomEnv && (field.key === 'category' || field.key === 'system')) continue;
         var val = env[field.key];
         if (field.filter) { if (!field.filter(val)) continue; }
         else if (val === undefined || val === null || val === '') continue;
@@ -5258,7 +5260,7 @@ function submitAddEnvironment(event) {
         return fetch(API_BASE + '/api/classify-environment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: name, description: desc || '' })
+            body: JSON.stringify({ name: name, description: desc || '', sdk: sdk, template: template })
         });
     }).then(function(r) { return r && r.ok ? r.json() : null; })
     .then(function(cls) {

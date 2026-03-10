@@ -2582,6 +2582,15 @@ async def import_huggingface_space(req: HuggingFaceImportRequest, background_tas
         "local_path": target_dir,
         "imported_at": datetime.utcnow().isoformat() + "Z",
     }
+
+    # Deep-classify using the downloaded files (README, deps, tags)
+    cls = _deep_classify_environment(env_record)
+    env_record["category"] = cls["category"]
+    env_record["system"] = cls["system"]
+    env_record["domain"] = cls["domain"]
+    env_record["workflow"] = cls["workflow"]
+    env_record["tags"] = cls["tags"]
+
     custom_environments.append(env_record)
     _persist_environments()
 
@@ -2590,7 +2599,9 @@ async def import_huggingface_space(req: HuggingFaceImportRequest, background_tas
         "name": req.name,
         "description": env_record["description"],
         "sdk": sdk,
-        "category": "cross_workflow",
+        "category": env_record["category"],
+        "system": env_record["system"],
+        "workflow": env_record.get("workflow", ""),
         "local_path": target_dir,
         "message": f"Space '{req.hf_owner}/{req.hf_repo}' cloned successfully to {target_dir}.",
     }
@@ -2604,8 +2615,8 @@ _CATEGORY_KEYWORDS = {
     "payment": ["payment", "reconciliation", "transaction", "ledger", "settlement", "invoice", "accounts receivable", "accounts payable", "remittance", "wire transfer", "ach", "fintech"],
     "revenue": ["revenue", "leakage", "billing", "charge", "pricing", "audit", "compliance", "fraud", "anomaly", "discrepancy", "chargeback", "collection"],
     "jira": ["jira", "ticket", "issue", "sprint", "backlog", "kanban", "agile", "scrum", "story point", "epic", "subtask", "assignee", "workflow", "status update"],
-    "servicenow": ["servicenow", "incident", "change request", "cmdb", "itil", "sla", "service desk", "service catalog", "problem management", "configuration item"],
-    "devops": ["deploy", "pipeline", "ci/cd", "kubernetes", "docker", "terraform", "ansible", "jenkins", "github actions", "helm", "monitoring", "alerting", "infrastructure", "container", "microservice"],
+    "servicenow": ["servicenow", "incident management", "change request", "cmdb", "itil", "sla breach", "sla compliance", "service desk", "service catalog", "problem management", "configuration item"],
+    "devops": ["deploy", "pipeline", "ci/cd", "kubernetes", "terraform", "ansible", "jenkins", "github actions", "helm", "monitoring", "alerting", "infrastructure", "microservice"],
     "hr": ["employee", "onboarding", "payroll", "leave", "attendance", "recruitment", "hiring", "resume", "candidate", "performance review", "compensation", "benefits", "offboarding", "workforce"],
     "crm": ["customer", "salesforce", "hubspot", "lead", "opportunity", "pipeline", "contact", "account", "deal", "engagement", "retention", "churn", "nps", "satisfaction"],
     "supply_chain": ["supply chain", "inventory", "warehouse", "logistics", "shipping", "procurement", "vendor", "purchase order", "forecast", "demand planning", "distribution"],
@@ -2659,11 +2670,65 @@ _CATEGORY_TO_WORKFLOW = {
 }
 
 
-def _classify_environment(name: str, description: str) -> dict:
-    """Classify an environment by keyword matching on name + description."""
+_SDK_TO_SYSTEM = {
+    "gradio": "HuggingFace",
+    "docker": "Docker",
+    "static": "Static",
+    "custom": "Terraform",
+}
+
+_TEMPLATE_TO_SYSTEM = {
+    # Docker templates
+    "streamlit": "Streamlit", "mlflow": "MLflow", "tensorboard": "TensorFlow",
+    "jupyterlab": "Jupyter", "langfuse": "Langfuse", "wandb": "W&B",
+    "plotly": "Plotly", "zenml": "ZenML", "labelstudio": "Label Studio",
+    "comfyui": "ComfyUI", "argilla": "Argilla", "aimstack": "AimStack",
+    "livebook": "Livebook", "marimo": "Marimo", "panel": "Panel",
+    "quarto": "Quarto", "shiny-py": "Shiny", "shiny-r": "Shiny",
+    "evidence": "Evidence", "giskard": "Giskard", "chatui": "HuggingFace",
+    # Static templates
+    "react": "React", "nextjs": "Next.js", "vue": "Vue", "svelte": "Svelte",
+    "angular": "Angular", "preact": "Preact", "solid": "SolidJS",
+    "gradio-lite": "HuggingFace", "transformers-js": "HuggingFace",
+    # Gradio templates
+    "chatbot": "HuggingFace", "diffusion": "HuggingFace",
+    "image-class": "HuggingFace", "text-to-image": "HuggingFace",
+    "audio-class": "HuggingFace", "leaderboard": "HuggingFace",
+    "trackio": "HuggingFace",
+}
+
+# Software systems detectable from README content, tags, file names, and dependencies
+_DEEP_SYSTEM_SIGNALS = {
+    "Label Studio":   {"tags": ["label-studio", "labelstudio"], "readme": ["label studio", "labelstudio", "data labeling platform"], "deps": ["label-studio"], "files": []},
+    "Gradio":         {"tags": ["gradio"], "readme": ["gradio"], "deps": ["gradio"], "files": ["app.py"]},
+    "Streamlit":      {"tags": ["streamlit"], "readme": ["streamlit"], "deps": ["streamlit"], "files": ["streamlit_app.py"]},
+    "FastAPI":        {"tags": ["fastapi"], "readme": ["fastapi"], "deps": ["fastapi", "uvicorn"], "files": []},
+    "Flask":          {"tags": ["flask"], "readme": ["flask"], "deps": ["flask"], "files": []},
+    "Django":         {"tags": ["django"], "readme": ["django"], "deps": ["django"], "files": ["manage.py"]},
+    "TensorFlow":     {"tags": ["tensorflow", "keras"], "readme": ["tensorflow", "keras"], "deps": ["tensorflow", "keras"], "files": []},
+    "PyTorch":        {"tags": ["pytorch", "torch"], "readme": ["pytorch", "torch"], "deps": ["torch", "pytorch"], "files": []},
+    "LangChain":      {"tags": ["langchain"], "readme": ["langchain"], "deps": ["langchain", "langchain-core"], "files": []},
+    "OpenAI":         {"tags": ["openai", "gpt"], "readme": ["openai", "gpt-4", "gpt-3", "chatgpt"], "deps": ["openai"], "files": []},
+    "HuggingFace":    {"tags": ["huggingface", "diffusers"], "readme": ["hugging face", "huggingface.co"], "deps": ["diffusers", "huggingface-hub"], "files": []},
+    "Stable Diffusion": {"tags": ["stable-diffusion", "diffusion"], "readme": ["stable diffusion", "sdxl", "sd model"], "deps": ["diffusers", "stable-diffusion"], "files": []},
+    "LlamaIndex":     {"tags": ["llamaindex", "llama-index"], "readme": ["llamaindex", "llama_index", "llama index"], "deps": ["llama-index", "llama_index"], "files": []},
+    "Kubernetes":     {"tags": ["kubernetes", "k8s"], "readme": ["kubernetes", "k8s", "kubectl"], "deps": [], "files": ["deployment.yaml"]},
+    "React":          {"tags": ["react"], "readme": ["react"], "deps": ["react", "react-dom"], "files": ["package.json"]},
+    "Next.js":        {"tags": ["nextjs", "next.js"], "readme": ["next.js", "nextjs"], "deps": ["next"], "files": ["next.config.js", "next.config.mjs"]},
+    "MedAgentBench":  {"tags": ["openenv", "medagentbench"], "readme": ["medagentbench", "medical agent", "med agent", "openenv"], "deps": ["openenv-core", "openenv"], "files": ["openenv.yaml"]},
+    "Gymnasium":      {"tags": ["gymnasium", "gym", "openai-gym"], "readme": ["gymnasium", "openai gym"], "deps": ["gymnasium", "gym"], "files": []},
+    "MLflow":         {"tags": ["mlflow"], "readme": ["mlflow"], "deps": ["mlflow"], "files": []},
+    "W&B":            {"tags": ["wandb", "weights-and-biases"], "readme": ["wandb", "weights & biases", "weights and biases"], "deps": ["wandb"], "files": []},
+    "Jupyter":        {"tags": ["jupyter", "jupyterlab"], "readme": ["jupyter"], "deps": ["jupyter", "jupyterlab"], "files": []},
+    "Terraform":      {"tags": ["terraform"], "readme": ["terraform"], "deps": [], "files": ["main.tf", "variables.tf"]},
+    "Ansible":        {"tags": ["ansible"], "readme": ["ansible"], "deps": ["ansible"], "files": ["playbook.yml"]},
+}
+
+
+def _classify_environment(name: str, description: str, sdk: str = "", template: str = "") -> dict:
+    """Shallow classifier: keyword matching on name + description + SDK/template signals."""
     text = (name + " " + description).lower()
 
-    # Score categories
     cat_scores = {}
     for cat, keywords in _CATEGORY_KEYWORDS.items():
         score = sum(1 for kw in keywords if kw in text)
@@ -2673,7 +2738,6 @@ def _classify_environment(name: str, description: str) -> dict:
     best_cat = max(cat_scores, key=cat_scores.get) if cat_scores else "cross_workflow"
     confidence = min(cat_scores.get(best_cat, 0) / 3.0, 1.0) if cat_scores else 0.1
 
-    # Detect system
     detected_system = None
     best_sys_score = 0
     for sys_name, keywords in _SYSTEM_KEYWORDS.items():
@@ -2682,11 +2746,18 @@ def _classify_environment(name: str, description: str) -> dict:
             best_sys_score = score
             detected_system = sys_name
 
-    system = detected_system if best_sys_score > 0 else _CATEGORY_TO_DEFAULT_SYSTEM.get(best_cat, "Custom")
+    if best_sys_score == 0:
+        tmpl = (template or "").lower().strip()
+        sdk_val = (sdk or "").lower().strip()
+        if tmpl and tmpl != "blank" and tmpl in _TEMPLATE_TO_SYSTEM:
+            detected_system = _TEMPLATE_TO_SYSTEM[tmpl]
+        elif sdk_val and sdk_val in _SDK_TO_SYSTEM:
+            detected_system = _SDK_TO_SYSTEM[sdk_val]
+
+    system = detected_system if detected_system else _CATEGORY_TO_DEFAULT_SYSTEM.get(best_cat, "Custom")
     domain = _CATEGORY_TO_DOMAIN.get(best_cat, "cross-domain")
     workflow = _CATEGORY_TO_WORKFLOW.get(best_cat, "Cross-Workflow")
 
-    # Build tags
     tags = [best_cat, system.lower(), domain]
     if workflow:
         tags.append(workflow.lower().replace(" ", "-"))
@@ -2701,12 +2772,210 @@ def _classify_environment(name: str, description: str) -> dict:
     }
 
 
+def _deep_classify_environment(env_record: dict) -> dict:
+    """Deep-classify an environment by analyzing README, tags, files, and dependencies.
+    Falls back to shallow keyword classifier if no local content is available."""
+    name = env_record.get("name", "")
+    description = env_record.get("description", "")
+    sdk = env_record.get("sdk", "")
+    template = env_record.get("template", "")
+    local_path = env_record.get("local_path", "")
+
+    # Gather rich signals from local files
+    readme_text = ""
+    hf_tags = []
+    file_names = []
+    dependencies = []
+
+    if local_path and os.path.isdir(local_path):
+        # Read README
+        readme_path = os.path.join(local_path, "README.md")
+        if os.path.exists(readme_path):
+            try:
+                with open(readme_path, "r") as f:
+                    raw = f.read(5000)
+                readme_text = raw.lower()
+                # Extract HF front-matter tags
+                if raw.startswith("---"):
+                    end = raw.find("---", 3)
+                    if end > 0:
+                        front = raw[3:end]
+                        in_tags = False
+                        for line in front.split("\n"):
+                            stripped = line.strip()
+                            if stripped.startswith("tags:"):
+                                in_tags = True
+                                continue
+                            if in_tags:
+                                if stripped.startswith("- "):
+                                    hf_tags.append(stripped[2:].lower())
+                                else:
+                                    in_tags = False
+                            # Also check short_description or title
+                            if ":" in stripped:
+                                k, v = stripped.split(":", 1)
+                                if k.strip() in ("short_description", "title"):
+                                    readme_text += " " + v.strip().lower()
+            except Exception:
+                pass
+
+        # Collect file names
+        try:
+            for root, dirs, files in os.walk(local_path):
+                dirs[:] = [d for d in dirs if d not in (".git", "__pycache__", "node_modules")]
+                for f in files:
+                    file_names.append(f)
+                if len(file_names) > 200:
+                    break
+        except Exception:
+            pass
+
+        # Parse dependencies from pyproject.toml or requirements.txt
+        for depfile in ("pyproject.toml", "requirements.txt"):
+            dep_path = os.path.join(local_path, depfile)
+            if os.path.exists(dep_path):
+                try:
+                    with open(dep_path, "r") as f:
+                        content = f.read(3000).lower()
+                    for line in content.split("\n"):
+                        line = line.strip().strip('",')
+                        if line and not line.startswith("#") and not line.startswith("["):
+                            # Extract package name (before any version specifier)
+                            pkg = line.split(">=")[0].split("<=")[0].split("==")[0].split("~=")[0].split(">")[0].split("<")[0].strip()
+                            if pkg and len(pkg) < 50:
+                                dependencies.append(pkg)
+                except Exception:
+                    pass
+
+    # Score systems using deep signals
+    sys_scores = {}
+    for sys_name, signals in _DEEP_SYSTEM_SIGNALS.items():
+        score = 0
+        # Tag matches (highest weight — explicit metadata)
+        for tag in signals["tags"]:
+            if tag in hf_tags:
+                score += 5
+        # README content matches
+        for kw in signals["readme"]:
+            if kw in readme_text:
+                score += 3
+        # Dependency matches
+        for dep in signals["deps"]:
+            if dep in dependencies:
+                score += 4
+        # File name matches
+        for fname in signals["files"]:
+            if fname in file_names:
+                score += 2
+        if score > 0:
+            sys_scores[sys_name] = score
+
+    # Clean description of boilerplate before classification
+    clean_desc = description
+    for boilerplate in ("Imported from HuggingFace:", "Imported from GitHub:", "Imported from URL:", "Custom environment created by"):
+        if boilerplate.lower() in clean_desc.lower():
+            clean_desc = clean_desc.split(boilerplate)[-1].strip() if boilerplate in clean_desc else clean_desc
+
+    # Run shallow classifier for category detection (uses name + cleaned description + README excerpt)
+    full_text = name + " " + clean_desc + " " + readme_text[:500]
+    shallow = _classify_environment(name, full_text, sdk=sdk, template=template)
+
+    # Override system if deep analysis found a strong signal
+    if sys_scores:
+        best_deep_system = max(sys_scores, key=sys_scores.get)
+        best_deep_score = sys_scores[best_deep_system]
+        if best_deep_score >= 3:  # Meaningful signal threshold
+            shallow["system"] = best_deep_system
+            # Rebuild tags with the new system
+            shallow["tags"] = list(set([
+                shallow["category"], best_deep_system.lower(),
+                shallow["domain"],
+                shallow["workflow"].lower().replace(" ", "-") if shallow.get("workflow") else ""
+            ]) - {""})
+
+    return shallow
+
+
 @app.post("/api/classify-environment")
 async def classify_environment_endpoint(request: Request):
-    """Classify an environment name+description into category/system/domain/workflow."""
+    """Classify an environment. Uses deep analysis if the env has local files (HF imports)."""
     data = await request.json()
-    result = _classify_environment(data.get("name", ""), data.get("description", ""))
+    env_name = data.get("name", "")
+    # Try deep classification if env has local files
+    env_record = next((e for e in custom_environments if e["name"] == env_name), None)
+    if env_record and env_record.get("local_path") and os.path.isdir(env_record.get("local_path", "")):
+        result = _deep_classify_environment(env_record)
+    else:
+        # Build a pseudo-record for deep classify (will fall back to shallow if no local_path)
+        pseudo = dict(data)
+        result = _deep_classify_environment(pseudo)
     return result
+
+
+def _auto_classify_all_environments() -> int:
+    """Scan all custom environments and classify any missing system/workflow/tags.
+    Returns the number of environments updated."""
+    updated = 0
+    for env in custom_environments:
+        needs_update = False
+        # Check if key classification fields are missing or generic
+        if not env.get("system") or env.get("system") in ("Custom", ""):
+            needs_update = True
+        if not env.get("workflow") or env.get("workflow") in ("Cross-Workflow", ""):
+            needs_update = True
+        if not env.get("domain"):
+            needs_update = True
+        if not env.get("tags"):
+            needs_update = True
+        cat = env.get("category", "")
+        if not cat or cat in ("custom", "cross_workflow"):
+            needs_update = True
+
+        if needs_update:
+            cls = _deep_classify_environment(env)
+            # Only overwrite if classifier found something meaningful
+            if cls["category"] != "cross_workflow" or not env.get("category"):
+                env["category"] = cls["category"]
+            if cls["system"] != "Custom" or not env.get("system") or env.get("system") == "Custom":
+                env["system"] = cls["system"]
+            env["domain"] = cls["domain"]
+            env["workflow"] = cls["workflow"]
+            env["tags"] = cls["tags"]
+            updated += 1
+    if updated > 0:
+        _persist_environments()
+    return updated
+
+
+@app.post("/api/classify-all-environments")
+async def classify_all_environments(request: Request):
+    """Re-classify all custom environments. Use force=true to reclassify all, not just missing."""
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    force = data.get("force", False)
+    if force:
+        updated = 0
+        for env in custom_environments:
+            cls = _deep_classify_environment(env)
+            env["category"] = cls["category"]
+            env["system"] = cls["system"]
+            env["domain"] = cls["domain"]
+            env["workflow"] = cls["workflow"]
+            env["tags"] = cls["tags"]
+            updated += 1
+        if updated > 0:
+            _persist_environments()
+    else:
+        updated = _auto_classify_all_environments()
+    return {"status": "ok", "updated": updated, "total": len(custom_environments)}
+
+
+# --- Startup: auto-classify any existing environments missing tags ---
+_startup_classified = _auto_classify_all_environments() if custom_environments else 0
+if _startup_classified:
+    print(f"[AI Agent] Auto-classified {_startup_classified} environment(s) on startup")
 
 
 @app.get("/api/custom-environments")
@@ -2750,6 +3019,20 @@ async def save_custom_environment_config(request: Request):
             # Update existing - merge all incoming fields
             for key, val in data.items():
                 existing[key] = val
+            # Auto-classify if system/workflow still missing after update
+            if not existing.get("system") or existing.get("system") in ("Custom", "") or not existing.get("workflow"):
+                cls = _deep_classify_environment(existing)
+                if cls["system"] != "Custom" or not existing.get("system") or existing.get("system") == "Custom":
+                    existing["system"] = cls["system"]
+                if not existing.get("workflow"):
+                    existing["workflow"] = cls["workflow"]
+                if not existing.get("domain"):
+                    existing["domain"] = cls["domain"]
+                if not existing.get("tags"):
+                    existing["tags"] = cls["tags"]
+                cur_cat = existing.get("category", "")
+                if not cur_cat or cur_cat in ("custom", "cross_workflow"):
+                    existing["category"] = cls["category"]
             _persist_environments()
             return {"status": "updated", "name": name}
         else:
@@ -2759,7 +3042,7 @@ async def save_custom_environment_config(request: Request):
             # Auto-classify if category is generic or missing
             cur_cat = record.get("category", "")
             if not cur_cat or cur_cat in ("custom", "cross_workflow"):
-                cls = _classify_environment(name, record.get("description", ""))
+                cls = _deep_classify_environment(record)
                 record["category"] = cls["category"]
                 record["system"] = cls["system"]
                 record["domain"] = cls["domain"]
