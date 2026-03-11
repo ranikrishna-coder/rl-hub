@@ -228,6 +228,19 @@ const CATEGORY_CONFIG_REGISTRY = {
         whatItDoesTemplate: function(name) { return '<p>Optimizes revenue cycle operations for ' + formatEnvironmentName(name).toLowerCase() + ', including claims processing, denial management, and collections.</p>'; },
         howToUseTemplate: function() { return '<p>Configure claim parameters, then run simulations to optimize revenue cycle performance.</p>'; }
     },
+    financial: {
+        kpis: ['Sharpe Ratio', 'Total Return', 'Max Drawdown', 'Portfolio Value'],
+        configTemplate: { initial_balance: 100000, transaction_cost: 0.001, max_position: 1.0 },
+        configSchema: {
+            initial_balance: { type: 'number', min: 1000, max: 10000000, label: 'Initial Balance ($)', default: 100000 },
+            transaction_cost: { type: 'number', min: 0, max: 0.01, label: 'Transaction Cost (fraction)', default: 0.001 },
+            max_position: { type: 'range', min: 0.1, max: 2.0, label: 'Max Position Size', default: 1.0 }
+        },
+        trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 1500 },
+        descriptionTemplate: function(name, system) { return 'Financial trading environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function(name) { return '<p>Optimizes financial trading strategies for ' + formatEnvironmentName(name).toLowerCase() + ', including risk-adjusted returns, portfolio optimization, and hedging.</p>'; },
+        howToUseTemplate: function() { return '<p>Configure trading parameters such as initial balance and transaction costs, then run simulations to optimize trading strategies.</p>'; }
+    },
     hr_payroll: {
         kpis: ['Processing Time', 'Compliance Rate', 'Error Rate', 'Employee Satisfaction'],
         configTemplate: { employee_count: 500, pay_periods: 26, compliance_threshold: 95 },
@@ -1001,7 +1014,7 @@ function updateSystemFilterOptions() {
     } else if (domain === 'med-sim') {
         envsForSystems = allEnvironments.filter(env => medCategories.includes(env.category));
     } else if (domain === 'fin-sim') {
-        envsForSystems = allEnvironments.filter(env => env.category === 'revenue_cycle');
+        envsForSystems = allEnvironments.filter(env => env.category === 'revenue_cycle' || env.category === 'financial');
     } else if (domain === 'hr-sim') {
         envsForSystems = allEnvironments.filter(env => env.category === 'hr_payroll');
     }
@@ -1048,7 +1061,7 @@ function filterEnvironments(searchTerm, category) {
                                    'telehealth', 'interoperability', 'clinical_trials', 'cross_workflow'];
             if (domain === 'dev-sim') matchesDomain = env.category === 'jira' || (env.system || '').toLowerCase().includes('jira');
             else if (domain === 'med-sim') matchesDomain = medCategories.includes(env.category);
-            else if (domain === 'fin-sim') matchesDomain = env.category === 'revenue_cycle';
+            else if (domain === 'fin-sim') matchesDomain = env.category === 'revenue_cycle' || env.category === 'financial';
             else if (domain === 'hr-sim') matchesDomain = env.category === 'hr_payroll';
         }
         
@@ -1072,7 +1085,15 @@ function renderEnvironments() {
     document.querySelectorAll('.env-card').forEach(card => {
         card.addEventListener('click', (e) => {
             const envName = card.dataset.env;
-            if (envName) showEnvironmentDetails(envName);
+            if (!envName) return;
+            // Financial and Gymnasium environments go directly to the simulation console
+            const envObj = allEnvironments.find(env => env.name === envName);
+            const envDetails = environmentDetails[envName];
+            if ((envObj && envObj.category === 'financial') || (envDetails && envDetails.sdk === 'gymnasium') || (envObj && envObj.sdk === 'gymnasium')) {
+                window.location.href = '/financial-console?env=' + encodeURIComponent(envName);
+                return;
+            }
+            showEnvironmentDetails(envName);
         });
     });
 
@@ -1158,7 +1179,12 @@ function getEnvironmentDescription(envName, category) {
         'InsurancePlanMatching': 'Matches patients to optimal insurance plans to maximize coverage and minimize out-of-pocket costs.',
         'RevenueForecastSimulation': 'Forecasts revenue based on patient volumes, payer mix, and collection rates for financial planning.',
         'PatientFinancialCounseling': 'Optimizes financial counseling delivery to improve payment rates and patient satisfaction.',
-        
+
+        // Financial Trading environments
+        'StockTrading': 'Single-asset stock trading with risk-adjusted rewards using Differential Sharpe Ratio, transaction costs, and slippage modeling.',
+        'PortfolioAllocation': 'Multi-asset portfolio optimization using CRRA utility rewards with dynamic rebalancing and turnover-based transaction costs.',
+        'OptionsPricing': 'Options delta hedging environment with Black-Scholes benchmarking, optional stochastic volatility, and hedge error minimization.',
+
         // Clinical Trials environments
         'TrialPatientMatching': 'Matches patients to appropriate clinical trials based on eligibility criteria and trial requirements.',
         'AdaptiveTrialDesign': 'Adapts trial protocols in real-time based on interim results to maximize efficiency and ethical outcomes.',
@@ -1257,7 +1283,12 @@ function getUseCaseDescription(envName, category) {
         'PaymentPlanSequencing': 'Patient financial services, billing departments, and revenue cycle management.',
         'BillingCodeOptimization': 'Coding departments, revenue integrity teams, and billing operations.',
         'RevenueLeakageDetection': 'Revenue cycle management, finance departments, and billing operations.',
-        
+
+        // Financial Trading
+        'StockTrading': 'Quantitative trading desks, algorithmic trading teams, and financial engineering research.',
+        'PortfolioAllocation': 'Portfolio management teams, asset allocation strategists, and wealth management firms.',
+        'OptionsPricing': 'Derivatives trading desks, options market makers, and risk management teams.',
+
         // Clinical Trials
         'TrialPatientMatching': 'Clinical research organizations, trial sites, and research coordinators.',
         'AdaptiveTrialDesign': 'Biostatistics teams, clinical research organizations, and trial sponsors.',
@@ -2045,8 +2076,8 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `,
         'revenue_cycle': `
-            <p>This RL environment optimizes revenue cycle management processes, including 
-            claims processing, denial management, and payment collection. The agent learns strategies 
+            <p>This RL environment optimizes revenue cycle management processes, including
+            claims processing, denial management, and payment collection. The agent learns strategies
             to maximize revenue recovery while minimizing processing costs and delays.</p>
             <p><strong>Key Benefits:</strong></p>
             <ul>
@@ -2054,6 +2085,42 @@ function getDefaultWhatItDoes(category, envName) {
                 <li>Reduces claim denials and rejections</li>
                 <li>Accelerates payment processing</li>
                 <li>Improves cash flow and financial performance</li>
+            </ul>
+        `,
+        'StockTrading': `
+            <p>This RL environment simulates single-asset stock trading with realistic transaction costs
+            and slippage modeling. The agent learns optimal buy/sell/hold strategies using the Differential
+            Sharpe Ratio for risk-adjusted reward shaping.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Learns risk-adjusted trading strategies (Sharpe, Sortino, Calmar)</li>
+                <li>Models realistic transaction costs and market slippage</li>
+                <li>Supports 5 discrete trading actions with position limits</li>
+                <li>Tracks portfolio value, drawdown, and trade statistics</li>
+            </ul>
+        `,
+        'PortfolioAllocation': `
+            <p>This RL environment optimizes multi-asset portfolio allocation using CRRA utility rewards.
+            The agent learns to dynamically rebalance portfolio weights across multiple correlated assets
+            while accounting for turnover-based transaction costs.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Dynamic multi-asset portfolio optimization</li>
+                <li>CRRA utility reward for risk-aversion-aware decisions</li>
+                <li>Handles correlated asset returns and regime changes</li>
+                <li>Tracks Sharpe ratio, drawdown, and portfolio volatility</li>
+            </ul>
+        `,
+        'OptionsPricing': `
+            <p>This RL environment teaches delta hedging of short call option positions. The agent
+            learns to minimize hedging P&L variance while managing transaction costs, with optional
+            Heston-like stochastic volatility for realistic market conditions.</p>
+            <p><strong>Key Benefits:</strong></p>
+            <ul>
+                <li>Learns adaptive hedging beyond Black-Scholes delta</li>
+                <li>Supports stochastic volatility for realistic scenarios</li>
+                <li>Benchmarks against analytical Black-Scholes solutions</li>
+                <li>Tracks hedge error, P&L volatility, and options Greeks</li>
             </ul>
         `,
         'population_health': `
@@ -5137,6 +5204,12 @@ function renderSdkTemplateGrid(sdkValue) {
         return;
     }
 
+    if (sdkValue === 'gymnasium') {
+        container.innerHTML = _renderGymnasiumUploadArea();
+        container.style.display = 'block';
+        return;
+    }
+
     var templates = SDK_TEMPLATES[sdkValue];
     if (!templates || templates.length === 0) { container.style.display = 'none'; return; }
 
@@ -5210,13 +5283,65 @@ function resetTerraformToDefault() {
 }
 window.resetTerraformToDefault = resetTerraformToDefault;
 
+function _renderGymnasiumUploadArea() {
+    return '' +
+        '<label class="add-env-template-label">Gymnasium Environment</label>' +
+        '<div class="add-env-terraform-area">' +
+            '<div class="add-env-terraform-info">' +
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
+                '<span>Upload a Python file containing a <code>gym.Env</code> subclass. The environment will be available in the Financial Simulation Console.</span>' +
+            '</div>' +
+            '<div style="margin-top:12px;">' +
+                '<label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-primary);">Python File (.py)</label>' +
+                '<div id="gym-upload-dropzone" class="add-env-terraform-editor" style="min-height:80px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px dashed var(--border-color);border-radius:8px;padding:16px;text-align:center;font-size:13px;color:var(--text-muted);" onclick="document.getElementById(\'gym-file-input\').click()" ondragover="event.preventDefault();this.style.borderColor=\'var(--primary-color)\'" ondragleave="this.style.borderColor=\'var(--border-color)\'" ondrop="handleGymFileDrop(event)">' +
+                    '<span id="gym-upload-label">Drag & drop a .py file here, or click to browse</span>' +
+                '</div>' +
+                '<input type="file" id="gym-file-input" accept=".py" style="display:none;" onchange="handleGymFileSelect(this)">' +
+            '</div>' +
+            '<div style="margin-top:12px;">' +
+                '<label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-primary);">Environment Class Name</label>' +
+                '<input type="text" id="gym-class-name" class="add-env-input" placeholder="e.g. MyCustomEnv" style="width:100%;padding:8px 12px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;">' +
+            '</div>' +
+            '<div style="margin-top:12px;">' +
+                '<label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-primary);">Config JSON <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>' +
+                '<textarea id="gym-config-json" class="add-env-terraform-editor" rows="4" spellcheck="false" placeholder=\'{"param1": "value1", "param2": 42}\'></textarea>' +
+            '</div>' +
+        '</div>';
+}
+
+var _gymUploadedFile = null;
+
+function handleGymFileSelect(input) {
+    if (!input.files || !input.files[0]) return;
+    _gymUploadedFile = input.files[0];
+    document.getElementById('gym-upload-label').textContent = _gymUploadedFile.name + ' (' + (_gymUploadedFile.size / 1024).toFixed(1) + ' KB)';
+    document.getElementById('gym-upload-dropzone').style.borderColor = 'var(--primary-color)';
+    if (window.showToast) showToast('File "' + _gymUploadedFile.name + '" selected.', 'success');
+}
+window.handleGymFileSelect = handleGymFileSelect;
+
+function handleGymFileDrop(event) {
+    event.preventDefault();
+    event.currentTarget.style.borderColor = 'var(--border-color)';
+    var files = event.dataTransfer.files;
+    if (files.length > 0 && files[0].name.endsWith('.py')) {
+        _gymUploadedFile = files[0];
+        document.getElementById('gym-upload-label').textContent = _gymUploadedFile.name + ' (' + (_gymUploadedFile.size / 1024).toFixed(1) + ' KB)';
+        document.getElementById('gym-upload-dropzone').style.borderColor = 'var(--primary-color)';
+        if (window.showToast) showToast('File "' + _gymUploadedFile.name + '" selected.', 'success');
+    } else {
+        if (window.showToast) showToast('Please drop a .py file.', 'error');
+    }
+}
+window.handleGymFileDrop = handleGymFileDrop;
+
 
 // ─── Domain-to-category mapping for new environments ───
 var _categoryToDomain = {
     jira: 'dev-sim', clinical: 'med-sim', imaging: 'med-sim', revenue_cycle: 'fin-sim',
     hr_payroll: 'hr-sim', population_health: 'med-sim', clinical_trials: 'med-sim',
     hospital_operations: 'med-sim', telehealth: 'med-sim', interoperability: 'med-sim',
-    cross_workflow: 'med-sim'
+    cross_workflow: 'med-sim', financial: 'fin-sim'
 };
 
 function _addEnvironmentToGrid(envData) {
@@ -5258,6 +5383,69 @@ function submitAddEnvironment(event) {
     if (!name) {
         if (window.showToast) showToast('Please enter an environment name.', 'error');
         else alert('Please enter an environment name.');
+        return;
+    }
+
+    // --- Gymnasium SDK: upload file via multipart ---
+    if (sdk === 'gymnasium') {
+        if (!_gymUploadedFile) {
+            if (window.showToast) showToast('Please upload a Python file.', 'error');
+            return;
+        }
+        var gymClassName = (document.getElementById('gym-class-name') || {}).value || '';
+        if (!gymClassName.trim()) {
+            if (window.showToast) showToast('Please enter the environment class name.', 'error');
+            return;
+        }
+        var gymConfigJson = (document.getElementById('gym-config-json') || {}).value || '{}';
+        var formData = new FormData();
+        formData.append('file', _gymUploadedFile);
+        formData.append('name', name);
+        formData.append('class_name', gymClassName.trim());
+        formData.append('config_json', gymConfigJson);
+        formData.append('description', desc || 'Custom Gymnasium environment');
+        formData.append('owner', owner);
+
+        fetch(API_BASE + '/api/custom-environments/upload-gymnasium', {
+            method: 'POST',
+            body: formData
+        }).then(function(r) {
+            if (!r.ok) return r.json().then(function(e) { throw new Error(e.detail || 'Upload failed'); });
+            return r.json();
+        }).then(function(result) {
+            var gymEnv = {
+                name: name,
+                description: desc || 'Custom Gymnasium environment: ' + gymClassName,
+                category: 'financial',
+                system: 'Custom',
+                domain: 'fin-sim',
+                sdk: 'gymnasium',
+                hardware: hardware,
+                stateFeatures: result.observation_dim || 0,
+                actionSpace: result.action_dim || 0,
+                actionType: result.action_type || 'unknown',
+                actions: [],
+                owner: owner,
+                license: license,
+                source: 'custom',
+                class_name: gymClassName.trim()
+            };
+            environmentDetails[name] = generateEnvironmentDetails(gymEnv);
+            _addEnvironmentToGrid(gymEnv);
+            if (window.showToast) showToast('Gymnasium environment "' + name + '" uploaded successfully!', 'success');
+            // Reset form
+            document.getElementById('add-env-form').reset();
+            document.getElementById('add-env-owner').value = 'centific';
+            document.getElementById('add-env-sdk').value = 'gradio';
+            document.getElementById('add-env-hardware').value = 'cpu-basic';
+            _gymUploadedFile = null;
+            document.querySelectorAll('#add-env-sdk-seg .add-env-seg-btn').forEach(function(c, i) { c.classList.toggle('selected', i === 0); });
+            renderSdkTemplateGrid('gradio');
+            setTimeout(function() { closeAddEnvironmentPage(); }, 800);
+        }).catch(function(err) {
+            console.error('[Gymnasium Upload]', err);
+            if (window.showToast) showToast('Upload failed: ' + err.message, 'error');
+        });
         return;
     }
 

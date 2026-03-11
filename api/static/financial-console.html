@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Centific AgentWork Simulator - Financial Console</title>
+<link rel="stylesheet" href="/static/global-nav.css">
+<script>
+(function() {
+  var saved = null;
+  try { saved = localStorage.getItem('landing-theme'); } catch (e) {}
+  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (saved === 'dark' || (saved !== 'light' && prefersDark)) document.documentElement.setAttribute('data-theme', 'dark');
+  else document.documentElement.setAttribute('data-theme', 'light');
+})();
+</script>
+<style>
+  :root {
+    --primary: #c026d3;
+    --primary-light: #7c3aed;
+    --primary-pale: #faf5ff;
+    --accent: #233F92;
+    --accent-pink: #ec4899;
+    --green: #2e7d32;
+    --red: #c62828;
+    --bg: #faf8fc;
+    --card: #ffffff;
+    --text: #222222;
+    --muted: #5a5568;
+    --border: #e8e4ef;
+    --radius: 10px;
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 4px 20px rgba(124, 58, 237, 0.12);
+  }
+  [data-theme="dark"] {
+    --primary: #e879f9;
+    --primary-light: #a78bfa;
+    --primary-pale: rgba(126,34,106,0.2);
+    --accent: #818cf8;
+    --accent-pink: #f472b6;
+    --green: #4ade80;
+    --red: #f87171;
+    --bg: #1a1825;
+    --card: #252236;
+    --text: #f3f0f9;
+    --muted: #a8a2b8;
+    --border: #3e3a52;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Page layout (matches catalog detail) ─────────────── */
+  .page-wrap {
+    min-height: 100vh;
+    background: var(--bg);
+    padding: 1.25rem 1.5rem 2.5rem;
+  }
+  .page-inner { max-width: 1400px; margin: 0 auto; }
+
+  /* ── Back button ──────────────────────────────────────── */
+  .btn-back {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 1rem; margin-bottom: 1rem;
+    font-size: 0.9rem; color: var(--primary);
+    background: transparent; border: 1px solid var(--border);
+    border-radius: var(--radius); cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    text-decoration: none;
+  }
+  .btn-back:hover { background: var(--primary-pale); border-color: var(--primary); }
+
+  /* ── Hero (title + badge + status) ────────────────────── */
+  .detail-hero {
+    display: flex; flex-wrap: wrap; align-items: center;
+    justify-content: space-between; gap: 1rem;
+    margin-bottom: 1.5rem; padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-hero-left { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+  .detail-title { font-size: 1.5rem; font-weight: 700; color: var(--text); margin: 0; }
+  .env-badge {
+    padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.75rem;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    background: var(--primary-pale); color: var(--primary);
+  }
+  .health-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 0.35rem 0.75rem; border-radius: 20px;
+    font-size: 0.8rem; color: var(--muted);
+    border: 1px solid var(--border); background: var(--card);
+  }
+  .health-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); animation: pulse 2s infinite;
+  }
+  .health-dot.offline { background: var(--red); animation: none; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  /* ── Collapsible sections (matches catalog detail) ───── */
+  .fc-section {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    margin-bottom: 1rem; background: var(--card);
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .fc-section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.25rem; cursor: pointer; user-select: none;
+    background: transparent; border: none; width: 100%; text-align: left;
+  }
+  .fc-section-header:hover { background: var(--primary-pale); }
+  .fc-section-header h2 {
+    font-size: 1rem; font-weight: 700; color: var(--text);
+    display: flex; align-items: center; gap: 0.5rem; margin: 0;
+  }
+  .fc-section-header h2 svg { color: var(--primary); flex-shrink: 0; }
+  .fc-chevron {
+    width: 20px; height: 20px; transition: transform 0.2s;
+    color: var(--muted); flex-shrink: 0;
+  }
+  .fc-section.open .fc-chevron { transform: rotate(180deg); }
+  .fc-section-body { display: none; }
+  .fc-section.open .fc-section-body { display: block; }
+  .fc-section-content { padding: 0 1.25rem 1.25rem; }
+
+  /* ── Detail cards (2-col grid inside sections) ────────── */
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  @media (max-width: 768px) { .detail-grid { grid-template-columns: 1fr; } }
+  .detail-card {
+    background: var(--bg); border-radius: 8px; border: 1px solid var(--border);
+    padding: 1.25rem;
+  }
+  .detail-card h3 {
+    font-size: 0.85rem; font-weight: 600; color: var(--primary);
+    margin: 0 0 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .detail-card p { font-size: 0.9rem; color: var(--muted); line-height: 1.6; margin: 0; }
+  .spec-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem 1rem; }
+  .spec-item { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; font-size: 0.875rem; }
+  .spec-item label { color: var(--muted); font-weight: 500; }
+  .spec-item span { color: var(--text); font-weight: 600; }
+
+  /* ── Stats row ────────────────────────────────────────── */
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+  @media (max-width: 768px) { .stat-row { grid-template-columns: repeat(2, 1fr); } }
+  .stat-box {
+    background: var(--card); padding: 1rem; border-radius: var(--radius);
+    text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow);
+  }
+  .stat-box .stat-val { font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+  .stat-box .stat-lbl { font-size: 0.75rem; color: var(--muted); margin-top: 0.15rem; }
+
+  /* ── Controls bar ─────────────────────────────────────── */
+  .controls-bar {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.75rem 1.25rem; background: var(--primary-pale);
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .controls-bar label { font-size: 0.8rem; font-weight: 600; color: var(--primary); }
+  .controls-bar select {
+    padding: 0.3rem 0.6rem; border: 1px solid var(--border); border-radius: 5px;
+    font-size: 0.8rem; background: var(--card); color: var(--text);
+  }
+
+  /* ── Buttons ──────────────────────────────────────────── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.4rem 0.85rem; border: none; border-radius: 6px;
+    font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-green { background: var(--green); color: white; }
+  .btn-green:hover { filter: brightness(1.15); }
+  .btn-red { background: var(--red); color: white; }
+  .btn-red:hover { filter: brightness(1.15); }
+  .btn-outline { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
+  .btn-outline:hover { background: var(--primary-pale); }
+
+  /* ── Action controls ──────────────────────────────────── */
+  .action-label { font-size: 0.8rem; font-weight: 600; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  .discrete-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .discrete-actions .btn { flex: 1; min-width: 80px; justify-content: center; }
+  .action-panel { display: flex; gap: 0.5rem; align-items: stretch; flex-wrap: wrap; }
+  .action-panel input {
+    flex: 1; min-width: 100px; padding: 0.5rem 0.75rem; border: 1.5px solid var(--border);
+    border-radius: 6px; font-size: 0.85rem; font-family: 'Courier New', monospace;
+    background: var(--card); color: var(--text);
+  }
+  .action-panel input:focus { outline: none; border-color: var(--primary); }
+  .action-hint { font-size: 0.7rem; color: var(--muted); margin-top: 0.25rem; }
+
+  /* ── Simulation two-column layout ─────────────────────── */
+  .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  @media (max-width: 1000px) { .sim-grid { grid-template-columns: 1fr; } }
+
+  /* ── Inner cards (obs, reward, info, log) ──────────────── */
+  .sim-card {
+    background: var(--bg); border-radius: 8px; border: 1px solid var(--border);
+    overflow: hidden; margin-bottom: 1rem;
+  }
+  .sim-card:last-child { margin-bottom: 0; }
+  .sim-card-header {
+    padding: 0.75rem 1rem; display: flex; align-items: center;
+    justify-content: space-between; border-bottom: 1px solid var(--border);
+  }
+  .sim-card-header h3 { font-size: 0.85rem; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; }
+  .sim-card-header .tag { font-size: 0.7rem; background: var(--primary-pale); color: var(--primary); padding: 0.15rem 0.5rem; border-radius: 8px; }
+  .sim-card-body { padding: 1rem; }
+
+  /* ── Observation grid ─────────────────────────────────── */
+  .obs-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.4rem;
+  }
+  .obs-item {
+    background: var(--card); padding: 0.4rem 0.65rem; border-radius: 6px;
+    font-size: 0.7rem; display: flex; justify-content: space-between; gap: 0.4rem;
+    border: 1px solid var(--border);
+  }
+  .obs-item .label { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .obs-item .value { font-weight: 600; color: var(--primary); font-family: 'Courier New', monospace; flex-shrink: 0; }
+
+  /* ── Reward chart ─────────────────────────────────────── */
+  .chart-wrap { width: 100%; height: 180px; position: relative; }
+  .chart-wrap canvas { display: block; }
+
+  /* ── Info table ───────────────────────────────────────── */
+  .info-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .info-table td { padding: 0.4rem 0.65rem; border-bottom: 1px solid var(--border); }
+  .info-table td:first-child { color: var(--muted); width: 40%; }
+  .info-table td:last-child { font-weight: 500; font-family: 'Courier New', monospace; }
+
+  /* ── Status badges ────────────────────────────────────── */
+  .badge {
+    display: inline-block; padding: 0.15rem 0.6rem; border-radius: 10px;
+    font-size: 0.7rem; font-weight: 600;
+  }
+  .badge-active { background: rgba(46,125,50,0.15); color: var(--green); }
+  .badge-terminated { background: rgba(198,40,40,0.15); color: var(--red); }
+
+  /* ── Log area ─────────────────────────────────────────── */
+  .log-area {
+    background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
+    padding: 0.75rem; font-family: 'Courier New', monospace; font-size: 0.68rem;
+    max-height: 200px; overflow-y: auto; line-height: 1.7;
+  }
+  .log-area .log-step { color: #89b4fa; }
+  .log-area .log-reward { color: #a6e3a1; }
+  .log-area .log-error { color: #f38ba8; }
+  .log-area .log-info { color: #cba6f7; }
+
+  /* ── Empty state ──────────────────────────────────────── */
+  .empty-state { text-align: center; padding: 3rem 1.25rem; color: var(--muted); }
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
+  .empty-state p { font-size: 0.9rem; }
+
+  /* ── Environment selector cards ───────────────────────── */
+  .env-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  @media (max-width: 900px) { .env-grid { grid-template-columns: 1fr; } }
+  .env-select-card {
+    background: var(--card); border-radius: var(--radius); border: 2px solid var(--border);
+    padding: 1.25rem; cursor: pointer; transition: all 0.2s; text-align: center;
+  }
+  .env-select-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .env-select-card.active { border-color: var(--primary); background: var(--primary-pale); }
+  .env-select-card .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+  .env-select-card h3 { font-size: 0.9rem; color: var(--primary); margin-bottom: 0.35rem; }
+  .env-select-card p { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+  .env-select-card .meta { margin-top: 0.5rem; font-size: 0.7rem; color: var(--muted); }
+  .env-select-card .tools { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.25rem; justify-content: center; }
+  .env-select-card .tool-tag {
+    font-size: 0.65rem; background: var(--primary-pale); color: var(--primary);
+    padding: 0.1rem 0.5rem; border-radius: 8px; border: 1px solid var(--border);
+  }
+
+  /* ── Explain panel content ────────────────────────────── */
+  .explain-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  @media (max-width: 800px) { .explain-cols { grid-template-columns: 1fr; } }
+  .explain-body h4 {
+    font-size: 0.8rem; font-weight: 700; color: var(--primary);
+    margin: 0.75rem 0 0.35rem; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .explain-body h4:first-child { margin-top: 0; }
+  .explain-body p { font-size: 0.85rem; color: var(--text); line-height: 1.6; margin-bottom: 0.25rem; }
+  .explain-body ul { font-size: 0.85rem; color: var(--text); line-height: 1.7; padding-left: 1.1rem; margin-bottom: 0.35rem; }
+  .explain-body .formula {
+    display: inline-block; background: var(--primary-pale); padding: 0.1rem 0.5rem;
+    border-radius: 4px; font-family: 'Courier New', monospace; font-size: 0.75rem; color: var(--primary);
+  }
+  .obs-explain-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; margin-top: 0.25rem; }
+  .obs-explain-table th { text-align: left; padding: 0.25rem 0.5rem; background: var(--primary-pale); color: var(--primary); font-weight: 600; }
+  .obs-explain-table td { padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--border); }
+  .obs-explain-table td:first-child { font-weight: 600; color: var(--primary); font-family: 'Courier New', monospace; }
+
+  /* ── Footer ───────────────────────────────────────────── */
+  .page-footer {
+    max-width: 1400px; margin: 0 auto; padding: 1.25rem 1.5rem;
+    text-align: center; font-size: 0.85rem; color: var(--muted);
+    border-top: 1px solid var(--border);
+  }
+  .page-footer a { color: var(--muted); text-decoration: none; margin: 0 0.75rem; }
+  .page-footer a:hover { color: var(--primary); }
+
+  /* ── Scrollbar ────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- Global Nav -->
+<nav class="gn-bar">
+  <a href="/" class="gn-logo">
+    <img src="/static/logo.svg" alt="Centific" width="28" height="28">
+    <span class="gn-logo-text">Centific<span class="gn-logo-sub">RL Environment & Agent</span></span>
+  </a>
+  <button class="gn-toggle" onclick="document.querySelector('.gn-links').classList.toggle('gn-open')" aria-label="Menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+  <ul class="gn-links">
+    <li><a href="/" class="gn-link">Home</a></li>
+    <li><a href="/catalog" class="gn-link">Catalog</a></li>
+    <li><a href="/financial-console" class="gn-link gn-active">Financial Console</a></li>
+    <li><a href="/human-eval" class="gn-link">Human Eval</a></li>
+    <li>
+      <button class="gn-theme-toggle" onclick="toggleDarkMode()" title="Toggle dark mode">
+        <span class="theme-icon-sun">&#9728;</span>
+        <span class="theme-icon-moon">&#9790;</span>
+      </button>
+    </li>
+  </ul>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-inner">
+
+    <!-- Back button -->
+    <a href="/catalog" class="btn-back" id="btnBack">&#8592; Back to Catalog</a>
+
+    <!-- Hero: title + category + health -->
+    <div class="detail-hero">
+      <div class="detail-hero-left">
+        <h1 class="detail-title" id="pageTitle">Financial Simulation Console</h1>
+        <span class="env-badge">FINANCIAL</span>
+        <span class="badge badge-active" id="activeStatus" style="display:none;">ACTIVE</span>
+      </div>
+      <div class="health-pill">
+        <div class="health-dot" id="healthDot"></div>
+        <span id="healthText">Connecting...</span>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val" id="statEnvs">0</div><div class="stat-lbl">Active Envs</div></div>
+      <div class="stat-box"><div class="stat-val" id="statSteps">0</div><div class="stat-lbl">Total Steps</div></div>
+      <div class="stat-box"><div class="stat-val" id="statReward">0.00</div><div class="stat-lbl">Cumulative Reward</div></div>
+      <div class="stat-box"><div class="stat-val" id="statUptime">0s</div><div class="stat-lbl">Server Uptime</div></div>
+    </div>
+
+    <!-- Environment Selection (hidden in direct mode) -->
+    <div id="envSelectSection" class="fc-section open">
+      <button class="fc-section-header" onclick="toggleSection('envSelectSection')">
+        <h2>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Select Environment
+        </h2>
+        <svg class="fc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="fc-section-body">
+        <div class="fc-section-content">
+          <div class="env-grid" id="envGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Description / How It Works (collapsible) -->
+    <div id="explainSection" class="fc-section open" style="display:none;">
+      <button class="fc-section-header" onclick="toggleSection('explainSection')">
+        <h2>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <span id="explainTitle">Description</span>
+        </h2>
+        <svg class="fc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="fc-section-body">
+        <div class="fc-section-content">
+          <div class="explain-body" id="explainBody"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Simulation Console (collapsible, main interactive area) -->
+    <div id="simSection" class="fc-section open" style="display:none;">
+      <button class="fc-section-header" onclick="toggleSection('simSection')">
+        <h2>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg>
+          Simulation
+        </h2>
+        <svg class="fc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="fc-section-body">
+        <!-- Controls bar -->
+        <div class="controls-bar">
+          <button class="btn btn-green" onclick="resetEnv()">Reset</button>
+          <button class="btn btn-primary" onclick="autoStep()" id="autoBtn">Auto-Step</button>
+          <button class="btn btn-red" onclick="stopAutoStep()" id="stopBtn" style="display:none;">Stop</button>
+          <button class="btn btn-outline" onclick="deleteEnv()" id="closeEnvBtn">Close Env</button>
+          <label style="margin-left:auto;">Speed:</label>
+          <select id="stepSpeed">
+            <option value="200">Fastest</option>
+            <option value="500">Fast</option>
+            <option value="1000" selected>Normal</option>
+            <option value="2000">Slow</option>
+          </select>
+        </div>
+        <div class="fc-section-content" style="padding-top:1.25rem;">
+          <!-- Action controls -->
+          <div style="margin-bottom:1rem;">
+            <div class="action-label">Action</div>
+            <div id="discreteActionsContainer" class="discrete-actions"></div>
+            <div id="continuousActionContainer" style="display:none;">
+              <div class="action-panel">
+                <input type="text" id="continuousInput" placeholder="e.g. [0.2, 0.3, 0.1, 0.2, 0.2]">
+                <button class="btn btn-primary" onclick="stepContinuous()">Step</button>
+              </div>
+              <div class="action-hint" id="continuousHint"></div>
+            </div>
+          </div>
+
+          <!-- Two-column sim layout -->
+          <div class="sim-grid">
+            <!-- Left: Observation -->
+            <div>
+              <div class="sim-card">
+                <div class="sim-card-header">
+                  <h3>Observation</h3>
+                  <span class="tag" id="obsShape"></span>
+                </div>
+                <div class="sim-card-body">
+                  <div class="obs-grid" id="obsGrid"></div>
+                </div>
+              </div>
+
+              <div class="sim-card">
+                <div class="sim-card-header"><h3>Step Info</h3></div>
+                <div class="sim-card-body" style="padding:0;">
+                  <table class="info-table" id="infoTable">
+                    <tr><td>Step</td><td id="infoStep">0</td></tr>
+                    <tr><td>Last Reward</td><td id="infoReward">-</td></tr>
+                    <tr><td>Terminated</td><td id="infoTerminated">false</td></tr>
+                    <tr><td>Truncated</td><td id="infoTruncated">false</td></tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Reward chart + Log -->
+            <div>
+              <div class="sim-card">
+                <div class="sim-card-header">
+                  <h3>Reward History</h3>
+                  <span class="tag" id="rewardTotal">Total: 0.00</span>
+                </div>
+                <div class="sim-card-body">
+                  <div class="chart-wrap"><canvas id="rewardChart"></canvas></div>
+                </div>
+              </div>
+
+              <div class="sim-card">
+                <div class="sim-card-header">
+                  <h3>Event Log</h3>
+                  <button class="btn btn-outline" onclick="clearLog()" style="padding:0.2rem 0.5rem;font-size:0.7rem;">Clear</button>
+                </div>
+                <div class="sim-card-body" style="padding:0;">
+                  <div class="log-area" id="logArea">
+                    <div class="log-info">Waiting for environment selection...</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty state when no env selected -->
+    <div id="emptyState" class="empty-state">
+      <div class="icon">&#128200;</div>
+      <p>Select an environment above to begin financial simulation testing.</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="page-footer">
+  <a href="#">Terms of Use</a>
+  <a href="#">Privacy</a>
+  <a href="#">Cookie Policy</a>
+</footer>
+
+<script>
+/* ── Dark mode toggle ─────────────────────────────────── */
+function toggleDarkMode() {
+  var html = document.documentElement;
+  var isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  try { localStorage.setItem('landing-theme', isDark ? 'light' : 'dark'); } catch (e) {}
+  drawRewardChart();
+}
+
+/* ── Section toggle (accordion) ───────────────────────── */
+function toggleSection(id) {
+  var el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+
+/* ── Constants ────────────────────────────────────────── */
+var API_PREFIX = '/financial';
+var currentEnvId = null;
+var currentEnvType = null;
+var currentActionType = null;
+var currentActionDim = null;
+var stepCount = 0;
+var cumulativeReward = 0;
+var rewardHistory = [];
+var autoInterval = null;
+var envTypes = {};
+
+/* ── URL param mapping ────────────────────────────────── */
+var URL_SLUG_MAP = {
+  'StockTrading':        'stock-trading',
+  'PortfolioAllocation': 'portfolio-allocation',
+  'OptionsPricing':      'options-pricing'
+};
+
+/* ── Observation labels ───────────────────────────────── */
+var OBS_NAMES = {
+  'stock-trading': [
+    'Return', 'Price/SMA-1', 'Std/SMA', 'Position in Range', 'RSI',
+    'Short Momentum', 'Log Price/SMA', 'Return Volatility',
+    'x[8]', 'x[9]', 'x[10]', 'x[11]', 'x[12]', 'x[13]', 'x[14]', 'x[15]',
+    'x[16]', 'x[17]', 'Position Frac', 'Cash Ratio', 'Unrealized PnL', 'Drawdown'
+  ],
+  'options-pricing': [
+    'Moneyness (S/K)', 'Time to Expiry', 'Volatility', 'BS Delta',
+    'Gamma\u00d7S', 'Hedge Ratio', 'PnL'
+  ]
+};
+
+/* ── Environment Explanations ─────────────────────────── */
+var ENV_EXPLAIN = {
+  'stock-trading': {
+    title: 'Stock Trading Environment',
+    overview: 'Single-asset trading with synthetic GBM (Geometric Brownian Motion) prices featuring regime switching. The agent observes technical indicators and decides trade actions at each timestep. Uses Differential Sharpe Ratio for reward shaping.',
+    goal: 'Maximize risk-adjusted returns (Differential Sharpe Ratio) over the episode by timing entries and exits.',
+    obs: [
+      ['Return', 'Latest single-step log return'],
+      ['Price/SMA-1', 'Price divided by simple moving average minus 1 (trend signal)'],
+      ['Std/SMA', 'Standard deviation normalized by SMA'],
+      ['Position in Range', 'Where price sits within its recent range (0=low, 1=high)'],
+      ['RSI', 'Relative Strength Index (0\u20131) \u2014 overbought/oversold signal'],
+      ['Short Momentum', 'Short-term price momentum'],
+      ['Log Price/SMA', 'Log of price/SMA ratio'],
+      ['Return Volatility', 'Rolling volatility of returns'],
+      ['x[8]\u2013x[17]', 'Additional technical features'],
+      ['Position Frac', 'Current position as fraction of max'],
+      ['Cash Ratio', 'Cash as fraction of total portfolio value'],
+      ['Unrealized PnL', 'Unrealized profit/loss on open position'],
+      ['Drawdown', 'Current drawdown from peak portfolio value']
+    ],
+    actions: '<strong>Discrete (5 actions):</strong><ul><li><strong>0 \u2014 Strong Sell:</strong> Sell maximum position</li><li><strong>1 \u2014 Sell:</strong> Reduce position</li><li><strong>2 \u2014 Hold:</strong> No trade, keep current position</li><li><strong>3 \u2014 Buy:</strong> Increase position</li><li><strong>4 \u2014 Strong Buy:</strong> Buy maximum position</li></ul>',
+    reward: 'Uses the <strong>Differential Sharpe Ratio</strong> for reward shaping: <span class="formula">DSR = (A_{t-1} \u0394B_t - 0.5 B_{t-1} \u0394A_t) / (B_{t-1} - A_{t-1}\u00b2)^{3/2}</span>. Penalizes large drawdowns and transaction costs.',
+    termination: 'Episode ends when price data is consumed (~500 steps) or if the portfolio value drops below 50% of initial capital.',
+    stateDim: '22-dimensional state vector'
+  },
+  'portfolio-allocation': {
+    title: 'Portfolio Allocation Environment',
+    overview: 'Multi-asset (5 correlated assets) portfolio optimization. The agent allocates capital across assets at each step with weights summing to 1. Uses CRRA (Constant Relative Risk Aversion) utility for the reward function.',
+    goal: 'Maximize CRRA utility-based returns while managing risk across 5 correlated assets and minimizing rebalancing costs.',
+    obs: [
+      ['x[0..N]', 'Flattened lookback window of historical returns per asset (asset_1_t-20, ..., asset_1_t-1, asset_2_t-20, ...)'],
+      ['weights[0..4]', 'Current portfolio weight for each of the 5 assets'],
+      ['portfolio_return', 'Latest portfolio return (weighted sum of asset returns)'],
+      ['portfolio_vol', 'Rolling portfolio volatility'],
+      ['sharpe', 'Rolling Sharpe ratio of the portfolio'],
+      ['cash', 'Fraction of capital held as cash']
+    ],
+    actions: '<strong>Continuous (5-dim vector):</strong><ul><li>Each value is a target weight for one asset</li><li>Weights are softmax-normalized to sum to 1.0</li><li>Example: <span class="formula">[0.20, 0.20, 0.20, 0.20, 0.20]</span> = equal-weight</li><li>Example: <span class="formula">[0.80, 0.05, 0.05, 0.05, 0.05]</span> = concentrated</li></ul>',
+    reward: 'CRRA utility: <span class="formula">U(r) = (1+r)^(1-\u03b3) / (1-\u03b3) - transaction_costs</span>. Transaction costs proportional to absolute change in weights. Risk aversion parameter \u03b3 controls return-risk trade-off.',
+    termination: 'Episode ends when all return data is consumed (~479 steps for 500 days with lookback=20) or portfolio drops below 50%.',
+    stateDim: '~109-dimensional state vector'
+  },
+  'options-pricing': {
+    title: 'Options Pricing & Hedging Environment',
+    overview: 'Delta hedging of short call options. The underlying stock follows Geometric Brownian Motion. The agent decides how aggressively to hedge at each timestep. Includes Black-Scholes benchmarking for comparison. Optionally supports stochastic volatility.',
+    goal: 'Minimize hedging error (P&L variance) while managing transaction costs. A perfect hedge would produce zero P&L variance.',
+    obs: [
+      ['Moneyness (S/K)', 'Stock price relative to strike price (>1 = in-the-money)'],
+      ['Time to Expiry', 'Fraction of time remaining until option expiry (1.0 \u2192 0.0)'],
+      ['Volatility', 'Implied or realized volatility of the underlying'],
+      ['BS Delta', 'Black-Scholes delta \u2014 theoretical hedge ratio'],
+      ['Gamma\u00d7S', 'Gamma times stock price \u2014 hedging sensitivity'],
+      ['Hedge Ratio', 'Current hedge position (0=unhedged, 1=fully hedged)'],
+      ['PnL', 'Running profit/loss of the hedged position']
+    ],
+    actions: '<strong>Continuous (1-dim):</strong><ul><li>Value in [-0.5, 1.5] representing target hedge ratio</li><li><strong>0.0</strong> = no hedge (fully exposed to stock moves)</li><li><strong>1.0</strong> = full delta hedge (match BS delta exactly)</li><li>Values outside [0,1] allow over/under hedging strategies</li></ul>',
+    reward: 'Negative of squared hedging error: <span class="formula">-(PnL_change)\u00b2 - cost \u00d7 |hedge_change|</span>. Rewards stable P&L (low variance) while penalizing excessive rebalancing.',
+    termination: 'Episode ends at option expiry (~30 trading days, ~30 steps).',
+    stateDim: '7-dimensional state vector'
+  }
+};
+
+/* ── Canvas Reward Chart ──────────────────────────────── */
+var _chartRAF = null;
+function drawRewardChart() {
+  if (_chartRAF) cancelAnimationFrame(_chartRAF);
+  _chartRAF = requestAnimationFrame(_drawRewardChartImpl);
+}
+function _drawRewardChartImpl() {
+  _chartRAF = null;
+  var canvas = document.getElementById('rewardChart');
+  if (!canvas) return;
+  var wrap = canvas.parentElement;
+  if (!wrap) return;
+  var rect = wrap.getBoundingClientRect();
+  var W = Math.floor(rect.width);
+  var H = Math.floor(rect.height) || 180;
+  if (W < 10) return; /* parent not yet laid out */
+
+  var dpr = window.devicePixelRatio || 1;
+  var bufW = Math.floor(W * dpr);
+  var bufH = Math.floor(H * dpr);
+
+  /* only resize the buffer when dimensions actually change */
+  if (canvas.width !== bufW || canvas.height !== bufH) {
+    canvas.width = bufW;
+    canvas.height = bufH;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+  }
+
+  var ctx = canvas.getContext('2d');
+  /* setTransform resets to identity then applies scale – avoids accumulated scale */
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var lineColor = isDark ? '#e879f9' : '#c026d3';
+  var fillColor = isDark ? 'rgba(232,121,249,0.12)' : 'rgba(192,38,211,0.08)';
+  var gridColor = isDark ? '#3e3a52' : '#e8e4ef';
+  var labelColor = isDark ? '#a8a2b8' : '#5a5568';
+
+  if (rewardHistory.length < 2) {
+    ctx.fillStyle = labelColor;
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Take steps to see reward chart', W / 2, H / 2);
+    return;
+  }
+
+  var data = rewardHistory;
+  var min = Math.min.apply(null, data), max = Math.max.apply(null, data);
+  var range = max - min || 1;
+  var pad = { t: 10, b: 30, l: 55, r: 10 };
+  var cW = W - pad.l - pad.r, cH = H - pad.t - pad.b;
+
+  /* grid lines */
+  ctx.strokeStyle = gridColor; ctx.lineWidth = 0.5;
+  for (var i = 0; i <= 4; i++) {
+    var y = pad.t + (cH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    ctx.fillStyle = labelColor; ctx.font = '10px monospace'; ctx.textAlign = 'right';
+    ctx.fillText((max - (range / 4) * i).toFixed(3), pad.l - 5, y + 3);
+  }
+
+  /* data line */
+  ctx.beginPath(); ctx.strokeStyle = lineColor; ctx.lineWidth = 2;
+  data.forEach(function(v, idx) {
+    var x = pad.l + (idx / (data.length - 1)) * cW;
+    var yv = pad.t + (1 - (v - min) / range) * cH;
+    idx === 0 ? ctx.moveTo(x, yv) : ctx.lineTo(x, yv);
+  });
+  ctx.stroke();
+
+  /* fill area under line */
+  var lastX = pad.l + cW;
+  ctx.lineTo(lastX, pad.t + cH); ctx.lineTo(pad.l, pad.t + cH); ctx.closePath();
+  ctx.fillStyle = fillColor; ctx.fill();
+
+  /* x-axis label */
+  ctx.fillStyle = labelColor; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Step ' + data.length, W / 2, H - 5);
+}
+
+/* ── API Helper ───────────────────────────────────────── */
+function api(path, opts) {
+  opts = opts || {};
+  return fetch(API_PREFIX + path, Object.assign({
+    headers: { 'Content-Type': 'application/json' }
+  }, opts))
+  .then(function(res) {
+    if (!res.ok) {
+      return res.json().catch(function() { return { detail: res.statusText }; }).then(function(err) {
+        throw new Error(err.detail || res.statusText);
+      });
+    }
+    return res.json();
+  })
+  .catch(function(e) { log('error', e.message); throw e; });
+}
+
+/* ── Health Check ─────────────────────────────────────── */
+function checkHealth() {
+  api('/health')
+    .then(function(h) {
+      document.getElementById('healthDot').className = 'health-dot';
+      document.getElementById('healthText').textContent = 'Online | ' + h.active_environments + ' envs';
+      document.getElementById('statEnvs').textContent = h.active_environments;
+      document.getElementById('statUptime').textContent = formatUptime(h.uptime_seconds);
+    })
+    .catch(function() {
+      document.getElementById('healthDot').className = 'health-dot offline';
+      document.getElementById('healthText').textContent = 'Offline';
+    });
+}
+
+/* ── Load Environment Types ───────────────────────────── */
+function loadEnvTypes() {
+  return api('/envs/list')
+    .then(function(data) {
+      envTypes = data;
+      renderEnvGrid();
+      return data;
+    })
+    .catch(function() {
+      document.getElementById('envGrid').innerHTML =
+        '<div class="empty-state" style="grid-column:1/-1;"><p>Failed to load environments. Is the server running?</p></div>';
+    });
+}
+
+/* ── Render Environment Grid ──────────────────────────── */
+function renderEnvGrid() {
+  var icons = {
+    'stock-trading': '\uD83D\uDCC8',
+    'portfolio-allocation': '\uD83D\uDCCA',
+    'options-pricing': '\uD83C\uDFAF'
+  };
+  var grid = document.getElementById('envGrid');
+  grid.innerHTML = '';
+  var keys = Object.keys(envTypes);
+  if (keys.length === 0) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p>No financial environments available.</p></div>';
+    return;
+  }
+  keys.forEach(function(name) {
+    var info = envTypes[name];
+    var card = document.createElement('div');
+    card.className = 'env-select-card' + (currentEnvType === name ? ' active' : '');
+    card.onclick = function() { createEnv(name); };
+
+    var toolsHTML = '';
+    if (info.tools && info.tools.length) {
+      toolsHTML = '<div class="tools">' +
+        info.tools.map(function(t) { return '<span class="tool-tag">' + t.name + '</span>'; }).join('') +
+        '</div>';
+    }
+
+    card.innerHTML =
+      '<div class="icon">' + (icons[name] || '\uD83E\uDDEA') + '</div>' +
+      '<h3>' + (info.display_name || name) + '</h3>' +
+      '<p>' + (info.description || '') + '</p>' +
+      '<div class="meta">Action: <strong>' + (info.action_type || 'N/A') + '</strong> | Obs dim: <strong>' + (info.observation_dim || '?') + '</strong></div>' +
+      toolsHTML;
+    grid.appendChild(card);
+  });
+}
+
+/* ── Create Environment ───────────────────────────────── */
+function createEnv(envType) {
+  var p = currentEnvId ? deleteEnv(true) : Promise.resolve();
+  p.then(function() {
+    log('info', 'Creating ' + envType + ' environment...');
+    return api('/envs/create', {
+      method: 'POST',
+      body: JSON.stringify({ env_type: envType, config: {} })
+    });
+  }).then(function(res) {
+    currentEnvId = res.env_id;
+    currentEnvType = envType;
+    currentActionType = res.action_space_info ? res.action_space_info.type : 'discrete';
+    currentActionDim = res.action_space_info ? res.action_space_info.dim : 5;
+    stepCount = 0;
+    cumulativeReward = 0;
+    rewardHistory = [];
+    document.getElementById('statSteps').textContent = '0';
+    document.getElementById('statReward').textContent = '0.00';
+    log('info', 'Created env ' + res.env_id + ' (' + envType + '), obs shape: [' + res.observation_shape + ']');
+    showActivePanel(envType, res);
+    return resetEnv();
+  }).then(function() {
+    renderEnvGrid();
+    checkHealth();
+  }).catch(function() { /* errors logged in api() */ });
+}
+
+/* ── Reset Environment ────────────────────────────────── */
+function resetEnv() {
+  if (!currentEnvId) return Promise.resolve();
+  return api('/envs/' + currentEnvId + '/reset', { method: 'POST' })
+    .then(function(res) {
+      stepCount = 0; cumulativeReward = 0; rewardHistory = [];
+      updateObservation(res.observation);
+      updateInfo({ step: 0, reward: '-', terminated: false, truncated: false });
+      document.getElementById('statSteps').textContent = '0';
+      document.getElementById('statReward').textContent = '0.00';
+      document.getElementById('rewardTotal').textContent = 'Total: 0.00';
+      document.getElementById('activeStatus').className = 'badge badge-active';
+      document.getElementById('activeStatus').textContent = 'ACTIVE';
+      drawRewardChart();
+      log('info', 'Environment reset');
+    });
+}
+
+/* ── Step Environment ─────────────────────────────────── */
+function stepEnv(action) {
+  if (!currentEnvId) return Promise.resolve();
+  return api('/envs/' + currentEnvId + '/step', {
+    method: 'POST',
+    body: JSON.stringify({ action: action })
+  }).then(function(res) {
+    stepCount++;
+    cumulativeReward += res.reward;
+    rewardHistory.push(res.reward);
+    updateObservation(res.observation);
+    updateInfo({ step: stepCount, reward: res.reward, terminated: res.terminated, truncated: res.truncated });
+    document.getElementById('statSteps').textContent = stepCount;
+    document.getElementById('statReward').textContent = cumulativeReward.toFixed(3);
+    document.getElementById('rewardTotal').textContent = 'Total: ' + cumulativeReward.toFixed(3);
+    drawRewardChart();
+    log('step', 'Step ' + stepCount + ': action=' + JSON.stringify(action) + ', reward=' + res.reward.toFixed(4));
+
+    if (res.terminated || res.truncated) {
+      stopAutoStep();
+      document.getElementById('activeStatus').className = 'badge badge-terminated';
+      document.getElementById('activeStatus').textContent = res.terminated ? 'TERMINATED' : 'TRUNCATED';
+      log('info', 'Episode ended at step ' + stepCount + '. Cumulative reward: ' + cumulativeReward.toFixed(4));
+    }
+
+    var infoTable = document.getElementById('infoTable');
+    while (infoTable.rows.length > 4) infoTable.deleteRow(4);
+    if (res.info) {
+      Object.keys(res.info).forEach(function(k) {
+        var v = res.info[k];
+        var row = infoTable.insertRow();
+        row.innerHTML = '<td>' + k + '</td><td>' + (typeof v === 'number' ? v.toFixed(4) : JSON.stringify(v)) + '</td>';
+      });
+    }
+  }).catch(function() { stopAutoStep(); });
+}
+
+/* ── Delete Environment ───────────────────────────────── */
+function deleteEnv(silent) {
+  if (!currentEnvId) return Promise.resolve();
+  stopAutoStep();
+  var id = currentEnvId;
+  currentEnvId = null; currentEnvType = null;
+  return api('/envs/' + id, { method: 'DELETE' })
+    .then(function() { if (!silent) log('info', 'Deleted environment ' + id); })
+    .catch(function() {})
+    .then(function() {
+      if (directEnvMode && !silent) {
+        window.location.href = '/catalog';
+        return;
+      }
+      document.getElementById('simSection').style.display = 'none';
+      document.getElementById('explainSection').style.display = 'none';
+      document.getElementById('activeStatus').style.display = 'none';
+      document.getElementById('emptyState').style.display = '';
+      document.getElementById('pageTitle').textContent = 'Financial Simulation Console';
+      renderEnvGrid();
+      checkHealth();
+    });
+}
+
+/* ── Continuous Action Submit ─────────────────────────── */
+function stepContinuous() {
+  var raw = document.getElementById('continuousInput').value.trim();
+  var action;
+  try { action = JSON.parse(raw); if (!Array.isArray(action)) throw new Error(); }
+  catch (e) { log('error', 'Invalid action. Enter a JSON array, e.g. [0.2, 0.3, 0.5]'); return; }
+  stepEnv(action);
+}
+
+/* ── Discrete Action Submit ───────────────────────────── */
+function stepDiscrete(a) { stepEnv(a); }
+
+/* ── Random Action Generator ──────────────────────────── */
+function randomAction() {
+  if (currentActionType === 'discrete') return Math.floor(Math.random() * currentActionDim);
+  if (currentEnvType === 'portfolio-allocation') {
+    var raw = [];
+    for (var i = 0; i < currentActionDim; i++) raw.push(Math.random());
+    var sum = raw.reduce(function(a, b) { return a + b; }, 0);
+    return raw.map(function(v) { return +(v / sum).toFixed(4); });
+  }
+  if (currentEnvType === 'options-pricing') return [+(-0.5 + Math.random() * 2).toFixed(4)];
+  var arr = [];
+  for (var j = 0; j < currentActionDim; j++) arr.push(+(Math.random()).toFixed(4));
+  return arr;
+}
+
+/* ── Auto Step ────────────────────────────────────────── */
+function autoStep() {
+  if (autoInterval) return;
+  var speed = parseInt(document.getElementById('stepSpeed').value, 10);
+  document.getElementById('autoBtn').style.display = 'none';
+  document.getElementById('stopBtn').style.display = '';
+  log('info', 'Auto-stepping started (interval: ' + speed + 'ms)');
+  var doStep = function() { stepEnv(randomAction()); };
+  doStep();
+  autoInterval = setInterval(doStep, speed);
+}
+
+function stopAutoStep() {
+  if (autoInterval) { clearInterval(autoInterval); autoInterval = null; }
+  document.getElementById('autoBtn').style.display = '';
+  document.getElementById('stopBtn').style.display = 'none';
+}
+
+/* ── Show Active Panel ────────────────────────────────── */
+function showActivePanel(envType, createRes) {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('simSection').style.display = '';
+  document.getElementById('simSection').classList.add('open');
+
+  // Update title and badge
+  var info = envTypes[envType];
+  var displayName = info ? info.display_name : envType;
+  document.getElementById('pageTitle').textContent = displayName;
+  document.getElementById('activeStatus').style.display = '';
+  document.getElementById('obsShape').textContent = 'obs: [' + createRes.observation_shape + ']';
+
+  // Update close button in direct mode
+  if (directEnvMode) {
+    var closeBtn = document.getElementById('closeEnvBtn');
+    if (closeBtn) closeBtn.textContent = '\u2190 Back to Catalog';
+  }
+
+  // Show explain panel
+  renderExplainPanel(envType);
+
+  // Setup action inputs
+  if (currentActionType === 'discrete') {
+    document.getElementById('discreteActionsContainer').style.display = '';
+    document.getElementById('continuousActionContainer').style.display = 'none';
+    var labels, colors;
+    if (envType === 'stock-trading') {
+      labels = ['Strong Sell', 'Sell', 'Hold', 'Buy', 'Strong Buy'];
+      colors = ['btn-red', 'btn-outline', 'btn-primary', 'btn-outline', 'btn-green'];
+    } else {
+      labels = []; colors = [];
+      for (var i = 0; i < currentActionDim; i++) { labels.push('Action ' + i); colors.push('btn-primary'); }
+    }
+    document.getElementById('discreteActionsContainer').innerHTML =
+      labels.map(function(l, idx) {
+        return '<button class="btn ' + colors[idx] + '" onclick="stepDiscrete(' + idx + ')">' + l + '</button>';
+      }).join('');
+  } else {
+    document.getElementById('discreteActionsContainer').style.display = 'none';
+    document.getElementById('continuousActionContainer').style.display = '';
+    if (envType === 'portfolio-allocation') {
+      var eqWeight = (1 / currentActionDim).toFixed(2);
+      var example = [];
+      for (var j = 0; j < currentActionDim; j++) example.push(eqWeight);
+      document.getElementById('continuousHint').textContent =
+        'Enter ' + currentActionDim + ' weights summing to 1.0, e.g. [' + example.join(', ') + ']';
+    } else if (envType === 'options-pricing') {
+      document.getElementById('continuousHint').textContent =
+        'Enter 1 value in [-0.5, 1.5] for hedge ratio, e.g. [0.5]';
+    } else {
+      document.getElementById('continuousHint').textContent =
+        'Enter ' + currentActionDim + ' value(s) as JSON array, e.g. [0.5]';
+    }
+  }
+}
+
+/* ── Render Explanation Panel ─────────────────────────── */
+function renderExplainPanel(envType) {
+  var ex = ENV_EXPLAIN[envType];
+  if (!ex) { document.getElementById('explainSection').style.display = 'none'; return; }
+  document.getElementById('explainSection').style.display = '';
+  document.getElementById('explainSection').classList.add('open');
+  document.getElementById('explainTitle').textContent = 'How It Works: ' + ex.title;
+
+  var obsRows = '';
+  if (Array.isArray(ex.obs)) {
+    obsRows = ex.obs.map(function(pair) {
+      return '<tr><td>' + pair[0] + '</td><td>' + pair[1] + '</td></tr>';
+    }).join('');
+  }
+
+  document.getElementById('explainBody').innerHTML =
+    '<p>' + ex.overview + '</p>' +
+    '<div class="explain-cols">' +
+      '<div>' +
+        '<h4>Objective</h4><p>' + ex.goal + '</p>' +
+        '<h4>Actions</h4><p>' + ex.actions + '</p>' +
+        '<h4>Reward Function</h4><p>' + ex.reward + '</p>' +
+        '<h4>Episode End</h4><p>' + ex.termination + '</p>' +
+        (ex.stateDim ? '<h4>State Dimension</h4><p>' + ex.stateDim + '</p>' : '') +
+      '</div>' +
+      '<div>' +
+        '<h4>Observation Space (' + ex.obs.length + ' features)</h4>' +
+        '<table class="obs-explain-table"><tr><th>Feature</th><th>Description</th></tr>' + obsRows + '</table>' +
+      '</div>' +
+    '</div>';
+}
+
+/* ── Update Observation Grid ──────────────────────────── */
+function updateObservation(obs) {
+  if (!obs) return;
+  var grid = document.getElementById('obsGrid');
+  var names = OBS_NAMES[currentEnvType];
+  grid.innerHTML = obs.map(function(v, i) {
+    var label = (names && names[i]) ? names[i] : 'x[' + i + ']';
+    var formatted = typeof v === 'number' ? v.toFixed(4) : String(v);
+    return '<div class="obs-item"><span class="label">' + label + '</span><span class="value">' + formatted + '</span></div>';
+  }).join('');
+}
+
+/* ── Update Step Info Table ───────────────────────────── */
+function updateInfo(data) {
+  document.getElementById('infoStep').textContent = data.step;
+  document.getElementById('infoReward').textContent = typeof data.reward === 'number' ? data.reward.toFixed(6) : data.reward;
+  var termEl = document.getElementById('infoTerminated');
+  termEl.textContent = data.terminated;
+  termEl.style.color = data.terminated ? 'var(--red)' : '';
+  var truncEl = document.getElementById('infoTruncated');
+  truncEl.textContent = data.truncated;
+  truncEl.style.color = data.truncated ? 'var(--red)' : '';
+}
+
+/* ── Event Log ────────────────────────────────────────── */
+function log(type, msg) {
+  var area = document.getElementById('logArea');
+  var ts = new Date().toLocaleTimeString();
+  var cls;
+  switch (type) {
+    case 'step': cls = 'log-step'; break;
+    case 'error': cls = 'log-error'; break;
+    case 'reward': cls = 'log-reward'; break;
+    default: cls = 'log-info';
+  }
+  area.innerHTML += '<div class="' + cls + '">[' + ts + '] ' + msg + '</div>';
+  area.scrollTop = area.scrollHeight;
+  while (area.children.length > 500) area.removeChild(area.firstChild);
+}
+
+function clearLog() { document.getElementById('logArea').innerHTML = ''; }
+
+/* ── Uptime Formatter ─────────────────────────────────── */
+function formatUptime(s) {
+  if (!s && s !== 0) return '-';
+  if (s < 60) return Math.round(s) + 's';
+  if (s < 3600) return Math.floor(s / 60) + 'm ' + Math.round(s % 60) + 's';
+  return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
+}
+
+/* ── URL Param Auto-Select ────────────────────────────── */
+function getEnvFromURL() {
+  var params = new URLSearchParams(window.location.search);
+  var envParam = params.get('env');
+  if (envParam && URL_SLUG_MAP[envParam]) return URL_SLUG_MAP[envParam];
+  if (envParam) return envParam.toLowerCase().replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+  return null;
+}
+
+/* ── Track if launched with a specific env via URL ───── */
+var directEnvMode = false;
+
+/* ── Initialization ───────────────────────────────────── */
+(function init() {
+  checkHealth();
+  loadEnvTypes().then(function() {
+    var autoEnv = getEnvFromURL();
+    if (autoEnv && envTypes[autoEnv]) {
+      directEnvMode = true;
+      document.getElementById('envSelectSection').style.display = 'none';
+      createEnv(autoEnv);
+    }
+  });
+  setInterval(checkHealth, 10000);
+  window.addEventListener('resize', drawRewardChart);
+})();
+</script>
+</body>
+</html>

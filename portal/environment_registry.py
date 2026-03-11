@@ -568,6 +568,28 @@ ENVIRONMENT_REGISTRY: Dict[str, Dict[str, Any]] = {
         "category": "hr_payroll",
         "multi_agent": False
     },
+    # Financial RL environments (Stock Trading, Portfolio, Options)
+    "StockTrading": {
+        "class_path": "environments.financial.stock_trading.StockTradingEnv",
+        "system": "Bloomberg, Reuters",
+        "workflow": "Financial Trading",
+        "category": "financial",
+        "multi_agent": False
+    },
+    "PortfolioAllocation": {
+        "class_path": "environments.financial.portfolio_allocation.PortfolioAllocationEnv",
+        "system": "Bloomberg, Reuters",
+        "workflow": "Financial Trading",
+        "category": "financial",
+        "multi_agent": False
+    },
+    "OptionsPricing": {
+        "class_path": "environments.financial.options_pricing.OptionsPricingEnv",
+        "system": "Bloomberg, Reuters",
+        "workflow": "Financial Trading",
+        "category": "financial",
+        "multi_agent": False
+    },
 }
 
 # Helper function to convert CamelCase to snake_case

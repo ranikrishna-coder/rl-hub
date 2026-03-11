@@ -3,7 +3,7 @@ FastAPI Backend for AgentWork Simulator
 Provides endpoints for training, monitoring, and KPI retrieval
 """
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
@@ -2668,6 +2668,7 @@ _CATEGORY_TO_DEFAULT_SYSTEM = {
     "revenue": "Custom", "jira": "Jira", "servicenow": "ServiceNow",
     "devops": "Kubernetes", "hr": "Workday", "crm": "Salesforce",
     "supply_chain": "SAP", "cross_workflow": "Custom",
+    "financial": "Bloomberg",
 }
 
 _CATEGORY_TO_DOMAIN = {
@@ -2675,6 +2676,7 @@ _CATEGORY_TO_DOMAIN = {
     "revenue": "fin-sim", "jira": "dev-sim", "servicenow": "dev-sim",
     "devops": "dev-sim", "hr": "hr-sim", "crm": "fin-sim",
     "supply_chain": "fin-sim", "cross_workflow": "cross-domain",
+    "financial": "fin-sim",
 }
 
 _CATEGORY_TO_WORKFLOW = {
@@ -2683,6 +2685,7 @@ _CATEGORY_TO_WORKFLOW = {
     "jira": "IT Service Management", "servicenow": "IT Operations",
     "devops": "DevOps", "hr": "Human Resources", "crm": "CRM",
     "supply_chain": "Supply Chain", "cross_workflow": "Cross-Workflow",
+    "financial": "Financial Trading",
 }
 
 
@@ -3341,6 +3344,394 @@ async def proxy_huggingface_app(url: str):
         raise HTTPException(status_code=e.code, detail=f"HuggingFace returned {e.code}")
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
+
+
+# ===========================================================================
+# Gymnasium Custom Environment Upload
+# ===========================================================================
+import importlib.util as _importlib_util
+import re as _re_mod
+
+_CUSTOM_ENVS_DIR = os.path.join(os.path.dirname(__file__), "data", "custom_envs")
+os.makedirs(_CUSTOM_ENVS_DIR, exist_ok=True)
+
+# In-memory registry of uploaded gymnasium envs: { name: { class_name, file_path, config, meta } }
+_gymnasium_custom_envs: Dict[str, Dict[str, Any]] = {}
+
+
+def _load_gymnasium_class(file_path: str, class_name: str):
+    """Dynamically load a class from a Python file."""
+    spec = _importlib_util.spec_from_file_location("custom_env_module", file_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load module from {file_path}")
+    module = _importlib_util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    cls = getattr(module, class_name, None)
+    if cls is None:
+        raise ImportError(f"Class '{class_name}' not found in {file_path}")
+    return cls
+
+
+@app.post("/api/custom-environments/upload-gymnasium")
+async def upload_gymnasium_env(
+    file: UploadFile = File(...),
+    name: str = Form(...),
+    class_name: str = Form(...),
+    config_json: str = Form("{}"),
+    description: str = Form(""),
+    owner: str = Form("centific"),
+):
+    """Upload a Python file containing a gymnasium env class."""
+    if not file.filename or not file.filename.endswith(".py"):
+        raise HTTPException(status_code=400, detail="File must be a .py file")
+
+    # Sanitize name for filesystem
+    safe_name = _re_mod.sub(r"[^a-zA-Z0-9_-]", "_", name)
+    file_path = os.path.join(_CUSTOM_ENVS_DIR, f"{safe_name}.py")
+
+    # Save file
+    content = await file.read()
+    with open(file_path, "wb") as f:
+        f.write(content)
+
+    # Validate: file parses as Python and contains the class
+    try:
+        compile(content, file_path, "exec")
+    except SyntaxError as e:
+        os.remove(file_path)
+        raise HTTPException(status_code=400, detail=f"Python syntax error: {e}")
+
+    # Try to load the class and get space info
+    obs_dim = 0
+    action_dim = 0
+    action_type = "unknown"
+    try:
+        cls = _load_gymnasium_class(file_path, class_name)
+        # Try to instantiate with config
+        config = json.loads(config_json) if config_json.strip() else {}
+        try:
+            env_instance = cls(config=config) if config else cls()
+        except TypeError:
+            env_instance = cls()
+        if hasattr(env_instance, "observation_space"):
+            obs_dim = env_instance.observation_space.shape[0] if hasattr(env_instance.observation_space, "shape") else 0
+        if hasattr(env_instance, "action_space"):
+            if hasattr(env_instance.action_space, "n"):
+                action_type = "discrete"
+                action_dim = int(env_instance.action_space.n)
+            elif hasattr(env_instance.action_space, "shape"):
+                action_type = "continuous"
+                action_dim = int(env_instance.action_space.shape[0]) if len(env_instance.action_space.shape) > 0 else 1
+    except Exception as e:
+        # Class didn't load/instantiate but file is saved — user can fix config later
+        pass
+
+    # Register in memory
+    _gymnasium_custom_envs[name] = {
+        "class_name": class_name,
+        "file_path": file_path,
+        "config_json": config_json,
+        "description": description,
+        "owner": owner,
+        "observation_dim": obs_dim,
+        "action_dim": action_dim,
+        "action_type": action_type,
+    }
+
+    # Also register in the financial env meta so it shows in the console
+    slug = _re_mod.sub(r"[^a-z0-9-]", "-", name.lower()).strip("-")
+    _FINANCIAL_ENV_SLUG_MAP[slug] = f"__custom__{name}"
+    _FINANCIAL_ENV_META[slug] = {
+        "display_name": name,
+        "description": description or f"Custom Gymnasium environment: {class_name}",
+        "tools": [],
+        "observation_dim": obs_dim,
+        "action_type": action_type,
+        "action_dim": action_dim,
+    }
+
+    return {
+        "status": "uploaded",
+        "name": name,
+        "class_name": class_name,
+        "file_path": file_path,
+        "observation_dim": obs_dim,
+        "action_dim": action_dim,
+        "action_type": action_type,
+    }
+
+
+# ===========================================================================
+# Financial Simulation Console — Gymnasium RL environment API
+# ===========================================================================
+import time as _time
+import uuid as _uuid
+import numpy as _np
+
+# In-memory stores for financial env instances and rollouts
+_financial_active_envs: Dict[str, Dict[str, Any]] = {}
+_financial_rollout_store: Dict[str, Dict[str, Any]] = {}
+_financial_start_time: float = _time.time()
+
+# Registry mapping slugs to catalog names
+_FINANCIAL_ENV_SLUG_MAP = {
+    "stock-trading": "StockTrading",
+    "portfolio-allocation": "PortfolioAllocation",
+    "options-pricing": "OptionsPricing",
+}
+
+# Metadata for the financial env list endpoint
+_FINANCIAL_ENV_META = {
+    "stock-trading": {
+        "display_name": "Stock Trading Environment",
+        "description": "Single-asset trading with discrete actions and risk-adjusted rewards",
+        "tools": [
+            {"name": "get_market_state", "description": "Fetch price, volume, and technical indicators"},
+            {"name": "execute_trade", "description": "Buy/sell/hold with position sizing"},
+            {"name": "get_portfolio_status", "description": "Current P&L, position, drawdown"},
+        ],
+        "observation_dim": 22,
+        "action_type": "discrete",
+        "action_dim": 5,
+    },
+    "portfolio-allocation": {
+        "display_name": "Portfolio Allocation Environment",
+        "description": "Multi-asset portfolio weight optimization with CRRA utility",
+        "tools": [
+            {"name": "get_asset_returns", "description": "Multi-asset return history with lookback window"},
+            {"name": "rebalance_portfolio", "description": "Set target portfolio weights (sum to 1)"},
+            {"name": "get_risk_metrics", "description": "Sharpe ratio, volatility, max drawdown"},
+        ],
+        "observation_dim": 109,
+        "action_type": "continuous",
+        "action_dim": 5,
+    },
+    "options-pricing": {
+        "display_name": "Options Pricing & Hedging Environment",
+        "description": "Dynamic delta hedging for short call options with Black-Scholes benchmarking",
+        "tools": [
+            {"name": "get_option_greeks", "description": "Delta, gamma, and current hedge ratio"},
+            {"name": "adjust_hedge", "description": "Set hedge ratio target"},
+            {"name": "get_pnl_status", "description": "Current P&L and hedging error variance"},
+        ],
+        "observation_dim": 7,
+        "action_type": "continuous",
+        "action_dim": 1,
+    },
+}
+
+
+def _fin_ndarray_to_list(obj):
+    """Recursively convert numpy types to Python natives."""
+    if isinstance(obj, _np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, (_np.float32, _np.float64)):
+        return float(obj)
+    if isinstance(obj, (_np.int32, _np.int64, _np.bool_)):
+        return int(obj)
+    if isinstance(obj, dict):
+        return {k: _fin_ndarray_to_list(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_fin_ndarray_to_list(v) for v in obj]
+    return obj
+
+
+@app.get("/financial-console")
+async def financial_console_page():
+    """Serve the Financial Simulation Console."""
+    path = os.path.join(os.path.dirname(__file__), "static", "financial-console.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="Financial console not found")
+
+
+@app.get("/financial/health")
+async def financial_health():
+    return {
+        "status": "online",
+        "uptime_seconds": round(_time.time() - _financial_start_time, 1),
+        "active_environments": len(_financial_active_envs),
+        "total_connections": len(_financial_active_envs),
+        "available_env_types": list(_FINANCIAL_ENV_META.keys()),
+    }
+
+
+@app.get("/financial/envs/list")
+async def financial_list_envs():
+    return {
+        name: {
+            "display_name": meta["display_name"],
+            "description": meta["description"],
+            "tools": meta["tools"],
+            "observation_dim": meta["observation_dim"],
+            "action_type": meta["action_type"],
+            "action_dim": meta["action_dim"],
+        }
+        for name, meta in _FINANCIAL_ENV_META.items()
+    }
+
+
+class _FinCreateEnvRequest(BaseModel):
+    env_type: str
+    config: Dict[str, Any] = {}
+
+
+@app.post("/financial/envs/create")
+async def financial_create_env(req: _FinCreateEnvRequest):
+    if req.env_type not in _FINANCIAL_ENV_SLUG_MAP:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown env_type '{req.env_type}'. Choose from: {list(_FINANCIAL_ENV_SLUG_MAP.keys())}",
+        )
+    catalog_name = _FINANCIAL_ENV_SLUG_MAP[req.env_type]
+    config = req.config or {}
+
+    # Custom gymnasium envs start with __custom__
+    if catalog_name.startswith("__custom__"):
+        custom_name = catalog_name[len("__custom__"):]
+        custom_entry = _gymnasium_custom_envs.get(custom_name)
+        if not custom_entry:
+            raise HTTPException(status_code=404, detail=f"Custom env '{custom_name}' not found")
+        try:
+            env_class = _load_gymnasium_class(custom_entry["file_path"], custom_entry["class_name"])
+            saved_config = json.loads(custom_entry.get("config_json", "{}") or "{}")
+            merged_config = {**saved_config, **config}
+            try:
+                env = env_class(config=merged_config) if merged_config else env_class()
+            except TypeError:
+                env = env_class()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to load custom env: {e}")
+    else:
+        env_class = get_environment_class(catalog_name)
+        if env_class is None:
+            raise HTTPException(status_code=500, detail=f"Failed to load environment class for '{catalog_name}'")
+        env = env_class(config=config if config else None)
+    env_id = str(_uuid.uuid4())[:8]
+    rollout_id = str(_uuid.uuid4())[:12]
+
+    obs, info = env.reset()
+    _financial_active_envs[env_id] = {
+        "env": env,
+        "env_type": req.env_type,
+        "created_at": _time.time(),
+        "steps": 0,
+        "last_obs": obs,
+        "rollout_id": rollout_id,
+    }
+    _financial_rollout_store[rollout_id] = {
+        "id": rollout_id,
+        "env_id": env_id,
+        "env_type": req.env_type,
+        "status": "in_progress",
+        "created_at": _time.strftime("%Y-%m-%dT%H:%M:%SZ", _time.gmtime()),
+        "steps": [],
+        "total_reward": 0.0,
+        "total_steps": 0,
+    }
+
+    # Determine action space info
+    meta = _FINANCIAL_ENV_META[req.env_type]
+    action_space_info = {
+        "type": meta["action_type"],
+        "dim": env.action_space.n if hasattr(env.action_space, "n") else list(env.action_space.shape),
+    }
+
+    return {
+        "env_id": env_id,
+        "env_type": req.env_type,
+        "observation_shape": list(env.observation_space.shape),
+        "action_space_info": _fin_ndarray_to_list(action_space_info),
+        "rollout_id": rollout_id,
+    }
+
+
+class _FinStepRequest(BaseModel):
+    action: Any
+
+
+@app.post("/financial/envs/{env_id}/step")
+async def financial_step_env(env_id: str, req: _FinStepRequest):
+    if env_id not in _financial_active_envs:
+        raise HTTPException(status_code=404, detail=f"Environment '{env_id}' not found")
+
+    entry = _financial_active_envs[env_id]
+    raw_action = req.action
+    action = raw_action
+    if isinstance(raw_action, list):
+        action = _np.array(raw_action, dtype=_np.float32)
+
+    obs, reward, terminated, truncated, info = entry["env"].step(action)
+    entry["last_obs"] = obs
+    entry["steps"] += 1
+
+    info_out = _fin_ndarray_to_list(dict(info) if isinstance(info, dict) else {})
+
+    # Record in rollout
+    rollout_id = entry.get("rollout_id")
+    rollout = _financial_rollout_store.get(rollout_id) if rollout_id else None
+    if rollout is not None:
+        rollout["steps"].append({
+            "step": int(entry["steps"]),
+            "action": _fin_ndarray_to_list(raw_action),
+            "reward": float(reward),
+        })
+        rollout["total_reward"] = float(rollout.get("total_reward", 0.0)) + float(reward)
+        rollout["total_steps"] = int(entry["steps"])
+        if terminated or truncated:
+            rollout["status"] = "completed"
+
+    return {
+        "observation": _fin_ndarray_to_list(obs),
+        "reward": float(reward),
+        "terminated": bool(terminated),
+        "truncated": bool(truncated),
+        "info": info_out,
+    }
+
+
+@app.post("/financial/envs/{env_id}/reset")
+async def financial_reset_env(env_id: str):
+    if env_id not in _financial_active_envs:
+        raise HTTPException(status_code=404, detail=f"Environment '{env_id}' not found")
+
+    entry = _financial_active_envs[env_id]
+    obs, info = entry["env"].reset()
+    entry["last_obs"] = obs
+    entry["steps"] = 0
+
+    # New rollout
+    rollout_id = str(_uuid.uuid4())[:12]
+    entry["rollout_id"] = rollout_id
+    _financial_rollout_store[rollout_id] = {
+        "id": rollout_id,
+        "env_id": env_id,
+        "env_type": entry["env_type"],
+        "status": "in_progress",
+        "created_at": _time.strftime("%Y-%m-%dT%H:%M:%SZ", _time.gmtime()),
+        "steps": [],
+        "total_reward": 0.0,
+        "total_steps": 0,
+    }
+
+    return {
+        "observation": _fin_ndarray_to_list(obs),
+        "info": _fin_ndarray_to_list(dict(info) if isinstance(info, dict) else {}),
+    }
+
+
+@app.delete("/financial/envs/{env_id}")
+async def financial_delete_env(env_id: str):
+    if env_id not in _financial_active_envs:
+        raise HTTPException(status_code=404, detail=f"Environment '{env_id}' not found")
+
+    entry = _financial_active_envs[env_id]
+    rollout_id = entry.get("rollout_id")
+    rollout = _financial_rollout_store.get(rollout_id) if rollout_id else None
+    if rollout is not None and rollout.get("status") == "in_progress":
+        rollout["status"] = "aborted"
+    del _financial_active_envs[env_id]
+    return {"status": "deleted", "env_id": env_id}
 
 
 if __name__ == "__main__":
