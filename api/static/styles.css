@@ -352,6 +352,15 @@ body {
     box-shadow: var(--shadow-lg);
     border-color: var(--primary-color);
 }
+.env-card--pinned {
+    border-color: var(--primary-color, #6366f1);
+    background: linear-gradient(135deg, var(--card-bg), var(--info-bg, #f5f3ff));
+    box-shadow: 0 2px 12px rgba(99, 102, 241, 0.08);
+}
+.env-pinned-badge {
+    margin-right: 0.35rem;
+    font-size: 0.9em;
+}
 
 .env-card-header {
     display: flex;
@@ -967,6 +976,93 @@ body {
 }
 .detail-collapsible-content {
     padding: 0 1.25rem 1.25rem;
+}
+
+/* ── Scenario Cards ─────────────────────────────── */
+.scenarios-list, .verifiers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.scenario-card, .verifier-card {
+    background: var(--bg-tertiary, #f8f9fa);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.875rem 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.scenario-card:hover, .verifier-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+}
+.scenario-card-header, .verifier-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.4rem;
+}
+.scenario-card-name, .verifier-card-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+.scenario-card-badge, .verifier-card-type {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: var(--info-bg, #ede9fe);
+    color: var(--primary-color, #6366f1);
+    text-transform: capitalize;
+}
+.verifier-card-type.type-rule-based { background: #dbeafe; color: #1d4ed8; }
+.verifier-card-type.type-trajectory-based { background: #dcfce7; color: #15803d; }
+.verifier-card-type.type-llm-judge { background: #fef3c7; color: #92400e; }
+.verifier-card-type.type-human-eval { background: #fce7f3; color: #be185d; }
+.scenario-card-tasks {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-left: auto;
+}
+.scenario-card-desc, .verifier-card-desc {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.4;
+}
+.verifier-scoring {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.verifier-score-badge {
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    background: var(--bg-secondary, #f1f5f9);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+.verifier-subs {
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.verifier-sub-chip {
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    background: var(--bg-secondary, #f1f5f9);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
 }
 
 /* ── Inline Training Runs Table ─────────────────────────────── */
