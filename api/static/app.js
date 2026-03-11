@@ -845,7 +845,7 @@ function setupEventListeners() {
     // Category filters
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            // Financial tag → navigate directly to Delcita Investments & Trading
+            // Financial tag → navigate directly to ABC Hedge Funds
             if (btn.dataset.category === 'financial') {
                 window.location.href = '/financial-console?env=delcita';
                 return;
@@ -1164,7 +1164,7 @@ var ENV_DISPLAY_NAME_OVERRIDES = {
     'JiraSubtaskManagement': 'IT Operations',
     'clinKriya': 'ClinKriya Clinic',
     'ClinKriya Clinic': 'ClinKriya Clinic',
-    'Delcita': 'Delcita Investments & Trading'
+    'Delcita': 'ABC Hedge Funds'
 };
 
 function formatEnvironmentName(name) {

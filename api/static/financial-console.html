@@ -558,7 +558,7 @@ var OBS_NAMES = {
 /* ── Environment Explanations ─────────────────────────── */
 var ENV_EXPLAIN = {
   'delcita': {
-    title: 'Delcita Investments & Trading',
+    title: 'ABC Hedge Funds',
     overview: 'Single-asset trading with synthetic GBM (Geometric Brownian Motion) prices featuring regime switching. The agent observes technical indicators and decides trade actions at each timestep. Uses Differential Sharpe Ratio for reward shaping.',
     goal: 'Maximize risk-adjusted returns (Differential Sharpe Ratio) over the episode by timing entries and exits.',
     obs: [
@@ -700,7 +700,7 @@ function checkHealth() {
 /* ── Fallback financial env metadata (used if API returns empty) ── */
 var FALLBACK_FINANCIAL_ENVS = {
   "delcita": {
-    "display_name": "Delcita Investments & Trading",
+    "display_name": "ABC Hedge Funds",
     "description": "Single-asset trading with discrete actions and risk-adjusted rewards",
     "tools": [
       {"name": "get_market_state", "description": "Fetch price, volume, and technical indicators"},

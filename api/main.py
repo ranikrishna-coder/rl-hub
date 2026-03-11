@@ -3490,7 +3490,7 @@ _FINANCIAL_ENV_SLUG_MAP = {
 # Metadata for the financial env list endpoint
 _FINANCIAL_ENV_META = {
     "delcita": {
-        "display_name": "Delcita Investments & Trading",
+        "display_name": "ABC Hedge Funds",
         "description": "Single-asset trading with discrete actions and risk-adjusted rewards",
         "tools": [
             {"name": "get_market_state", "description": "Fetch price, volume, and technical indicators"},
