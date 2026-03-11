@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centific RL Environment & Agent - Agent Console</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/global-nav.css">
+    <link rel="stylesheet" href="/static/toast.css">
+    <script>
+        (function() {
+            var hostname = window.location.hostname;
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                window.API_BASE = window.API_BASE || 'http://localhost:8000';
+            } else {
+                window.API_BASE = window.API_BASE || window.location.origin;
+            }
+        })();
+    </script>
+    <script src="/config.js" onerror="(function(){})()"></script>
+    <script>
+        (function() {
+            var saved = null;
+            try { saved = localStorage.getItem('landing-theme'); } catch (e) {}
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved === 'dark' || (saved !== 'light' && prefersDark)) document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.setAttribute('data-theme', 'light');
+        })();
+    </script>
+    <style>
+        .agent-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+        .agent-page-header {
+            margin-bottom: 2rem;
+        }
+        .agent-page-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .agent-page-header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+        .agent-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.25rem;
+        }
+        .agent-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .agent-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
+            transform: translateY(-2px);
+        }
+        .agent-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            background: var(--info-bg, #ede9fe);
+        }
+        .agent-card-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+        .agent-card-model {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+        }
+        .agent-card-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            margin-bottom: 1rem;
+        }
+        .agent-badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: var(--bg-tertiary, #f1f5f9);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            text-transform: capitalize;
+        }
+        .agent-badge.trainable {
+            background: #dcfce7;
+            color: #15803d;
+            border-color: #bbf7d0;
+        }
+        .agent-badge.baseline {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #fde68a;
+        }
+        .agent-card-actions {
+            margin-top: auto;
+            padding-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+        .agent-card-actions .btn {
+            flex: 1;
+            text-align: center;
+            padding: 0.5rem 1rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+        }
+        .agent-card-actions .btn-primary {
+            background: var(--primary-color, #6366f1);
+            color: white;
+        }
+        .agent-card-actions .btn-primary:hover {
+            background: var(--primary-hover, #4f46e5);
+        }
+        .agent-card-actions .btn-outline {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        .agent-card-actions .btn-outline:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        .agent-detail-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .agent-detail-overlay.active {
+            display: flex;
+        }
+        .agent-detail-box {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .agent-detail-box h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 0.5rem;
+        }
+        .agent-detail-box .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.88rem;
+        }
+        .agent-detail-box .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-row-label {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .detail-row-value {
+            color: var(--text-secondary);
+        }
+        .agent-detail-close {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            line-height: 1;
+        }
+        .agent-detail-close:hover {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body data-page="agent-console">
+    <nav class="gn-bar">
+        <a href="/" class="gn-logo">
+            <img src="/static/logo.svg" alt="" width="28" height="28">
+            <span class="gn-logo-text">Centific <span class="gn-logo-sub">RL Environment & Agent</span></span>
+        </a>
+        <button type="button" class="gn-toggle" aria-label="Toggle menu" onclick="document.querySelector('.gn-links').classList.toggle('gn-open')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <ul class="gn-links">
+            <li><a href="/catalog" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Environments</a></li>
+            <li><a href="/training-console" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg> Training</a></li>
+            <li><a href="/agent-console" class="gn-link gn-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.07A7 7 0 0 1 14 22h-4a7 7 0 0 1-6.93-3H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="9" cy="14" r="1.5"/><circle cx="15" cy="14" r="1.5"/></svg> Agent</a></li>
+            <li><button type="button" class="gn-theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode"><span class="theme-icon-sun">&#9728;&#65039;</span><span class="theme-icon-moon">&#127769;</span></button></li>
+        </ul>
+    </nav>
+
+    <div class="agent-container">
+        <div class="agent-page-header">
+            <h1>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.07A7 7 0 0 1 14 22h-4a7 7 0 0 1-6.93-3H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="9" cy="14" r="1.5"/><circle cx="15" cy="14" r="1.5"/></svg>
+                Agent Catalog
+            </h1>
+            <p>Browse available RL agents. Select an agent to view details or use it directly in a training run.</p>
+        </div>
+
+        <div class="agent-grid" id="agent-grid">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <!-- Detail overlay -->
+    <div class="agent-detail-overlay" id="agent-detail-overlay" onclick="closeAgentDetail(event)">
+        <div class="agent-detail-box" id="agent-detail-box" onclick="event.stopPropagation()">
+        </div>
+    </div>
+
+    <script src="/static/training-config-data.js"></script>
+    <script>
+        (function() {
+            'use strict';
+            var agents = (window.TRAINING_CONFIG && window.TRAINING_CONFIG.agents) ? window.TRAINING_CONFIG.agents : [];
+            var grid = document.getElementById('agent-grid');
+
+            var agentIcons = {
+                'agent_qwen17': '🧠',
+                'agent_llama32': '🦙',
+                'agent_mistral': '🌬',
+                'agent_gpt4o': '⚡'
+            };
+
+            function renderAgents() {
+                if (!agents.length) {
+                    grid.innerHTML = '<p style="color:var(--text-secondary);padding:2rem;text-align:center;">No agents available.</p>';
+                    return;
+                }
+
+                var html = '';
+                agents.forEach(function(agent) {
+                    var icon = agentIcons[agent.id] || '🤖';
+                    var trainableBadge = agent.trainable
+                        ? '<span class="agent-badge trainable">Trainable</span>'
+                        : '<span class="agent-badge baseline">Baseline Only</span>';
+                    var categoryBadges = '';
+                    if (agent.compatible_categories && agent.compatible_categories.length) {
+                        agent.compatible_categories.forEach(function(cat) {
+                            categoryBadges += '<span class="agent-badge">' + cat.replace(/_/g, ' ') + '</span>';
+                        });
+                    }
+
+                    html += '<div class="agent-card">' +
+                        '<div class="agent-card-icon">' + icon + '</div>' +
+                        '<div class="agent-card-name">' + agent.name + '</div>' +
+                        '<div class="agent-card-model">' + agent.base_model + '</div>' +
+                        '<div class="agent-card-badges">' + trainableBadge + categoryBadges + '</div>' +
+                        '<div class="agent-card-actions">' +
+                            '<button class="btn btn-outline" onclick="showAgentDetail(\'' + agent.id + '\')">View Details</button>' +
+                            (agent.trainable
+                                ? '<a class="btn btn-primary" href="/training-console?agent=' + encodeURIComponent(agent.id) + '">Use in Training</a>'
+                                : '<span class="btn btn-outline" style="opacity:0.5;cursor:not-allowed;">Baseline Only</span>') +
+                        '</div>' +
+                    '</div>';
+                });
+
+                grid.innerHTML = html;
+            }
+
+            window.showAgentDetail = function(agentId) {
+                var agent = agents.find(function(a) { return a.id === agentId; });
+                if (!agent) return;
+                var overlay = document.getElementById('agent-detail-overlay');
+                var box = document.getElementById('agent-detail-box');
+
+                var categoryList = (agent.compatible_categories || []).map(function(c) { return c.replace(/_/g, ' '); }).join(', ');
+
+                box.innerHTML = '<button class="agent-detail-close" onclick="closeAgentDetail()">&times;</button>' +
+                    '<h2>' + (agentIcons[agent.id] || '🤖') + ' ' + agent.name + '</h2>' +
+                    '<div style="margin-top:1rem;">' +
+                        '<div class="detail-row"><span class="detail-row-label">Base Model</span><span class="detail-row-value">' + agent.base_model + '</span></div>' +
+                        '<div class="detail-row"><span class="detail-row-label">Trainable</span><span class="detail-row-value">' + (agent.trainable ? 'Yes' : 'No (Baseline)') + '</span></div>' +
+                        '<div class="detail-row"><span class="detail-row-label">Compatible Categories</span><span class="detail-row-value">' + (categoryList || 'None') + '</span></div>' +
+                    '</div>' +
+                    (agent.trainable
+                        ? '<div style="margin-top:1.5rem;text-align:center;"><a class="btn btn-primary" href="/training-console?agent=' + encodeURIComponent(agent.id) + '" style="padding:0.6rem 2rem;font-size:0.9rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;background:var(--primary-color);color:white;border-radius:8px;font-weight:600;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg> Use in Training</a></div>'
+                        : '');
+
+                overlay.classList.add('active');
+            };
+
+            window.closeAgentDetail = function(e) {
+                if (e && e.target !== document.getElementById('agent-detail-overlay')) return;
+                document.getElementById('agent-detail-overlay').classList.remove('active');
+            };
+
+            renderAgents();
+        })();
+
+        function toggleTheme() {
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            try { localStorage.setItem('landing-theme', next); } catch (e) {}
+        }
+    </script>
+</body>
+</html>

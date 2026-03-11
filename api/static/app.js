@@ -162,7 +162,7 @@ const environmentDetails = {
     'JiraSubtaskManagement': {
         category: 'jira',
         system: 'Jira (Atlassian)',
-        description: 'Jira Subtask Management: add subtasks to existing Jira tickets by fetching parent issue and creating subtask under it.',
+        description: 'IT Operations: add subtasks to existing Jira tickets by fetching parent issue and creating subtask under it.',
         stateFeatures: 6,
         actionType: 'Discrete',
         actionSpace: 3,
@@ -690,6 +690,45 @@ async function loadEnvironments() {
             allEnvironments.push(jiraSubtask);
             console.log('Added JiraSubtaskManagement to catalog (API fallback)');
         }
+
+        // Fallback: ensure ClinKriya Clinic is in catalog (custom HF environment)
+        if (!allEnvironments.some(e => e.name === 'ClinKriya Clinic')) {
+            allEnvironments.push({
+                name: 'ClinKriya Clinic',
+                description: 'Clinical RL environment for healthcare workflows powered by MedAgentBench',
+                category: 'cross_workflow',
+                system: 'MedAgentBench',
+                sdk: 'docker',
+                source: 'huggingface',
+                hf_url: 'https://huggingface.co/spaces/openenv-community/clinKriya',
+                hf_owner: 'openenv-community',
+                hf_repo: 'clinKriya',
+                domain: 'cross-domain',
+                workflow: 'Cross-Workflow',
+                isCustom: true,
+                tags: ['cross-domain', 'cross_workflow', 'cross-workflow', 'medagentbench'],
+                actions: [],
+                actionSpace: 'N/A',
+                stateFeatures: 'N/A',
+                actionType: 'Discrete'
+            });
+            environmentDetails['ClinKriya Clinic'] = {
+                source: 'huggingface',
+                isCustom: true,
+                hf_url: 'https://huggingface.co/spaces/openenv-community/clinKriya',
+                hf_owner: 'openenv-community',
+                hf_repo: 'clinKriya',
+                sdk: 'docker',
+                description: 'Clinical RL environment for healthcare workflows powered by MedAgentBench',
+                author: 'openenv-community',
+                tags: [],
+                files: [],
+                endpoints: [],
+                models: {},
+                readme: ''
+            };
+            console.log('Added ClinKriya Clinic to catalog (fallback)');
+        }
         
         // Enhance with details - generate unique descriptions for each environment
         allEnvironments = allEnvironments.map(env => {
@@ -806,6 +845,11 @@ function setupEventListeners() {
     // Category filters
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+            // Financial tag → navigate directly to ABC Hedge Funds
+            if (btn.dataset.category === 'financial') {
+                window.location.href = '/financial-console?env=delcita';
+                return;
+            }
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             filterEnvironments(document.getElementById('search-input').value, btn.dataset.category);
@@ -1071,25 +1115,42 @@ function filterEnvironments(searchTerm, category) {
     renderEnvironments();
 }
 
+// Names of environments that should always appear first in the grid
+var PINNED_ENV_NAMES = ['ClinKriya Clinic', 'Delcita'];
+
 function renderEnvironments() {
     const grid = document.getElementById('environments-grid');
-    
+
     if (filteredEnvironments.length === 0) {
         grid.innerHTML = '<div class="error">No environments found matching your criteria.</div>';
         return;
     }
-    
-    grid.innerHTML = filteredEnvironments.map(env => createEnvCard(env)).join('');
+
+    // Sort: pinned environments first (in order), then the rest
+    var pinned = [];
+    var rest = [];
+    filteredEnvironments.forEach(function(env) {
+        var pinIdx = PINNED_ENV_NAMES.indexOf(env.name);
+        if (pinIdx !== -1) {
+            pinned.push({ env: env, order: pinIdx });
+        } else {
+            rest.push(env);
+        }
+    });
+    pinned.sort(function(a, b) { return a.order - b.order; });
+    var sorted = pinned.map(function(p) { return p.env; }).concat(rest);
+
+    grid.innerHTML = sorted.map(env => createEnvCard(env)).join('');
     
     // Add click listener on entire card for view details
     document.querySelectorAll('.env-card').forEach(card => {
         card.addEventListener('click', (e) => {
             const envName = card.dataset.env;
             if (!envName) return;
-            // Financial and Gymnasium environments go directly to the simulation console
+            // Financial environments go directly to the simulation console
             const envObj = allEnvironments.find(env => env.name === envName);
             const envDetails = environmentDetails[envName];
-            if ((envObj && envObj.category === 'financial') || (envDetails && envDetails.sdk === 'gymnasium') || (envObj && envObj.sdk === 'gymnasium')) {
+            if ((envObj && envObj.category === 'financial')) {
                 window.location.href = '/financial-console?env=' + encodeURIComponent(envName);
                 return;
             }
@@ -1099,7 +1160,15 @@ function renderEnvironments() {
 
 }
 
+var ENV_DISPLAY_NAME_OVERRIDES = {
+    'JiraSubtaskManagement': 'IT Operations',
+    'clinKriya': 'ClinKriya Clinic',
+    'ClinKriya Clinic': 'ClinKriya Clinic',
+    'Delcita': 'ABC Hedge Funds'
+};
+
 function formatEnvironmentName(name) {
+    if (ENV_DISPLAY_NAME_OVERRIDES[name]) return ENV_DISPLAY_NAME_OVERRIDES[name];
     // Add spaces before capital letters
     return name.replace(/([A-Z])/g, ' $1').trim();
 }
@@ -1232,7 +1301,7 @@ function getEnvironmentDescription(envName, category) {
         'JiraIssueResolution': 'Jira Issue Resolution Flow: resolve issues end-to-end via get_issue_summary_and_description → get_transitions → transition_issue.',
         'JiraStatusUpdate': 'Jira Status Update Workflow: change issue status using get_transitions → transition_issue with valid transition IDs.',
         'JiraCommentManagement': 'Jira Comment Thread Management: add_comment → get_comments for issue comment workflows.',
-        'JiraSubtaskManagement': 'Jira Subtask Management: get_issue_summary_and_description → create_subtask for adding subtasks to issues.',
+        'JiraSubtaskManagement': 'IT Operations: get_issue_summary_and_description → create_subtask for adding subtasks to issues.',
         // HR & Payroll (Workday, SAP SuccessFactors, ADP)
         'WorkdayCreateRecord': 'Workday: Create worker record with correct supervisory org placement and compensation plan initialization.',
         'WorkdayBulkImport': 'Workday: Bulk integration with EIB processing and error summary report for worker records.',
@@ -1326,7 +1395,7 @@ function getUseCaseDescription(envName, category) {
         'JiraIssueResolution': 'Issue resolution workflows, ticket closure, and status transitions in Jira.',
         'JiraStatusUpdate': 'Status updates and moving issues (e.g. To Do → In Progress → Done) in Jira.',
         'JiraCommentManagement': 'Adding and retrieving issue comments in Jira.',
-        'JiraSubtaskManagement': 'Adding subtasks to existing Jira issues.',
+        'JiraSubtaskManagement': 'IT Operations: subtask management for existing Jira issues.',
         // HR & Payroll
         'WorkdayCreateRecord': 'HR operations, worker onboarding, and Workday CCX API integration.',
         'WorkdayBulkImport': 'Bulk worker data import and EIB integration in Workday.',
@@ -1425,6 +1494,7 @@ var CARD_CHIP_FIELDS = [
 
 function createEnvCard(env) {
     var displayName = formatEnvironmentName(env.name);
+    var isPinned = PINNED_ENV_NAMES.indexOf(env.name) !== -1;
 
     // Build chip HTML from available metadata
     var chips = '';
@@ -1444,9 +1514,12 @@ function createEnvCard(env) {
         }
     }
 
-    return '<div class="env-card" data-env="' + env.name + '" style="cursor:pointer;">' +
+    var pinnedClass = isPinned ? ' env-card--pinned' : '';
+    var pinnedBadge = isPinned ? '<span class="env-pinned-badge">&#11088;</span>' : '';
+
+    return '<div class="env-card' + pinnedClass + '" data-env="' + env.name + '" style="cursor:pointer;">' +
         '<div class="env-card-header"><div>' +
-            '<div class="env-name">' + displayName + '</div>' +
+            '<div class="env-name">' + pinnedBadge + displayName + '</div>' +
         '</div></div>' +
         '<div class="env-description">' +
             (env.description || getEnvironmentDescription(env.name, env.category || 'other') || 'Reinforcement learning environment for workflow optimization.') +
@@ -2305,6 +2378,477 @@ function closeEnvDetailPage() {
     if (catalog) catalog.style.display = 'block';
 }
 
+// ─── Build Scenarios Section for detail page ───
+function buildScenariosSection(envName, envCategory) {
+    var cfg = window.TRAINING_CONFIG;
+    var allScenarios = (cfg && cfg.scenarios) ? cfg.scenarios : [];
+    var filtered = allScenarios.filter(function(s) { return s.category === envCategory; });
+
+    var listHtml = '';
+    if (filtered.length) {
+        filtered.forEach(function(s, idx) {
+            listHtml += '<div class="scenario-card clickable-card" id="scenario-card-' + idx + '" onclick="showScenarioDetail(\'' + envCategory + '\', ' + idx + ')" title="Click to view details">' +
+                '<div class="scenario-card-header">' +
+                    '<span class="scenario-card-name">' + s.name + '</span>' +
+                    '<span class="scenario-card-badge">' + s.category + '</span>' +
+                    '<span class="scenario-card-tasks">' + s.task_count + ' tasks</span>' +
+                '</div>' +
+                '<p class="scenario-card-desc">' + s.description + '</p>' +
+            '</div>';
+        });
+    } else {
+        listHtml = '<p style="color:var(--text-secondary);font-size:0.9rem;">No scenarios configured for this environment category.</p>';
+    }
+
+    return '<div class="detail-collapsible" id="section-scenarios">' +
+        '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-scenarios\')">' +
+            '<h2>' +
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>' +
+                ' Scenarios <span style="font-size:0.75rem;font-weight:400;color:var(--text-secondary);margin-left:6px;">(' + filtered.length + ')</span>' +
+            '</h2>' +
+            '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '</button>' +
+        '<div class="detail-collapsible-body" id="section-scenarios-body">' +
+            '<div class="detail-collapsible-content">' +
+                '<div class="scenarios-list">' + listHtml + '</div>' +
+                '<div style="margin-top:1rem;">' +
+                    '<button class="btn btn-outline btn-small" onclick="toggleAddScenarioForm()" id="btn-add-scenario">' +
+                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+                        ' Add Scenario' +
+                    '</button>' +
+                '</div>' +
+                '<div id="add-scenario-form" style="display:none;margin-top:1rem;padding:1rem;background:var(--bg-tertiary);border-radius:8px;border:1px solid var(--border-color);">' +
+                    '<h4 style="margin:0 0 0.75rem;font-size:0.9rem;color:var(--text-primary);">New Scenario (JSON)</h4>' +
+                    '<textarea id="add-scenario-json" class="add-env-terraform-editor" rows="8" spellcheck="false" placeholder=\'{\n  "name": "My Scenario",\n  "category": "' + envCategory + '",\n  "task_count": 5,\n  "description": "Describe the scenario..."\n}\'></textarea>' +
+                    '<div style="margin-top:0.75rem;display:flex;gap:8px;">' +
+                        '<button class="btn btn-primary btn-small" onclick="saveNewScenario(\'' + envName.replace(/'/g, "\\'") + '\', \'' + envCategory + '\')">Save Scenario</button>' +
+                        '<button class="btn btn-outline btn-small" onclick="toggleAddScenarioForm()">Cancel</button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+}
+
+function toggleAddScenarioForm() {
+    var form = document.getElementById('add-scenario-form');
+    if (!form) return;
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+window.toggleAddScenarioForm = toggleAddScenarioForm;
+
+function saveNewScenario(envName, envCategory) {
+    var textarea = document.getElementById('add-scenario-json');
+    if (!textarea) return;
+    try {
+        var data = JSON.parse(textarea.value);
+        if (!data.name) { showToast('Scenario name is required.', 'error'); return; }
+        var newScenario = {
+            id: 'sc_custom_' + Date.now(),
+            name: data.name,
+            category: data.category || envCategory,
+            task_count: data.task_count || 1,
+            description: data.description || ''
+        };
+        if (window.TRAINING_CONFIG && window.TRAINING_CONFIG.scenarios) {
+            window.TRAINING_CONFIG.scenarios.push(newScenario);
+        }
+        showToast('Scenario "' + newScenario.name + '" added.', 'success');
+        textarea.value = '';
+        toggleAddScenarioForm();
+        // Re-render the env detail to show updated scenarios
+        showEnvironmentDetails(envName);
+    } catch (e) {
+        showToast('Invalid JSON: ' + e.message, 'error');
+    }
+}
+window.saveNewScenario = saveNewScenario;
+
+// ─── Build Verifiers Section for detail page ───
+function buildVerifiersSection(envName, envCategory) {
+    var verifierData = window.VERIFIER_DATA;
+    var allVerifiers = (verifierData && verifierData.all) ? verifierData.all : [];
+    var filtered = allVerifiers.filter(function(v) { return v.environment === envCategory; });
+
+    var listHtml = '';
+    if (filtered.length) {
+        filtered.forEach(function(v, idx) {
+            var typeClass = (v.type || '').replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+            var scoringHtml = '';
+            if (v.logic && v.logic.scoring && typeof v.logic.scoring === 'object' && !Array.isArray(v.logic.scoring)) {
+                var keys = Object.keys(v.logic.scoring);
+                scoringHtml = '<div class="verifier-scoring">';
+                keys.forEach(function(k) {
+                    scoringHtml += '<span class="verifier-score-badge">' + k.replace(/_/g, ' ') + ': ' + v.logic.scoring[k] + '</span>';
+                });
+                scoringHtml += '</div>';
+            }
+            var subHtml = '';
+            if (v.subVerifiers && v.subVerifiers.length) {
+                subHtml = '<div class="verifier-subs"><span style="font-size:0.75rem;color:var(--text-secondary);font-weight:600;">Sub-verifiers:</span>';
+                v.subVerifiers.forEach(function(sv) {
+                    subHtml += '<span class="verifier-sub-chip" title="' + (sv.description || '') + '">' + sv.name + '</span>';
+                });
+                subHtml += '</div>';
+            }
+            listHtml += '<div class="verifier-card clickable-card" id="verifier-card-' + idx + '" onclick="showVerifierDetail(\'' + envCategory + '\', ' + idx + ')" title="Click to view JSON config">' +
+                '<div class="verifier-card-header">' +
+                    '<span class="verifier-card-name">' + v.name + '</span>' +
+                    '<span class="verifier-card-type type-' + typeClass + '">' + v.type + '</span>' +
+                '</div>' +
+                '<p class="verifier-card-desc">' + v.description + '</p>' +
+                scoringHtml +
+                subHtml +
+            '</div>';
+        });
+    } else {
+        listHtml = '<p style="color:var(--text-secondary);font-size:0.9rem;">No verifiers configured for this environment category.</p>';
+    }
+
+    return '<div class="detail-collapsible" id="section-verifiers">' +
+        '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-verifiers\')">' +
+            '<h2>' +
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' +
+                ' Verifiers <span style="font-size:0.75rem;font-weight:400;color:var(--text-secondary);margin-left:6px;">(' + filtered.length + ')</span>' +
+            '</h2>' +
+            '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '</button>' +
+        '<div class="detail-collapsible-body" id="section-verifiers-body">' +
+            '<div class="detail-collapsible-content">' +
+                '<div class="verifiers-list">' + listHtml + '</div>' +
+                '<div style="margin-top:1rem;">' +
+                    '<button class="btn btn-outline btn-small" onclick="toggleAddVerifierForm()" id="btn-add-verifier">' +
+                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+                        ' Add Verifier' +
+                    '</button>' +
+                '</div>' +
+                '<div id="add-verifier-form" style="display:none;margin-top:1rem;padding:1rem;background:var(--bg-tertiary);border-radius:8px;border:1px solid var(--border-color);">' +
+                    '<h4 style="margin:0 0 0.75rem;font-size:0.9rem;color:var(--text-primary);">New Verifier (JSON)</h4>' +
+                    '<textarea id="add-verifier-json" class="add-env-terraform-editor" rows="10" spellcheck="false" placeholder=\'{\n  "name": "My Verifier",\n  "type": "rule-based",\n  "description": "Describe the verifier...",\n  "logic": { "type": "custom_validator", "checks": {} },\n  "scoring": { "accuracy_weight": 0.5, "completeness_weight": 0.5 },\n  "failurePolicy": { "hard_fail": false, "penalty": -0.5 }\n}\'></textarea>' +
+                    '<div style="margin-top:0.75rem;display:flex;gap:8px;">' +
+                        '<button class="btn btn-primary btn-small" onclick="saveNewVerifier(\'' + envName.replace(/'/g, "\\'") + '\', \'' + envCategory + '\')">Save Verifier</button>' +
+                        '<button class="btn btn-outline btn-small" onclick="toggleAddVerifierForm()">Cancel</button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+}
+
+function toggleAddVerifierForm() {
+    var form = document.getElementById('add-verifier-form');
+    if (!form) return;
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+window.toggleAddVerifierForm = toggleAddVerifierForm;
+
+function saveNewVerifier(envName, envCategory) {
+    var textarea = document.getElementById('add-verifier-json');
+    if (!textarea) return;
+    try {
+        var data = JSON.parse(textarea.value);
+        if (!data.name) { showToast('Verifier name is required.', 'error'); return; }
+        var newVerifier = {
+            id: 'v_custom_' + Date.now(),
+            name: data.name,
+            type: data.type || 'rule-based',
+            system: 'Custom',
+            environment: envCategory,
+            version: 1,
+            status: 'active',
+            usedInScenarios: [],
+            description: data.description || '',
+            metadata: { type: data.type || 'rule-based', environment: envCategory },
+            logic: data.logic || {},
+            failurePolicy: data.failurePolicy || { hard_fail: false, penalty: -0.5, log_failure: true },
+            subVerifiers: data.subVerifiers || []
+        };
+        if (window.VERIFIER_DATA && window.VERIFIER_DATA.all) {
+            window.VERIFIER_DATA.all.push(newVerifier);
+        }
+        showToast('Verifier "' + newVerifier.name + '" added.', 'success');
+        textarea.value = '';
+        toggleAddVerifierForm();
+        showEnvironmentDetails(envName);
+    } catch (e) {
+        showToast('Invalid JSON: ' + e.message, 'error');
+    }
+}
+window.saveNewVerifier = saveNewVerifier;
+
+// ─── Scenario Detail View ───
+function showScenarioDetail(envCategory, idx) {
+    var cfg = window.TRAINING_CONFIG;
+    var allScenarios = (cfg && cfg.scenarios) ? cfg.scenarios : [];
+    var filtered = allScenarios.filter(function(s) { return s.category === envCategory; });
+    var scenario = filtered[idx];
+    if (!scenario) return;
+
+    // Find matching verifiers for cross-referencing tool workflows
+    var verifierData = window.VERIFIER_DATA;
+    var allVerifiers = (verifierData && verifierData.all) ? verifierData.all : [];
+    var matchingVerifiers = allVerifiers.filter(function(v) {
+        return v.environment === envCategory &&
+            v.usedInScenarios && v.usedInScenarios.some(function(sn) {
+                return sn.toLowerCase() === scenario.name.toLowerCase() ||
+                       scenario.name.toLowerCase().indexOf(sn.toLowerCase()) !== -1 ||
+                       sn.toLowerCase().indexOf(scenario.name.toLowerCase()) !== -1;
+            });
+    });
+    // If no direct match, use all verifiers from this category
+    if (!matchingVerifiers.length) {
+        matchingVerifiers = allVerifiers.filter(function(v) { return v.environment === envCategory; });
+    }
+
+    // Build "What This Scenario Tests" from description and verifier info
+    var testPoints = [];
+    if (scenario.description) {
+        // Break description into action-oriented test points
+        var desc = scenario.description;
+        testPoints.push(desc);
+    }
+    // Add points from verifier checks
+    matchingVerifiers.forEach(function(v) {
+        if (v.logic && v.logic.checks) {
+            if (v.logic.checks.tool_sequence) testPoints.push('Validating correct tool call sequence');
+            if (v.logic.checks.argument_validity) testPoints.push('Checking argument validity against available options');
+            if (v.logic.checks.field_presence) testPoints.push('Verifying required fields are present');
+            if (v.logic.checks.data_integrity) testPoints.push('Ensuring data integrity across operations');
+        }
+        if (v.logic && v.logic.trajectory_checks) {
+            if (v.logic.trajectory_checks.required_steps) testPoints.push('Validating required workflow steps are completed');
+            if (v.logic.trajectory_checks.balance_must_be_positive) testPoints.push('Checking resource balance constraints');
+            if (v.logic.trajectory_checks.approval_chain) testPoints.push('Verifying approval chain is followed');
+        }
+        if (v.logic && v.logic.judge_prompt) {
+            testPoints.push('LLM-based evaluation of trajectory quality');
+        }
+    });
+    // Deduplicate
+    var uniqueTests = [];
+    testPoints.forEach(function(t) { if (uniqueTests.indexOf(t) === -1) uniqueTests.push(t); });
+
+    var testsHtml = uniqueTests.map(function(t) {
+        return '<li style="margin-bottom:0.4rem;color:var(--text-primary);font-size:0.9rem;">' + t + '</li>';
+    }).join('');
+
+    // Build "Typical Tasks" from scenario name variations
+    var typicalTasks = [];
+    typicalTasks.push(scenario.name);
+    // Generate related task names from verifier scenario references
+    matchingVerifiers.forEach(function(v) {
+        if (v.usedInScenarios) {
+            v.usedInScenarios.forEach(function(sn) {
+                if (typicalTasks.indexOf(sn) === -1) typicalTasks.push(sn);
+            });
+        }
+    });
+    var tasksHtml = typicalTasks.map(function(t) {
+        return '<li style="margin-bottom:0.4rem;color:var(--text-primary);font-size:0.9rem;">' + t + '</li>';
+    }).join('');
+
+    // Build "Expected Tool Workflow" from verifier tool sequences
+    var toolWorkflow = [];
+    matchingVerifiers.forEach(function(v) {
+        if (v.logic && v.logic.checks && v.logic.checks.tool_sequence && v.logic.checks.tool_sequence.expected_order) {
+            v.logic.checks.tool_sequence.expected_order.forEach(function(tool) {
+                if (toolWorkflow.indexOf(tool) === -1) toolWorkflow.push(tool);
+            });
+        }
+        if (v.logic && v.logic.trajectory_checks && v.logic.trajectory_checks.required_steps) {
+            v.logic.trajectory_checks.required_steps.forEach(function(step) {
+                if (toolWorkflow.indexOf(step) === -1) toolWorkflow.push(step);
+            });
+        }
+    });
+    var workflowHtml = '';
+    if (toolWorkflow.length) {
+        workflowHtml = toolWorkflow.map(function(tool, i) {
+            return '<div class="sd-workflow-step">' +
+                '<span class="sd-workflow-num">' + (i + 1) + '</span>' +
+                '<span class="sd-workflow-tool">' + tool + '</span>' +
+            '</div>';
+        }).join('');
+    } else {
+        workflowHtml = '<p style="color:var(--text-secondary);font-size:0.85rem;">No tool workflow defined for this scenario.</p>';
+    }
+
+    // Connected verifiers
+    var connectedVerifiers = matchingVerifiers.map(function(v) { return v.name; });
+    var connectedHtml = connectedVerifiers.length
+        ? connectedVerifiers.map(function(n) { return '<span class="sd-connected-badge">' + n + '</span>'; }).join('')
+        : '<span style="color:var(--text-secondary);font-size:0.85rem;">None</span>';
+
+    // Build the overlay
+    var overlay = document.getElementById('scenario-detail-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'scenario-detail-overlay';
+        overlay.className = 'sv-detail-overlay';
+        overlay.onclick = function(e) { if (e.target === overlay) closeScenarioDetail(); };
+        document.body.appendChild(overlay);
+    }
+    overlay.innerHTML =
+        '<div class="sv-detail-box">' +
+            '<button class="sv-detail-close" onclick="closeScenarioDetail()">&times;</button>' +
+            '<div class="sd-header-card">' +
+                '<h2 class="sd-title">' + scenario.name + '</h2>' +
+                '<p class="sd-subtitle">' + scenario.description + '</p>' +
+                '<div class="sd-meta-row">' +
+                    '<span class="sd-meta-item"><strong>Environment:</strong> <span class="sd-env-badge">' + scenario.category + '</span></span>' +
+                    '<span class="sd-meta-item"><strong>Tasks covered:</strong> ' + scenario.task_count + '</span>' +
+                    '<span class="sd-meta-item"><strong>Connected verifiers:</strong> ' + connectedHtml + '</span>' +
+                '</div>' +
+            '</div>' +
+            '<div class="sd-section-card">' +
+                '<h3 class="sd-section-title">What This Scenario Tests</h3>' +
+                '<ul class="sd-bullet-list">' + testsHtml + '</ul>' +
+            '</div>' +
+            '<div class="sd-section-card">' +
+                '<h3 class="sd-section-title">Typical Tasks in This Scenario</h3>' +
+                '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.5rem;">Representative tasks:</p>' +
+                '<ul class="sd-bullet-list">' + tasksHtml + '</ul>' +
+            '</div>' +
+            '<div class="sd-section-card">' +
+                '<h3 class="sd-section-title">Expected Tool Workflow</h3>' +
+                '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.75rem;">Expected workflow:</p>' +
+                '<div class="sd-workflow-list">' + workflowHtml + '</div>' +
+            '</div>' +
+        '</div>';
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+window.showScenarioDetail = showScenarioDetail;
+
+function closeScenarioDetail() {
+    var overlay = document.getElementById('scenario-detail-overlay');
+    if (overlay) overlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+window.closeScenarioDetail = closeScenarioDetail;
+
+// ─── Verifier Detail View (JSON Config) ───
+function showVerifierDetail(envCategory, idx) {
+    var verifierData = window.VERIFIER_DATA;
+    var allVerifiers = (verifierData && verifierData.all) ? verifierData.all : [];
+    var filtered = allVerifiers.filter(function(v) { return v.environment === envCategory; });
+    var verifier = filtered[idx];
+    if (!verifier) return;
+
+    var typeClass = (verifier.type || '').replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+
+    // Build structured sections from verifier data
+    var metaHtml =
+        '<div class="vd-meta-grid">' +
+            '<div class="vd-meta-item"><span class="vd-meta-label">Type</span><span class="verifier-card-type type-' + typeClass + '">' + verifier.type + '</span></div>' +
+            '<div class="vd-meta-item"><span class="vd-meta-label">System</span><span class="vd-meta-value">' + (verifier.system || '—') + '</span></div>' +
+            '<div class="vd-meta-item"><span class="vd-meta-label">Environment</span><span class="vd-meta-value">' + (verifier.environment || '—') + '</span></div>' +
+            '<div class="vd-meta-item"><span class="vd-meta-label">Version</span><span class="vd-meta-value">v' + (verifier.version || 1) + '</span></div>' +
+            '<div class="vd-meta-item"><span class="vd-meta-label">Status</span><span class="vd-meta-value vd-status-' + (verifier.status || 'active') + '">' + (verifier.status || 'active') + '</span></div>' +
+            '<div class="vd-meta-item"><span class="vd-meta-label">Timeout</span><span class="vd-meta-value">' + ((verifier.metadata && verifier.metadata.timeout) || '—') + '</span></div>' +
+        '</div>';
+
+    // Failure policy section
+    var fpHtml = '';
+    if (verifier.failurePolicy) {
+        var fp = verifier.failurePolicy;
+        fpHtml = '<div class="vd-section">' +
+            '<h4 class="vd-section-label">Failure Policy</h4>' +
+            '<div class="vd-meta-grid">' +
+                '<div class="vd-meta-item"><span class="vd-meta-label">Hard Fail</span><span class="vd-meta-value">' + (fp.hard_fail ? 'Yes' : 'No') + '</span></div>' +
+                '<div class="vd-meta-item"><span class="vd-meta-label">Penalty</span><span class="vd-meta-value">' + fp.penalty + '</span></div>' +
+                '<div class="vd-meta-item"><span class="vd-meta-label">Log Failure</span><span class="vd-meta-value">' + (fp.log_failure ? 'Yes' : 'No') + '</span></div>' +
+            '</div>' +
+        '</div>';
+    }
+
+    // Used in scenarios
+    var scenariosHtml = '';
+    if (verifier.usedInScenarios && verifier.usedInScenarios.length) {
+        scenariosHtml = '<div class="vd-section">' +
+            '<h4 class="vd-section-label">Used in Scenarios</h4>' +
+            '<div class="vd-chips">' +
+                verifier.usedInScenarios.map(function(s) { return '<span class="sd-connected-badge">' + s + '</span>'; }).join('') +
+            '</div>' +
+        '</div>';
+    }
+
+    // Sub-verifiers
+    var subVHtml = '';
+    if (verifier.subVerifiers && verifier.subVerifiers.length) {
+        subVHtml = '<div class="vd-section">' +
+            '<h4 class="vd-section-label">Sub-Verifiers</h4>' +
+            verifier.subVerifiers.map(function(sv) {
+                return '<div class="vd-sub-card">' +
+                    '<span class="vd-sub-name">' + sv.name + '</span>' +
+                    '<span class="vd-sub-status ' + (sv.enabled ? 'enabled' : 'disabled') + '">' + (sv.enabled ? 'Enabled' : 'Disabled') + '</span>' +
+                    '<p class="vd-sub-desc">' + (sv.description || '') + '</p>' +
+                '</div>';
+            }).join('') +
+        '</div>';
+    }
+
+    // Full JSON config
+    var jsonStr = JSON.stringify(verifier, null, 2);
+
+    // Build the overlay
+    var overlay = document.getElementById('verifier-detail-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'verifier-detail-overlay';
+        overlay.className = 'sv-detail-overlay';
+        overlay.onclick = function(e) { if (e.target === overlay) closeVerifierDetail(); };
+        document.body.appendChild(overlay);
+    }
+    overlay.innerHTML =
+        '<div class="sv-detail-box vd-box">' +
+            '<button class="sv-detail-close" onclick="closeVerifierDetail()">&times;</button>' +
+            '<div class="sd-header-card">' +
+                '<h2 class="sd-title">' + verifier.name + '</h2>' +
+                '<p class="sd-subtitle">' + verifier.description + '</p>' +
+            '</div>' +
+            metaHtml +
+            fpHtml +
+            scenariosHtml +
+            subVHtml +
+            '<div class="vd-section">' +
+                '<div class="vd-json-header">' +
+                    '<h4 class="vd-section-label">JSON Configuration</h4>' +
+                    '<button class="btn btn-outline btn-small" onclick="copyVerifierJson()" title="Copy to clipboard">' +
+                        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+                        ' Copy' +
+                    '</button>' +
+                '</div>' +
+                '<pre class="vd-json-block" id="vd-json-content">' + escapeHtml(jsonStr) + '</pre>' +
+            '</div>' +
+        '</div>';
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+window.showVerifierDetail = showVerifierDetail;
+
+function closeVerifierDetail() {
+    var overlay = document.getElementById('verifier-detail-overlay');
+    if (overlay) overlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+window.closeVerifierDetail = closeVerifierDetail;
+
+function copyVerifierJson() {
+    var el = document.getElementById('vd-json-content');
+    if (!el) return;
+    navigator.clipboard.writeText(el.textContent).then(function() {
+        showToast('JSON copied to clipboard', 'success');
+    }).catch(function() {
+        showToast('Failed to copy', 'error');
+    });
+}
+window.copyVerifierJson = copyVerifierJson;
+
+function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 // ─── Build Training Section for detail page ───
 function getTrainingRunsForEnv(envCategory, envName) {
     var cfg = window.TRAINING_CONFIG;
@@ -2334,10 +2878,13 @@ function buildTrainingSection(envName, envCategory) {
                     '<div class="training-empty-state">' +
                         '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5" style="opacity:0.4;margin-bottom:0.75rem;"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg>' +
                         '<p style="color:var(--text-secondary);margin-bottom:1rem;font-size:0.9rem;">No training runs yet. Configure and start your first training run.</p>' +
-                        '<button class="btn btn-primary" onclick="openTrainingConfigPopup(\'' + envName + '\')">' +
+                        '<button class="btn btn-primary" onclick="toggleTrainingInline(\'' + envName + '\')">' +
                             '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
                             ' New Training' +
                         '</button>' +
+                    '</div>' +
+                    '<div id="training-inline-iframe-wrap" style="display:none;margin-top:1rem;">' +
+                        '<iframe id="training-inline-iframe" style="width:100%;height:700px;border:none;border-radius:8px;" loading="lazy"></iframe>' +
                     '</div>' +
                 '</div>' +
             '</div>' +
@@ -2386,12 +2933,15 @@ function buildTrainingSection(envName, envCategory) {
             '<div class="detail-collapsible-content">' +
                 '<div class="training-inline-header">' +
                     '<span class="training-inline-count">' + runs.length + ' run' + (runs.length !== 1 ? 's' : '') + '</span>' +
-                    '<button class="btn btn-primary btn-small train-new-btn" onclick="openTrainingConfigPopup(\'' + envName + '\')">' +
+                    '<button class="btn btn-primary btn-small train-new-btn" onclick="toggleTrainingInline(\'' + envName + '\')">' +
                         '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
                         ' New' +
                     '</button>' +
                 '</div>' +
                 tableHtml +
+                '<div id="training-inline-iframe-wrap" style="display:none;margin-top:1rem;">' +
+                    '<iframe id="training-inline-iframe" style="width:100%;height:700px;border:none;border-radius:8px;" loading="lazy"></iframe>' +
+                '</div>' +
             '</div>' +
         '</div>' +
     '</div>';
@@ -3221,6 +3771,129 @@ function _persistCustomEnvConfig(envName, details) {
     });
 }
 
+// ─── Build Simulations Content (HF tabs vs test-console iframe) ───
+function _buildSimulationsContent(envName, env, details) {
+    if (details.source === 'huggingface' || env.source === 'huggingface') {
+        var sdk = details.sdk || env.sdk || 'unknown';
+        var hfUrl = details.hf_url || env.hf_url || '';
+        var hfOwner = details.hf_owner || env.hf_owner || '';
+        var hfRepo = details.hf_repo || env.hf_repo || '';
+        if ((!hfOwner || !hfRepo) && hfUrl) {
+            var _m = hfUrl.match(/huggingface\.co\/spaces\/([^/]+)\/([^/?#]+)/i);
+            if (_m) { hfOwner = _m[1]; hfRepo = _m[2]; }
+        }
+        var author = details.author || hfOwner || '';
+        var license = details.license || '';
+        var tags = details.tags || [];
+        var files = details.files || [];
+        var endpoints = details.endpoints || [];
+        var models = details.models || {};
+        var readme = details.readme || '';
+        var openenv = details.openenv || {};
+        var pyproject = details.pyproject || {};
+
+        // Tags HTML
+        var tagsHtml = tags.map(function(t) { return '<span class="hf-tag">' + t + '</span>'; }).join('');
+
+        // Metadata grid
+        var metaItems = [
+            { label: 'SDK', value: sdk },
+            { label: 'Runtime', value: openenv.runtime || sdk },
+            { label: 'Port', value: openenv.port || (details.frontMatter || {}).app_port || '—' },
+            { label: 'Author', value: author },
+            { label: 'License', value: license || 'Not specified' },
+            { label: 'Likes', value: (details.likes || 0) + '' }
+        ];
+        var metaHtml = metaItems.map(function(m) {
+            return '<div class="hf-meta-item"><span class="hf-meta-label">' + m.label + '</span><span class="hf-meta-value">' + m.value + '</span></div>';
+        }).join('');
+
+        // Endpoints HTML
+        var endpointsHtml = '';
+        if (endpoints.length > 0) {
+            endpointsHtml = '<div class="hf-endpoints"><h3>API Endpoints</h3><div class="hf-endpoint-list">' +
+                endpoints.map(function(ep) {
+                    return '<div class="hf-endpoint"><span class="hf-method hf-method-' + ep.method.toLowerCase() + '">' + ep.method + '</span><code>' + ep.path + '</code></div>';
+                }).join('') + '</div></div>';
+        }
+
+        // Models HTML
+        var modelsHtml = '';
+        var modelKeys = Object.keys(models);
+        if (modelKeys.length > 0) {
+            modelsHtml = '<div class="hf-models"><h3>Data Models</h3>' +
+                modelKeys.map(function(mk) {
+                    var m = models[mk];
+                    var fieldsHtml = m.fields.map(function(f) {
+                        if (f.value) return '<div class="hf-model-field"><code>' + f.name + '</code> = <code>"' + f.value + '"</code></div>';
+                        return '<div class="hf-model-field"><code>' + f.name + '</code><span class="hf-model-type">' + (f.type || '') + '</span>' +
+                            (f.description ? '<span class="hf-model-desc">' + f.description + '</span>' : '') + '</div>';
+                    }).join('');
+                    return '<div class="hf-model-card"><h4>' + mk + (m.doc ? ' <span class="hf-model-doc">' + m.doc + '</span>' : '') + '</h4>' + fieldsHtml + '</div>';
+                }).join('') + '</div>';
+        }
+
+        // Files HTML
+        var filesHtml = '';
+        if (files.length > 0) {
+            filesHtml = files.map(function(f) {
+                var sizeStr = f.size < 1024 ? f.size + ' B' : (f.size < 1048576 ? (f.size / 1024).toFixed(1) + ' KB' : (f.size / 1048576).toFixed(1) + ' MB');
+                var ext = f.path.split('.').pop().toLowerCase();
+                var icon = ext === 'py' ? '🐍' : ext === 'md' ? '📄' : ext === 'yaml' || ext === 'yml' ? '⚙️' : ext === 'toml' ? '📦' : ext === 'json' ? '{}' : ext === 'html' ? '🌐' : '📁';
+                return '<div class="hf-file" onclick="viewEnvFile(\'' + envName + '\', \'' + f.path.replace(/'/g, "\\'") + '\')">' +
+                    '<span class="hf-file-icon">' + icon + '</span>' +
+                    '<span class="hf-file-name">' + f.path + '</span>' +
+                    '<span class="hf-file-size">' + sizeStr + '</span></div>';
+            }).join('');
+        }
+
+        // Dependencies
+        var depsHtml = '';
+        if (pyproject.dependencies && pyproject.dependencies.length > 0) {
+            depsHtml = '<div class="hf-deps"><h3>Dependencies</h3><div class="hf-dep-list">' +
+                pyproject.dependencies.map(function(d) { return '<span class="hf-dep">' + d + '</span>'; }).join('') +
+                '</div></div>';
+        }
+
+        // README
+        var readmeHtml = '';
+        if (readme) {
+            readmeHtml = _simpleMarkdown(readme);
+        }
+
+        return (tagsHtml ? '<div class="hf-tags-row">' + tagsHtml + '</div>' : '') +
+            '<div class="hf-meta-grid">' + metaHtml + '</div>' +
+            '<div class="hf-tabs" id="hf-tabs">' +
+                '<button class="hf-tab active" data-tab="hf-tab-app" onclick="switchHFTab(this)">App</button>' +
+                '<button class="hf-tab" data-tab="hf-tab-files" onclick="switchHFTab(this)">Files <span class="hf-tab-count">' + files.length + '</span></button>' +
+                '<button class="hf-tab" data-tab="hf-tab-readme" onclick="switchHFTab(this)">README</button>' +
+                (endpoints.length > 0 ? '<button class="hf-tab" data-tab="hf-tab-api" onclick="switchHFTab(this)">API</button>' : '') +
+            '</div>' +
+            '<div class="hf-tab-panel active" id="hf-tab-app">' +
+                (hfUrl && hfOwner && hfRepo ?
+                    '<div class="hf-iframe-wrap"><iframe id="hf-app-iframe" class="hf-iframe" src="https://' + hfOwner + '-' + hfRepo + '.hf.space" allow="accelerometer; camera; encrypted-media; geolocation; gyroscope; microphone" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" loading="lazy"></iframe></div>' +
+                    '<p style="text-align:center;font-size:0.75rem;color:#888;margin-top:0.5rem;">Embedded from <a href="' + hfUrl + '" target="_blank" style="color:var(--primary-color);">' + hfUrl + '</a></p>' :
+                '<div class="hf-empty-state">No live preview available. The environment has been cloned locally.</div>') +
+            '</div>' +
+            '<div class="hf-tab-panel" id="hf-tab-files">' +
+                '<div class="hf-file-browser">' + filesHtml + '</div>' +
+                '<div class="hf-file-viewer" id="hf-file-viewer" style="display:none;">' +
+                    '<div class="hf-file-viewer-header"><span id="hf-file-viewer-title"></span>' +
+                        '<button class="hf-file-close-btn" onclick="closeFileViewer()" title="Close (Esc)"><kbd>Esc</kbd></button></div>' +
+                    '<pre class="hf-file-content" id="hf-file-content"></pre>' +
+                '</div>' +
+            '</div>' +
+            '<div class="hf-tab-panel" id="hf-tab-readme">' +
+                (readmeHtml ? '<div class="hf-readme">' + readmeHtml + '</div>' : '<div class="hf-empty-state">No README found.</div>') +
+            '</div>' +
+            '<div class="hf-tab-panel" id="hf-tab-api">' +
+                endpointsHtml + modelsHtml + depsHtml +
+            '</div>';
+    }
+    // Standard: test-console iframe
+    return '<iframe src="/test-console?env=' + encodeURIComponent(envName) + '&embedded=1" style="width:100%;height:700px;border:none;" loading="lazy"></iframe>';
+}
+
 function showEnvironmentDetails(envName) {
     var env = allEnvironments.find(function(e) { return e.name === envName; });
     if (!env) return;
@@ -3228,13 +3901,20 @@ function showEnvironmentDetails(envName) {
     var details = environmentDetails[envName] || {};
 
     // Route to source-specific detail views
-    if (details.source === 'huggingface' || env.source === 'huggingface') {
-        _showHFDetailView(env, details);
-        return;
-    }
     if ((env.sdk === 'custom' || details.sdk === 'custom') && details.terraformTemplate) {
         _showTerraformDetailView(env, details);
         return;
+    }
+
+    // Enrich HuggingFace environments with RL defaults from category registry
+    if (details.source === 'huggingface' || env.source === 'huggingface') {
+        var _cat = env.category || 'cross_workflow';
+        var _reg = CATEGORY_CONFIG_REGISTRY[_cat] || CATEGORY_CONFIG_REGISTRY['cross_workflow'];
+        if (!details.kpis) details.kpis = _reg.kpis;
+        if (!details.whatItDoes && _reg.whatItDoesTemplate) details.whatItDoes = _reg.whatItDoesTemplate(env.name);
+        if (!details.howToUse && _reg.howToUseTemplate) details.howToUse = _reg.howToUseTemplate();
+        if (!details.configTemplate) details.configTemplate = _reg.configTemplate;
+        if (!details.configSchema) details.configSchema = _reg.configSchema;
     }
 
     // Standard RL environment detail view
@@ -3275,6 +3955,7 @@ function showEnvironmentDetails(envName) {
                     '</div>' +
                 '</span>' +
                 '<span class="env-category category-' + env.category + '">' + env.category + '</span>' +
+                ((details.hf_url || env.hf_url) ? '<a href="' + (details.hf_url || env.hf_url) + '" target="_blank" class="hf-source-link" style="margin-left:0.5rem;font-size:0.82rem;">View on HuggingFace ↗</a>' : '') +
             '</div>' +
         '</div>' +
         '<div class="detail-collapsible open" id="section-description">' +
@@ -3301,12 +3982,19 @@ function showEnvironmentDetails(envName) {
                 '</div>' +
             '</div>' +
         '</div>' +
+        buildScenariosSection(envName, env.category) +
+        buildVerifiersSection(envName, env.category) +
         buildConfigEditorSection(envName, details) +
         '<div class="detail-collapsible" id="section-environment">' +
-            '<button class="detail-collapsible-header" onclick="openDetailPopup(\'environment\', \'/test-console?env=' + encodeURIComponent(envName) + '&embedded=1\', \'Environment\')">' +
-                '<h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Environment</h2>' +
+            '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-environment\')">' +
+                '<h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Simulations</h2>' +
                 '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
             '</button>' +
+            '<div class="detail-collapsible-body" id="section-environment-body">' +
+                '<div class="detail-collapsible-content"' + ((details.source !== 'huggingface' && env.source !== 'huggingface') ? ' style="padding:0;"' : '') + '>' +
+                    _buildSimulationsContent(envName, env, details) +
+                '</div>' +
+            '</div>' +
         '</div>' +
         buildTrainingSection(envName, env.category) +
         '<div class="detail-popup-overlay" id="detail-popup-overlay" onclick="closeDetailPopup(event)">' +
@@ -3325,104 +4013,6 @@ function showEnvironmentDetails(envName) {
             setTimeout(function() { descBody.style.maxHeight = 'none'; }, 500);
         }
     });
-
-    document.getElementById('catalog-container').style.display = 'none';
-    document.getElementById('env-detail-page').style.display = 'block';
-}
-
-// ─── HuggingFace Environment Detail View ───
-function _showHFDetailView(env, details) {
-    var detailBody = document.getElementById('env-detail-body');
-    var name = env.name;
-    var sdk = details.sdk || env.sdk || 'unknown';
-    var hfUrl = details.hf_url || env.hf_url || '';
-    var hfOwner = details.hf_owner || env.hf_owner || '';
-    var hfRepo = details.hf_repo || env.hf_repo || '';
-    // Parse owner/repo from URL if not stored directly
-    if ((!hfOwner || !hfRepo) && hfUrl) {
-        var _m = hfUrl.match(/huggingface\.co\/spaces\/([^/]+)\/([^/?#]+)/i);
-        if (_m) { hfOwner = _m[1]; hfRepo = _m[2]; }
-    }
-    var author = details.author || hfOwner || '';
-    var license = details.license || '';
-    var tags = details.tags || [];
-    var files = details.files || [];
-    var endpoints = details.endpoints || [];
-    var models = details.models || {};
-    var readme = details.readme || '';
-    var openenv = details.openenv || {};
-    var pyproject = details.pyproject || {};
-    var desc = details.description || env.description || '';
-
-    // Tags HTML
-    var tagsHtml = tags.map(function(t) { return '<span class="hf-tag">' + t + '</span>'; }).join('');
-
-    // Metadata grid
-    var metaItems = [
-        { label: 'SDK', value: sdk },
-        { label: 'Runtime', value: openenv.runtime || sdk },
-        { label: 'Port', value: openenv.port || (details.frontMatter || {}).app_port || '—' },
-        { label: 'Author', value: author },
-        { label: 'License', value: license || 'Not specified' },
-        { label: 'Likes', value: (details.likes || 0) + '' }
-    ];
-    var metaHtml = metaItems.map(function(m) {
-        return '<div class="hf-meta-item"><span class="hf-meta-label">' + m.label + '</span><span class="hf-meta-value">' + m.value + '</span></div>';
-    }).join('');
-
-    // Endpoints HTML
-    var endpointsHtml = '';
-    if (endpoints.length > 0) {
-        endpointsHtml = '<div class="hf-endpoints"><h3>API Endpoints</h3><div class="hf-endpoint-list">' +
-            endpoints.map(function(ep) {
-                return '<div class="hf-endpoint"><span class="hf-method hf-method-' + ep.method.toLowerCase() + '">' + ep.method + '</span><code>' + ep.path + '</code></div>';
-            }).join('') + '</div></div>';
-    }
-
-    // Models HTML
-    var modelsHtml = '';
-    var modelKeys = Object.keys(models);
-    if (modelKeys.length > 0) {
-        modelsHtml = '<div class="hf-models"><h3>Data Models</h3>' +
-            modelKeys.map(function(mk) {
-                var m = models[mk];
-                var fieldsHtml = m.fields.map(function(f) {
-                    if (f.value) return '<div class="hf-model-field"><code>' + f.name + '</code> = <code>"' + f.value + '"</code></div>';
-                    return '<div class="hf-model-field"><code>' + f.name + '</code><span class="hf-model-type">' + (f.type || '') + '</span>' +
-                        (f.description ? '<span class="hf-model-desc">' + f.description + '</span>' : '') + '</div>';
-                }).join('');
-                return '<div class="hf-model-card"><h4>' + mk + (m.doc ? ' <span class="hf-model-doc">' + m.doc + '</span>' : '') + '</h4>' + fieldsHtml + '</div>';
-            }).join('') + '</div>';
-    }
-
-    // Files HTML
-    var filesHtml = '';
-    if (files.length > 0) {
-        filesHtml = files.map(function(f) {
-            var sizeStr = f.size < 1024 ? f.size + ' B' : (f.size < 1048576 ? (f.size / 1024).toFixed(1) + ' KB' : (f.size / 1048576).toFixed(1) + ' MB');
-            var ext = f.path.split('.').pop().toLowerCase();
-            var icon = ext === 'py' ? '🐍' : ext === 'md' ? '📄' : ext === 'yaml' || ext === 'yml' ? '⚙️' : ext === 'toml' ? '📦' : ext === 'json' ? '{}' : ext === 'html' ? '🌐' : '📁';
-            return '<div class="hf-file" onclick="viewEnvFile(\'' + name + '\', \'' + f.path.replace(/'/g, "\\'") + '\')">' +
-                '<span class="hf-file-icon">' + icon + '</span>' +
-                '<span class="hf-file-name">' + f.path + '</span>' +
-                '<span class="hf-file-size">' + sizeStr + '</span></div>';
-        }).join('');
-    }
-
-    // Dependencies
-    var depsHtml = '';
-    if (pyproject.dependencies && pyproject.dependencies.length > 0) {
-        depsHtml = '<div class="hf-deps"><h3>Dependencies</h3><div class="hf-dep-list">' +
-            pyproject.dependencies.map(function(d) { return '<span class="hf-dep">' + d + '</span>'; }).join('') +
-            '</div></div>';
-    }
-
-    // Simple markdown-to-html for README (headers, code blocks, paragraphs)
-    var readmeHtml = '';
-    if (readme) {
-        readmeHtml = _simpleMarkdown(readme);
-    }
-
     var hfDeleteBtn = '<button class="btn btn-danger btn-small" onclick="deleteEnvironment(\'' + name.replace(/'/g, "\\'") + '\')">' +
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
         ' Delete</button>';
@@ -3891,6 +4481,27 @@ function openTrainingConfigPopup(envName) {
     document.body.appendChild(overlay);
 }
 window.openTrainingConfigPopup = openTrainingConfigPopup;
+
+function toggleTrainingInline(envName) {
+    var wrap = document.getElementById('training-inline-iframe-wrap');
+    if (!wrap) return;
+    var iframe = document.getElementById('training-inline-iframe');
+    if (wrap.style.display === 'none' || !wrap.style.display) {
+        // Show inline iframe — expand the training section if collapsed
+        var section = document.getElementById('section-training');
+        if (section && !section.classList.contains('open')) {
+            toggleDetailSection('section-training');
+        }
+        if (iframe && !iframe.src.includes('/training-console')) {
+            iframe.src = '/training-console?env=' + encodeURIComponent(envName) + '&embedded=1';
+        }
+        wrap.style.display = 'block';
+    } else {
+        // Hide inline iframe
+        wrap.style.display = 'none';
+    }
+}
+window.toggleTrainingInline = toggleTrainingInline;
 
 function _openTrainingConfigModal(envName) {
     const env = allEnvironments.find(e => e.name === envName);
@@ -5206,12 +5817,6 @@ function renderSdkTemplateGrid(sdkValue) {
         return;
     }
 
-    if (sdkValue === 'gymnasium') {
-        container.innerHTML = _renderGymnasiumUploadArea();
-        container.style.display = 'block';
-        return;
-    }
-
     var templates = SDK_TEMPLATES[sdkValue];
     if (!templates || templates.length === 0) { container.style.display = 'none'; return; }
 
@@ -5285,59 +5890,6 @@ function resetTerraformToDefault() {
 }
 window.resetTerraformToDefault = resetTerraformToDefault;
 
-function _renderGymnasiumUploadArea() {
-    return '' +
-        '<label class="add-env-template-label">Gymnasium Environment</label>' +
-        '<div class="add-env-terraform-area">' +
-            '<div class="add-env-terraform-info">' +
-                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
-                '<span>Upload a Python file containing a <code>gym.Env</code> subclass. The environment will be available in the Financial Simulation Console.</span>' +
-            '</div>' +
-            '<div style="margin-top:12px;">' +
-                '<label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-primary);">Python File (.py)</label>' +
-                '<div id="gym-upload-dropzone" class="add-env-terraform-editor" style="min-height:80px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px dashed var(--border-color);border-radius:8px;padding:16px;text-align:center;font-size:13px;color:var(--text-muted);" onclick="document.getElementById(\'gym-file-input\').click()" ondragover="event.preventDefault();this.style.borderColor=\'var(--primary-color)\'" ondragleave="this.style.borderColor=\'var(--border-color)\'" ondrop="handleGymFileDrop(event)">' +
-                    '<span id="gym-upload-label">Drag & drop a .py file here, or click to browse</span>' +
-                '</div>' +
-                '<input type="file" id="gym-file-input" accept=".py" style="display:none;" onchange="handleGymFileSelect(this)">' +
-            '</div>' +
-            '<div style="margin-top:12px;">' +
-                '<label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-primary);">Environment Class Name</label>' +
-                '<input type="text" id="gym-class-name" class="add-env-input" placeholder="e.g. MyCustomEnv" style="width:100%;padding:8px 12px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;">' +
-            '</div>' +
-            '<div style="margin-top:12px;">' +
-                '<label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:var(--text-primary);">Config JSON <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>' +
-                '<textarea id="gym-config-json" class="add-env-terraform-editor" rows="4" spellcheck="false" placeholder=\'{"param1": "value1", "param2": 42}\'></textarea>' +
-            '</div>' +
-        '</div>';
-}
-
-var _gymUploadedFile = null;
-
-function handleGymFileSelect(input) {
-    if (!input.files || !input.files[0]) return;
-    _gymUploadedFile = input.files[0];
-    document.getElementById('gym-upload-label').textContent = _gymUploadedFile.name + ' (' + (_gymUploadedFile.size / 1024).toFixed(1) + ' KB)';
-    document.getElementById('gym-upload-dropzone').style.borderColor = 'var(--primary-color)';
-    if (window.showToast) showToast('File "' + _gymUploadedFile.name + '" selected.', 'success');
-}
-window.handleGymFileSelect = handleGymFileSelect;
-
-function handleGymFileDrop(event) {
-    event.preventDefault();
-    event.currentTarget.style.borderColor = 'var(--border-color)';
-    var files = event.dataTransfer.files;
-    if (files.length > 0 && files[0].name.endsWith('.py')) {
-        _gymUploadedFile = files[0];
-        document.getElementById('gym-upload-label').textContent = _gymUploadedFile.name + ' (' + (_gymUploadedFile.size / 1024).toFixed(1) + ' KB)';
-        document.getElementById('gym-upload-dropzone').style.borderColor = 'var(--primary-color)';
-        if (window.showToast) showToast('File "' + _gymUploadedFile.name + '" selected.', 'success');
-    } else {
-        if (window.showToast) showToast('Please drop a .py file.', 'error');
-    }
-}
-window.handleGymFileDrop = handleGymFileDrop;
-
-
 // ─── Domain-to-category mapping for new environments ───
 var _categoryToDomain = {
     jira: 'dev-sim', clinical: 'med-sim', imaging: 'med-sim', revenue_cycle: 'fin-sim',
@@ -5385,69 +5937,6 @@ function submitAddEnvironment(event) {
     if (!name) {
         if (window.showToast) showToast('Please enter an environment name.', 'error');
         else alert('Please enter an environment name.');
-        return;
-    }
-
-    // --- Gymnasium SDK: upload file via multipart ---
-    if (sdk === 'gymnasium') {
-        if (!_gymUploadedFile) {
-            if (window.showToast) showToast('Please upload a Python file.', 'error');
-            return;
-        }
-        var gymClassName = (document.getElementById('gym-class-name') || {}).value || '';
-        if (!gymClassName.trim()) {
-            if (window.showToast) showToast('Please enter the environment class name.', 'error');
-            return;
-        }
-        var gymConfigJson = (document.getElementById('gym-config-json') || {}).value || '{}';
-        var formData = new FormData();
-        formData.append('file', _gymUploadedFile);
-        formData.append('name', name);
-        formData.append('class_name', gymClassName.trim());
-        formData.append('config_json', gymConfigJson);
-        formData.append('description', desc || 'Custom Gymnasium environment');
-        formData.append('owner', owner);
-
-        fetch(API_BASE + '/api/custom-environments/upload-gymnasium', {
-            method: 'POST',
-            body: formData
-        }).then(function(r) {
-            if (!r.ok) return r.json().then(function(e) { throw new Error(e.detail || 'Upload failed'); });
-            return r.json();
-        }).then(function(result) {
-            var gymEnv = {
-                name: name,
-                description: desc || 'Custom Gymnasium environment: ' + gymClassName,
-                category: 'financial',
-                system: 'Custom',
-                domain: 'fin-sim',
-                sdk: 'gymnasium',
-                hardware: hardware,
-                stateFeatures: result.observation_dim || 0,
-                actionSpace: result.action_dim || 0,
-                actionType: result.action_type || 'unknown',
-                actions: [],
-                owner: owner,
-                license: license,
-                source: 'custom',
-                class_name: gymClassName.trim()
-            };
-            environmentDetails[name] = generateEnvironmentDetails(gymEnv);
-            _addEnvironmentToGrid(gymEnv);
-            if (window.showToast) showToast('Gymnasium environment "' + name + '" uploaded successfully!', 'success');
-            // Reset form
-            document.getElementById('add-env-form').reset();
-            document.getElementById('add-env-owner').value = 'centific';
-            document.getElementById('add-env-sdk').value = 'gradio';
-            document.getElementById('add-env-hardware').value = 'cpu-basic';
-            _gymUploadedFile = null;
-            document.querySelectorAll('#add-env-sdk-seg .add-env-seg-btn').forEach(function(c, i) { c.classList.toggle('selected', i === 0); });
-            renderSdkTemplateGrid('gradio');
-            setTimeout(function() { closeAddEnvironmentPage(); }, 800);
-        }).catch(function(err) {
-            console.error('[Gymnasium Upload]', err);
-            if (window.showToast) showToast('Upload failed: ' + err.message, 'error');
-        });
         return;
     }
 

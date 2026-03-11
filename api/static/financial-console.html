@@ -331,9 +331,9 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
   </button>
   <ul class="gn-links">
-    <li><a href="/" class="gn-link">Home</a></li>
-    <li><a href="/catalog" class="gn-link">Catalog</a></li>
-    <li><a href="/financial-console" class="gn-link gn-active">Financial Console</a></li>
+    <li><a href="/catalog" class="gn-link">Environments</a></li>
+    <li><a href="/training-console" class="gn-link">Training</a></li>
+    <li><a href="/agent-console" class="gn-link">Agent</a></li>
     <li>
       <button class="gn-theme-toggle" onclick="toggleDarkMode()" title="Toggle dark mode">
         <span class="theme-icon-sun">&#9728;</span>
@@ -347,7 +347,7 @@
   <div class="page-inner">
 
     <!-- Back button -->
-    <a href="/catalog" class="btn-back" id="btnBack">&#8592; Back to Catalog</a>
+    <a href="/catalog" class="btn-back" id="btnBack">&#8592; Back to Environments</a>
 
     <!-- Hero: title + category + health -->
     <div class="detail-hero">
@@ -387,7 +387,7 @@
     </div>
 
     <!-- Description / How It Works (collapsible) -->
-    <div id="explainSection" class="fc-section open" style="display:none;">
+    <div id="explainSection" class="fc-section" style="display:none;">
       <button class="fc-section-header" onclick="toggleSection('explainSection')">
         <h2>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
@@ -542,29 +542,23 @@ var envTypes = {};
 
 /* ── URL param mapping ────────────────────────────────── */
 var URL_SLUG_MAP = {
-  'StockTrading':        'stock-trading',
-  'PortfolioAllocation': 'portfolio-allocation',
-  'OptionsPricing':      'options-pricing'
+  'Delcita':             'delcita'
 };
 
 /* ── Observation labels ───────────────────────────────── */
 var OBS_NAMES = {
-  'stock-trading': [
+  'delcita': [
     'Return', 'Price/SMA-1', 'Std/SMA', 'Position in Range', 'RSI',
     'Short Momentum', 'Log Price/SMA', 'Return Volatility',
     'x[8]', 'x[9]', 'x[10]', 'x[11]', 'x[12]', 'x[13]', 'x[14]', 'x[15]',
     'x[16]', 'x[17]', 'Position Frac', 'Cash Ratio', 'Unrealized PnL', 'Drawdown'
-  ],
-  'options-pricing': [
-    'Moneyness (S/K)', 'Time to Expiry', 'Volatility', 'BS Delta',
-    'Gamma\u00d7S', 'Hedge Ratio', 'PnL'
   ]
 };
 
 /* ── Environment Explanations ─────────────────────────── */
 var ENV_EXPLAIN = {
-  'stock-trading': {
-    title: 'Stock Trading Environment',
+  'delcita': {
+    title: 'ABC Hedge Funds',
     overview: 'Single-asset trading with synthetic GBM (Geometric Brownian Motion) prices featuring regime switching. The agent observes technical indicators and decides trade actions at each timestep. Uses Differential Sharpe Ratio for reward shaping.',
     goal: 'Maximize risk-adjusted returns (Differential Sharpe Ratio) over the episode by timing entries and exits.',
     obs: [
@@ -586,41 +580,6 @@ var ENV_EXPLAIN = {
     reward: 'Uses the <strong>Differential Sharpe Ratio</strong> for reward shaping: <span class="formula">DSR = (A_{t-1} \u0394B_t - 0.5 B_{t-1} \u0394A_t) / (B_{t-1} - A_{t-1}\u00b2)^{3/2}</span>. Penalizes large drawdowns and transaction costs.',
     termination: 'Episode ends when price data is consumed (~500 steps) or if the portfolio value drops below 50% of initial capital.',
     stateDim: '22-dimensional state vector'
-  },
-  'portfolio-allocation': {
-    title: 'Portfolio Allocation Environment',
-    overview: 'Multi-asset (5 correlated assets) portfolio optimization. The agent allocates capital across assets at each step with weights summing to 1. Uses CRRA (Constant Relative Risk Aversion) utility for the reward function.',
-    goal: 'Maximize CRRA utility-based returns while managing risk across 5 correlated assets and minimizing rebalancing costs.',
-    obs: [
-      ['x[0..N]', 'Flattened lookback window of historical returns per asset (asset_1_t-20, ..., asset_1_t-1, asset_2_t-20, ...)'],
-      ['weights[0..4]', 'Current portfolio weight for each of the 5 assets'],
-      ['portfolio_return', 'Latest portfolio return (weighted sum of asset returns)'],
-      ['portfolio_vol', 'Rolling portfolio volatility'],
-      ['sharpe', 'Rolling Sharpe ratio of the portfolio'],
-      ['cash', 'Fraction of capital held as cash']
-    ],
-    actions: '<strong>Continuous (5-dim vector):</strong><ul><li>Each value is a target weight for one asset</li><li>Weights are softmax-normalized to sum to 1.0</li><li>Example: <span class="formula">[0.20, 0.20, 0.20, 0.20, 0.20]</span> = equal-weight</li><li>Example: <span class="formula">[0.80, 0.05, 0.05, 0.05, 0.05]</span> = concentrated</li></ul>',
-    reward: 'CRRA utility: <span class="formula">U(r) = (1+r)^(1-\u03b3) / (1-\u03b3) - transaction_costs</span>. Transaction costs proportional to absolute change in weights. Risk aversion parameter \u03b3 controls return-risk trade-off.',
-    termination: 'Episode ends when all return data is consumed (~479 steps for 500 days with lookback=20) or portfolio drops below 50%.',
-    stateDim: '~109-dimensional state vector'
-  },
-  'options-pricing': {
-    title: 'Options Pricing & Hedging Environment',
-    overview: 'Delta hedging of short call options. The underlying stock follows Geometric Brownian Motion. The agent decides how aggressively to hedge at each timestep. Includes Black-Scholes benchmarking for comparison. Optionally supports stochastic volatility.',
-    goal: 'Minimize hedging error (P&L variance) while managing transaction costs. A perfect hedge would produce zero P&L variance.',
-    obs: [
-      ['Moneyness (S/K)', 'Stock price relative to strike price (>1 = in-the-money)'],
-      ['Time to Expiry', 'Fraction of time remaining until option expiry (1.0 \u2192 0.0)'],
-      ['Volatility', 'Implied or realized volatility of the underlying'],
-      ['BS Delta', 'Black-Scholes delta \u2014 theoretical hedge ratio'],
-      ['Gamma\u00d7S', 'Gamma times stock price \u2014 hedging sensitivity'],
-      ['Hedge Ratio', 'Current hedge position (0=unhedged, 1=fully hedged)'],
-      ['PnL', 'Running profit/loss of the hedged position']
-    ],
-    actions: '<strong>Continuous (1-dim):</strong><ul><li>Value in [-0.5, 1.5] representing target hedge ratio</li><li><strong>0.0</strong> = no hedge (fully exposed to stock moves)</li><li><strong>1.0</strong> = full delta hedge (match BS delta exactly)</li><li>Values outside [0,1] allow over/under hedging strategies</li></ul>',
-    reward: 'Negative of squared hedging error: <span class="formula">-(PnL_change)\u00b2 - cost \u00d7 |hedge_change|</span>. Rewards stable P&L (low variance) while penalizing excessive rebalancing.',
-    termination: 'Episode ends at option expiry (~30 trading days, ~30 steps).',
-    stateDim: '7-dimensional state vector'
   }
 };
 
@@ -738,26 +697,42 @@ function checkHealth() {
     });
 }
 
+/* ── Fallback financial env metadata (used if API returns empty) ── */
+var FALLBACK_FINANCIAL_ENVS = {
+  "delcita": {
+    "display_name": "ABC Hedge Funds",
+    "description": "Single-asset trading with discrete actions and risk-adjusted rewards",
+    "tools": [
+      {"name": "get_market_state", "description": "Fetch price, volume, and technical indicators"},
+      {"name": "execute_trade", "description": "Buy/sell/hold with position sizing"},
+      {"name": "get_portfolio_status", "description": "Current P&L, position, drawdown"}
+    ],
+    "observation_dim": 22,
+    "action_type": "discrete",
+    "action_dim": 5
+  }
+};
+
 /* ── Load Environment Types ───────────────────────────── */
 function loadEnvTypes() {
   return api('/envs/list')
     .then(function(data) {
-      envTypes = data;
+      envTypes = (data && Object.keys(data).length > 0) ? data : FALLBACK_FINANCIAL_ENVS;
       renderEnvGrid();
-      return data;
+      return envTypes;
     })
     .catch(function() {
-      document.getElementById('envGrid').innerHTML =
-        '<div class="empty-state" style="grid-column:1/-1;"><p>Failed to load environments. Is the server running?</p></div>';
+      // Use fallback data if API fails
+      envTypes = FALLBACK_FINANCIAL_ENVS;
+      renderEnvGrid();
+      return envTypes;
     });
 }
 
 /* ── Render Environment Grid ──────────────────────────── */
 function renderEnvGrid() {
   var icons = {
-    'stock-trading': '\uD83D\uDCC8',
-    'portfolio-allocation': '\uD83D\uDCCA',
-    'options-pricing': '\uD83C\uDFAF'
+    'delcita': '\uD83D\uDCC8'
   };
   var grid = document.getElementById('envGrid');
   grid.innerHTML = '';
@@ -957,7 +932,7 @@ function showActivePanel(envType, createRes) {
   // Update close button in direct mode
   if (directEnvMode) {
     var closeBtn = document.getElementById('closeEnvBtn');
-    if (closeBtn) closeBtn.textContent = '\u2190 Back to Catalog';
+    if (closeBtn) closeBtn.textContent = '\u2190 Back to Environments';
   }
 
   // Show explain panel
@@ -968,7 +943,7 @@ function showActivePanel(envType, createRes) {
     document.getElementById('discreteActionsContainer').style.display = '';
     document.getElementById('continuousActionContainer').style.display = 'none';
     var labels, colors;
-    if (envType === 'stock-trading') {
+    if (envType === 'delcita') {
       labels = ['Strong Sell', 'Sell', 'Hold', 'Buy', 'Strong Buy'];
       colors = ['btn-red', 'btn-outline', 'btn-primary', 'btn-outline', 'btn-green'];
     } else {
@@ -1003,7 +978,7 @@ function renderExplainPanel(envType) {
   var ex = ENV_EXPLAIN[envType];
   if (!ex) { document.getElementById('explainSection').style.display = 'none'; return; }
   document.getElementById('explainSection').style.display = '';
-  document.getElementById('explainSection').classList.add('open');
+  document.getElementById('explainSection').classList.remove('open');
   document.getElementById('explainTitle').textContent = 'How It Works: ' + ex.title;
 
   var obsRows = '';
@@ -1097,10 +1072,26 @@ var directEnvMode = false;
   checkHealth();
   loadEnvTypes().then(function() {
     var autoEnv = getEnvFromURL();
+    // Case-insensitive fallback: try lowercase if exact match fails
+    if (autoEnv && !envTypes[autoEnv]) {
+      var lower = autoEnv.toLowerCase();
+      var keys = Object.keys(envTypes);
+      for (var k = 0; k < keys.length; k++) {
+        if (keys[k].toLowerCase() === lower) { autoEnv = keys[k]; break; }
+      }
+    }
     if (autoEnv && envTypes[autoEnv]) {
       directEnvMode = true;
       document.getElementById('envSelectSection').style.display = 'none';
       createEnv(autoEnv);
+    } else {
+      // Auto-select if there is exactly one env type available
+      var envKeys = Object.keys(envTypes);
+      if (envKeys.length === 1) {
+        directEnvMode = true;
+        document.getElementById('envSelectSection').style.display = 'none';
+        createEnv(envKeys[0]);
+      }
     }
   });
   setInterval(checkHealth, 10000);

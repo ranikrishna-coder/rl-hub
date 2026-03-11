@@ -380,6 +380,15 @@ async def agent_dashboard_page():
         return FileResponse(path)
     raise HTTPException(status_code=404, detail="Agent dashboard not found")
 
+@app.get("/agent-console")
+async def agent_console_page():
+    """Serve the Agent Console page."""
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    path = os.path.join(static_dir, "agent.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="Agent console not found")
+
 
 # Legacy: redirect old references
 @app.get("/index.html")
@@ -3475,15 +3484,13 @@ _financial_start_time: float = _time.time()
 
 # Registry mapping slugs to catalog names
 _FINANCIAL_ENV_SLUG_MAP = {
-    "stock-trading": "StockTrading",
-    "portfolio-allocation": "PortfolioAllocation",
-    "options-pricing": "OptionsPricing",
+    "delcita": "Delcita",
 }
 
 # Metadata for the financial env list endpoint
 _FINANCIAL_ENV_META = {
-    "stock-trading": {
-        "display_name": "Stock Trading Environment",
+    "delcita": {
+        "display_name": "ABC Hedge Funds",
         "description": "Single-asset trading with discrete actions and risk-adjusted rewards",
         "tools": [
             {"name": "get_market_state", "description": "Fetch price, volume, and technical indicators"},
@@ -3493,30 +3500,6 @@ _FINANCIAL_ENV_META = {
         "observation_dim": 22,
         "action_type": "discrete",
         "action_dim": 5,
-    },
-    "portfolio-allocation": {
-        "display_name": "Portfolio Allocation Environment",
-        "description": "Multi-asset portfolio weight optimization with CRRA utility",
-        "tools": [
-            {"name": "get_asset_returns", "description": "Multi-asset return history with lookback window"},
-            {"name": "rebalance_portfolio", "description": "Set target portfolio weights (sum to 1)"},
-            {"name": "get_risk_metrics", "description": "Sharpe ratio, volatility, max drawdown"},
-        ],
-        "observation_dim": 109,
-        "action_type": "continuous",
-        "action_dim": 5,
-    },
-    "options-pricing": {
-        "display_name": "Options Pricing & Hedging Environment",
-        "description": "Dynamic delta hedging for short call options with Black-Scholes benchmarking",
-        "tools": [
-            {"name": "get_option_greeks", "description": "Delta, gamma, and current hedge ratio"},
-            {"name": "adjust_hedge", "description": "Set hedge ratio target"},
-            {"name": "get_pnl_status", "description": "Current P&L and hedging error variance"},
-        ],
-        "observation_dim": 7,
-        "action_type": "continuous",
-        "action_dim": 1,
     },
 }
 

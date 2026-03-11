@@ -590,6 +590,13 @@ ENVIRONMENT_REGISTRY: Dict[str, Dict[str, Any]] = {
         "category": "financial",
         "multi_agent": False
     },
+    "Delcita": {
+        "class_path": "environments.financial.delcita.DelcitaEnv",
+        "system": "Bloomberg, Reuters",
+        "workflow": "Financial Trading",
+        "category": "financial",
+        "multi_agent": False
+    },
 }
 
 # Helper function to convert CamelCase to snake_case

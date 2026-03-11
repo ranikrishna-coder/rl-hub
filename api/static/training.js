@@ -34,6 +34,36 @@
         }
         document.getElementById('tr-env').value = envId;
         onEnvironmentChange();
+        // Make environment fields read-only when pre-populated from env detail page
+        setTimeout(function() {
+            var envSel = document.getElementById('tr-env');
+            var sysSel = document.getElementById('tr-env-system');
+            if (envSel) envSel.disabled = true;
+            if (sysSel) sysSel.disabled = true;
+        }, 100);
+    }
+
+    function _applyAgentPreselection(agentId) {
+        if (!agentId) return;
+        // Switch to new training view and pre-select the agent
+        var agentSel = document.getElementById('tr-agent');
+        if (agentSel) {
+            // Ensure agent is in the dropdown (populate all first)
+            agentSel.innerHTML = '<option value="">— Select agent —</option>';
+            (CFG.agents || []).forEach(function(a) {
+                if (!a.trainable) return;
+                var o = document.createElement('option');
+                o.value = a.id;
+                o.textContent = a.name + ' (' + a.base_model + ')';
+                agentSel.appendChild(o);
+            });
+            agentSel.value = agentId;
+            // Make agent dropdown read-only when pre-populated from agent console
+            setTimeout(function() {
+                var sel = document.getElementById('tr-agent');
+                if (sel) sel.disabled = true;
+            }, 100);
+        }
     }
 
     // ─── Fetch live training jobs from backend ─────────────────
@@ -2001,16 +2031,22 @@
             filterAgents();
             refreshAndRenderList();
 
-            // Handle ?env=, ?preselect_env=, and ?run= params
+            // Handle ?env=, ?preselect_env=, ?run=, and ?agent= params
             var urlParams = new URLSearchParams(window.location.search);
             var directEnv = urlParams.get('env');
             var deferredEnv = urlParams.get('preselect_env');
             var directRunId = urlParams.get('run');
+            var directAgent = urlParams.get('agent');
 
             if (directRunId) {
                 // Direct navigation to a specific run's full report
                 // (e.g. /training-console?run=abc123 — from env card "View Full Report")
                 showRunDetails(directRunId);
+                history.replaceState(null, '', window.location.pathname);
+            } else if (directAgent) {
+                // Direct navigation from agent console (e.g. /training-console?agent=agent_qwen17)
+                showView('new');
+                _applyAgentPreselection(directAgent);
                 history.replaceState(null, '', window.location.pathname);
             } else if (directEnv) {
                 // Direct navigation (e.g. /training-console?env=X) — auto-open new form
