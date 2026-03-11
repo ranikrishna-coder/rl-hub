@@ -1065,6 +1065,281 @@ body {
     border: 1px solid var(--border-color);
 }
 
+/* ── Clickable card cursor ── */
+.clickable-card { cursor: pointer; }
+.clickable-card:hover { transform: translateY(-1px); }
+
+/* ── Scenario & Verifier Detail Overlays ─────────────────────── */
+.sv-detail-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 3rem 1rem;
+    overflow-y: auto;
+    backdrop-filter: blur(4px);
+}
+.sv-detail-overlay.active {
+    display: flex;
+}
+.sv-detail-box {
+    background: var(--card-bg, #fff);
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 720px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    position: relative;
+    animation: svSlideIn 0.25s ease-out;
+}
+.vd-box {
+    max-width: 800px;
+}
+@keyframes svSlideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.sv-detail-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.75rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    line-height: 1;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: background 0.2s, color 0.2s;
+}
+.sv-detail-close:hover {
+    background: var(--bg-tertiary, #f1f5f9);
+    color: var(--text-primary);
+}
+
+/* Scenario Detail Header */
+.sd-header-card {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.sd-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.35rem;
+    padding-right: 2rem;
+}
+.sd-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}
+.sd-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+.sd-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.sd-env-badge {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+.sd-connected-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    background: var(--bg-tertiary, #f1f5f9);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+/* Scenario Detail Sections */
+.sd-section-card {
+    background: var(--bg-tertiary, #f8f9fa);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+.sd-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.75rem;
+}
+.sd-bullet-list {
+    list-style: disc;
+    padding-left: 1.25rem;
+    margin: 0;
+}
+.sd-bullet-list li {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+/* Workflow Steps */
+.sd-workflow-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.sd-workflow-step {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.sd-workflow-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--primary-color, #6366f1);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.sd-workflow-tool {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    background: var(--bg-secondary, #334155);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+[data-theme="light"] .sd-workflow-tool {
+    background: #334155;
+    color: #f1f5f9;
+}
+
+/* Verifier Detail Sections */
+.vd-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+.vd-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+.vd-meta-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+}
+.vd-meta-value {
+    font-size: 0.88rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+.vd-status-active { color: #15803d; }
+.vd-status-inactive { color: #dc2626; }
+
+.vd-section {
+    margin-bottom: 1.25rem;
+}
+.vd-section-label {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem;
+}
+.vd-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.vd-sub-card {
+    background: var(--bg-tertiary, #f8f9fa);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.65rem 0.85rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+.vd-sub-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+.vd-sub-status {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+}
+.vd-sub-status.enabled { background: #dcfce7; color: #15803d; }
+.vd-sub-status.disabled { background: #fee2e2; color: #dc2626; }
+.vd-sub-desc {
+    width: 100%;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+.vd-json-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+.vd-json-block {
+    background: var(--bg-secondary, #1e293b);
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 1rem;
+    font-size: 0.78rem;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    overflow-x: auto;
+    max-height: 400px;
+    overflow-y: auto;
+    line-height: 1.5;
+    border: 1px solid var(--border-color);
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+[data-theme="light"] .vd-json-block {
+    background: #1e293b;
+    color: #e2e8f0;
+}
+
 /* ── Inline Training Runs Table ─────────────────────────────── */
 /* ── Training Status Badges ── */
 .training-inline-status {

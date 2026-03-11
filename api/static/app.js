@@ -2387,7 +2387,7 @@ function buildScenariosSection(envName, envCategory) {
     var listHtml = '';
     if (filtered.length) {
         filtered.forEach(function(s, idx) {
-            listHtml += '<div class="scenario-card" id="scenario-card-' + idx + '">' +
+            listHtml += '<div class="scenario-card clickable-card" id="scenario-card-' + idx + '" onclick="showScenarioDetail(\'' + envCategory + '\', ' + idx + ')" title="Click to view details">' +
                 '<div class="scenario-card-header">' +
                     '<span class="scenario-card-name">' + s.name + '</span>' +
                     '<span class="scenario-card-badge">' + s.category + '</span>' +
@@ -2491,7 +2491,7 @@ function buildVerifiersSection(envName, envCategory) {
                 });
                 subHtml += '</div>';
             }
-            listHtml += '<div class="verifier-card" id="verifier-card-' + idx + '">' +
+            listHtml += '<div class="verifier-card clickable-card" id="verifier-card-' + idx + '" onclick="showVerifierDetail(\'' + envCategory + '\', ' + idx + ')" title="Click to view JSON config">' +
                 '<div class="verifier-card-header">' +
                     '<span class="verifier-card-name">' + v.name + '</span>' +
                     '<span class="verifier-card-type type-' + typeClass + '">' + v.type + '</span>' +
@@ -2575,6 +2575,279 @@ function saveNewVerifier(envName, envCategory) {
     }
 }
 window.saveNewVerifier = saveNewVerifier;
+
+// ─── Scenario Detail View ───
+function showScenarioDetail(envCategory, idx) {
+    var cfg = window.TRAINING_CONFIG;
+    var allScenarios = (cfg && cfg.scenarios) ? cfg.scenarios : [];
+    var filtered = allScenarios.filter(function(s) { return s.category === envCategory; });
+    var scenario = filtered[idx];
+    if (!scenario) return;
+
+    // Find matching verifiers for cross-referencing tool workflows
+    var verifierData = window.VERIFIER_DATA;
+    var allVerifiers = (verifierData && verifierData.all) ? verifierData.all : [];
+    var matchingVerifiers = allVerifiers.filter(function(v) {
+        return v.environment === envCategory &&
+            v.usedInScenarios && v.usedInScenarios.some(function(sn) {
+                return sn.toLowerCase() === scenario.name.toLowerCase() ||
+                       scenario.name.toLowerCase().indexOf(sn.toLowerCase()) !== -1 ||
+                       sn.toLowerCase().indexOf(scenario.name.toLowerCase()) !== -1;
+            });
+    });
+    // If no direct match, use all verifiers from this category
+    if (!matchingVerifiers.length) {
+        matchingVerifiers = allVerifiers.filter(function(v) { return v.environment === envCategory; });
+    }
+
+    // Build "What This Scenario Tests" from description and verifier info
+    var testPoints = [];
+    if (scenario.description) {
+        // Break description into action-oriented test points
+        var desc = scenario.description;
+        testPoints.push(desc);
+    }
+    // Add points from verifier checks
+    matchingVerifiers.forEach(function(v) {
+        if (v.logic && v.logic.checks) {
+            if (v.logic.checks.tool_sequence) testPoints.push('Validating correct tool call sequence');
+            if (v.logic.checks.argument_validity) testPoints.push('Checking argument validity against available options');
+            if (v.logic.checks.field_presence) testPoints.push('Verifying required fields are present');
+            if (v.logic.checks.data_integrity) testPoints.push('Ensuring data integrity across operations');
+        }
+        if (v.logic && v.logic.trajectory_checks) {
+            if (v.logic.trajectory_checks.required_steps) testPoints.push('Validating required workflow steps are completed');
+            if (v.logic.trajectory_checks.balance_must_be_positive) testPoints.push('Checking resource balance constraints');
+            if (v.logic.trajectory_checks.approval_chain) testPoints.push('Verifying approval chain is followed');
+        }
+        if (v.logic && v.logic.judge_prompt) {
+            testPoints.push('LLM-based evaluation of trajectory quality');
+        }
+    });
+    // Deduplicate
+    var uniqueTests = [];
+    testPoints.forEach(function(t) { if (uniqueTests.indexOf(t) === -1) uniqueTests.push(t); });
+
+    var testsHtml = uniqueTests.map(function(t) {
+        return '<li style="margin-bottom:0.4rem;color:var(--text-primary);font-size:0.9rem;">' + t + '</li>';
+    }).join('');
+
+    // Build "Typical Tasks" from scenario name variations
+    var typicalTasks = [];
+    typicalTasks.push(scenario.name);
+    // Generate related task names from verifier scenario references
+    matchingVerifiers.forEach(function(v) {
+        if (v.usedInScenarios) {
+            v.usedInScenarios.forEach(function(sn) {
+                if (typicalTasks.indexOf(sn) === -1) typicalTasks.push(sn);
+            });
+        }
+    });
+    var tasksHtml = typicalTasks.map(function(t) {
+        return '<li style="margin-bottom:0.4rem;color:var(--text-primary);font-size:0.9rem;">' + t + '</li>';
+    }).join('');
+
+    // Build "Expected Tool Workflow" from verifier tool sequences
+    var toolWorkflow = [];
+    matchingVerifiers.forEach(function(v) {
+        if (v.logic && v.logic.checks && v.logic.checks.tool_sequence && v.logic.checks.tool_sequence.expected_order) {
+            v.logic.checks.tool_sequence.expected_order.forEach(function(tool) {
+                if (toolWorkflow.indexOf(tool) === -1) toolWorkflow.push(tool);
+            });
+        }
+        if (v.logic && v.logic.trajectory_checks && v.logic.trajectory_checks.required_steps) {
+            v.logic.trajectory_checks.required_steps.forEach(function(step) {
+                if (toolWorkflow.indexOf(step) === -1) toolWorkflow.push(step);
+            });
+        }
+    });
+    var workflowHtml = '';
+    if (toolWorkflow.length) {
+        workflowHtml = toolWorkflow.map(function(tool, i) {
+            return '<div class="sd-workflow-step">' +
+                '<span class="sd-workflow-num">' + (i + 1) + '</span>' +
+                '<span class="sd-workflow-tool">' + tool + '</span>' +
+            '</div>';
+        }).join('');
+    } else {
+        workflowHtml = '<p style="color:var(--text-secondary);font-size:0.85rem;">No tool workflow defined for this scenario.</p>';
+    }
+
+    // Connected verifiers
+    var connectedVerifiers = matchingVerifiers.map(function(v) { return v.name; });
+    var connectedHtml = connectedVerifiers.length
+        ? connectedVerifiers.map(function(n) { return '<span class="sd-connected-badge">' + n + '</span>'; }).join('')
+        : '<span style="color:var(--text-secondary);font-size:0.85rem;">None</span>';
+
+    // Build the overlay
+    var overlay = document.getElementById('scenario-detail-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'scenario-detail-overlay';
+        overlay.className = 'sv-detail-overlay';
+        overlay.onclick = function(e) { if (e.target === overlay) closeScenarioDetail(); };
+        document.body.appendChild(overlay);
+    }
+    overlay.innerHTML =
+        '<div class="sv-detail-box">' +
+            '<button class="sv-detail-close" onclick="closeScenarioDetail()">&times;</button>' +
+            '<div class="sd-header-card">' +
+                '<h2 class="sd-title">' + scenario.name + '</h2>' +
+                '<p class="sd-subtitle">' + scenario.description + '</p>' +
+                '<div class="sd-meta-row">' +
+                    '<span class="sd-meta-item"><strong>Environment:</strong> <span class="sd-env-badge">' + scenario.category + '</span></span>' +
+                    '<span class="sd-meta-item"><strong>Tasks covered:</strong> ' + scenario.task_count + '</span>' +
+                    '<span class="sd-meta-item"><strong>Connected verifiers:</strong> ' + connectedHtml + '</span>' +
+                '</div>' +
+            '</div>' +
+            '<div class="sd-section-card">' +
+                '<h3 class="sd-section-title">What This Scenario Tests</h3>' +
+                '<ul class="sd-bullet-list">' + testsHtml + '</ul>' +
+            '</div>' +
+            '<div class="sd-section-card">' +
+                '<h3 class="sd-section-title">Typical Tasks in This Scenario</h3>' +
+                '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.5rem;">Representative tasks:</p>' +
+                '<ul class="sd-bullet-list">' + tasksHtml + '</ul>' +
+            '</div>' +
+            '<div class="sd-section-card">' +
+                '<h3 class="sd-section-title">Expected Tool Workflow</h3>' +
+                '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.75rem;">Expected workflow:</p>' +
+                '<div class="sd-workflow-list">' + workflowHtml + '</div>' +
+            '</div>' +
+        '</div>';
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+window.showScenarioDetail = showScenarioDetail;
+
+function closeScenarioDetail() {
+    var overlay = document.getElementById('scenario-detail-overlay');
+    if (overlay) overlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+window.closeScenarioDetail = closeScenarioDetail;
+
+// ─── Verifier Detail View (JSON Config) ───
+function showVerifierDetail(envCategory, idx) {
+    var verifierData = window.VERIFIER_DATA;
+    var allVerifiers = (verifierData && verifierData.all) ? verifierData.all : [];
+    var filtered = allVerifiers.filter(function(v) { return v.environment === envCategory; });
+    var verifier = filtered[idx];
+    if (!verifier) return;
+
+    var typeClass = (verifier.type || '').replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+
+    // Build structured sections from verifier data
+    var metaHtml =
+        '<div class="vd-meta-grid">' +
+            '<div class="vd-meta-item"><span class="vd-meta-label">Type</span><span class="verifier-card-type type-' + typeClass + '">' + verifier.type + '</span></div>' +
+            '<div class="vd-meta-item"><span class="vd-meta-label">System</span><span class="vd-meta-value">' + (verifier.system || '—') + '</span></div>' +
+            '<div class="vd-meta-item"><span class="vd-meta-label">Environment</span><span class="vd-meta-value">' + (verifier.environment || '—') + '</span></div>' +
+            '<div class="vd-meta-item"><span class="vd-meta-label">Version</span><span class="vd-meta-value">v' + (verifier.version || 1) + '</span></div>' +
+            '<div class="vd-meta-item"><span class="vd-meta-label">Status</span><span class="vd-meta-value vd-status-' + (verifier.status || 'active') + '">' + (verifier.status || 'active') + '</span></div>' +
+            '<div class="vd-meta-item"><span class="vd-meta-label">Timeout</span><span class="vd-meta-value">' + ((verifier.metadata && verifier.metadata.timeout) || '—') + '</span></div>' +
+        '</div>';
+
+    // Failure policy section
+    var fpHtml = '';
+    if (verifier.failurePolicy) {
+        var fp = verifier.failurePolicy;
+        fpHtml = '<div class="vd-section">' +
+            '<h4 class="vd-section-label">Failure Policy</h4>' +
+            '<div class="vd-meta-grid">' +
+                '<div class="vd-meta-item"><span class="vd-meta-label">Hard Fail</span><span class="vd-meta-value">' + (fp.hard_fail ? 'Yes' : 'No') + '</span></div>' +
+                '<div class="vd-meta-item"><span class="vd-meta-label">Penalty</span><span class="vd-meta-value">' + fp.penalty + '</span></div>' +
+                '<div class="vd-meta-item"><span class="vd-meta-label">Log Failure</span><span class="vd-meta-value">' + (fp.log_failure ? 'Yes' : 'No') + '</span></div>' +
+            '</div>' +
+        '</div>';
+    }
+
+    // Used in scenarios
+    var scenariosHtml = '';
+    if (verifier.usedInScenarios && verifier.usedInScenarios.length) {
+        scenariosHtml = '<div class="vd-section">' +
+            '<h4 class="vd-section-label">Used in Scenarios</h4>' +
+            '<div class="vd-chips">' +
+                verifier.usedInScenarios.map(function(s) { return '<span class="sd-connected-badge">' + s + '</span>'; }).join('') +
+            '</div>' +
+        '</div>';
+    }
+
+    // Sub-verifiers
+    var subVHtml = '';
+    if (verifier.subVerifiers && verifier.subVerifiers.length) {
+        subVHtml = '<div class="vd-section">' +
+            '<h4 class="vd-section-label">Sub-Verifiers</h4>' +
+            verifier.subVerifiers.map(function(sv) {
+                return '<div class="vd-sub-card">' +
+                    '<span class="vd-sub-name">' + sv.name + '</span>' +
+                    '<span class="vd-sub-status ' + (sv.enabled ? 'enabled' : 'disabled') + '">' + (sv.enabled ? 'Enabled' : 'Disabled') + '</span>' +
+                    '<p class="vd-sub-desc">' + (sv.description || '') + '</p>' +
+                '</div>';
+            }).join('') +
+        '</div>';
+    }
+
+    // Full JSON config
+    var jsonStr = JSON.stringify(verifier, null, 2);
+
+    // Build the overlay
+    var overlay = document.getElementById('verifier-detail-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'verifier-detail-overlay';
+        overlay.className = 'sv-detail-overlay';
+        overlay.onclick = function(e) { if (e.target === overlay) closeVerifierDetail(); };
+        document.body.appendChild(overlay);
+    }
+    overlay.innerHTML =
+        '<div class="sv-detail-box vd-box">' +
+            '<button class="sv-detail-close" onclick="closeVerifierDetail()">&times;</button>' +
+            '<div class="sd-header-card">' +
+                '<h2 class="sd-title">' + verifier.name + '</h2>' +
+                '<p class="sd-subtitle">' + verifier.description + '</p>' +
+            '</div>' +
+            metaHtml +
+            fpHtml +
+            scenariosHtml +
+            subVHtml +
+            '<div class="vd-section">' +
+                '<div class="vd-json-header">' +
+                    '<h4 class="vd-section-label">JSON Configuration</h4>' +
+                    '<button class="btn btn-outline btn-small" onclick="copyVerifierJson()" title="Copy to clipboard">' +
+                        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+                        ' Copy' +
+                    '</button>' +
+                '</div>' +
+                '<pre class="vd-json-block" id="vd-json-content">' + escapeHtml(jsonStr) + '</pre>' +
+            '</div>' +
+        '</div>';
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+window.showVerifierDetail = showVerifierDetail;
+
+function closeVerifierDetail() {
+    var overlay = document.getElementById('verifier-detail-overlay');
+    if (overlay) overlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+window.closeVerifierDetail = closeVerifierDetail;
+
+function copyVerifierJson() {
+    var el = document.getElementById('vd-json-content');
+    if (!el) return;
+    navigator.clipboard.writeText(el.textContent).then(function() {
+        showToast('JSON copied to clipboard', 'success');
+    }).catch(function() {
+        showToast('Failed to copy', 'error');
+    });
+}
+window.copyVerifierJson = copyVerifierJson;
+
+function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 // ─── Build Training Section for detail page ───
 function getTrainingRunsForEnv(envCategory) {
