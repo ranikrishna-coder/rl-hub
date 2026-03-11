@@ -3497,6 +3497,129 @@ function _persistCustomEnvConfig(envName, details) {
     });
 }
 
+// ─── Build Simulations Content (HF tabs vs test-console iframe) ───
+function _buildSimulationsContent(envName, env, details) {
+    if (details.source === 'huggingface' || env.source === 'huggingface') {
+        var sdk = details.sdk || env.sdk || 'unknown';
+        var hfUrl = details.hf_url || env.hf_url || '';
+        var hfOwner = details.hf_owner || env.hf_owner || '';
+        var hfRepo = details.hf_repo || env.hf_repo || '';
+        if ((!hfOwner || !hfRepo) && hfUrl) {
+            var _m = hfUrl.match(/huggingface\.co\/spaces\/([^/]+)\/([^/?#]+)/i);
+            if (_m) { hfOwner = _m[1]; hfRepo = _m[2]; }
+        }
+        var author = details.author || hfOwner || '';
+        var license = details.license || '';
+        var tags = details.tags || [];
+        var files = details.files || [];
+        var endpoints = details.endpoints || [];
+        var models = details.models || {};
+        var readme = details.readme || '';
+        var openenv = details.openenv || {};
+        var pyproject = details.pyproject || {};
+
+        // Tags HTML
+        var tagsHtml = tags.map(function(t) { return '<span class="hf-tag">' + t + '</span>'; }).join('');
+
+        // Metadata grid
+        var metaItems = [
+            { label: 'SDK', value: sdk },
+            { label: 'Runtime', value: openenv.runtime || sdk },
+            { label: 'Port', value: openenv.port || (details.frontMatter || {}).app_port || '—' },
+            { label: 'Author', value: author },
+            { label: 'License', value: license || 'Not specified' },
+            { label: 'Likes', value: (details.likes || 0) + '' }
+        ];
+        var metaHtml = metaItems.map(function(m) {
+            return '<div class="hf-meta-item"><span class="hf-meta-label">' + m.label + '</span><span class="hf-meta-value">' + m.value + '</span></div>';
+        }).join('');
+
+        // Endpoints HTML
+        var endpointsHtml = '';
+        if (endpoints.length > 0) {
+            endpointsHtml = '<div class="hf-endpoints"><h3>API Endpoints</h3><div class="hf-endpoint-list">' +
+                endpoints.map(function(ep) {
+                    return '<div class="hf-endpoint"><span class="hf-method hf-method-' + ep.method.toLowerCase() + '">' + ep.method + '</span><code>' + ep.path + '</code></div>';
+                }).join('') + '</div></div>';
+        }
+
+        // Models HTML
+        var modelsHtml = '';
+        var modelKeys = Object.keys(models);
+        if (modelKeys.length > 0) {
+            modelsHtml = '<div class="hf-models"><h3>Data Models</h3>' +
+                modelKeys.map(function(mk) {
+                    var m = models[mk];
+                    var fieldsHtml = m.fields.map(function(f) {
+                        if (f.value) return '<div class="hf-model-field"><code>' + f.name + '</code> = <code>"' + f.value + '"</code></div>';
+                        return '<div class="hf-model-field"><code>' + f.name + '</code><span class="hf-model-type">' + (f.type || '') + '</span>' +
+                            (f.description ? '<span class="hf-model-desc">' + f.description + '</span>' : '') + '</div>';
+                    }).join('');
+                    return '<div class="hf-model-card"><h4>' + mk + (m.doc ? ' <span class="hf-model-doc">' + m.doc + '</span>' : '') + '</h4>' + fieldsHtml + '</div>';
+                }).join('') + '</div>';
+        }
+
+        // Files HTML
+        var filesHtml = '';
+        if (files.length > 0) {
+            filesHtml = files.map(function(f) {
+                var sizeStr = f.size < 1024 ? f.size + ' B' : (f.size < 1048576 ? (f.size / 1024).toFixed(1) + ' KB' : (f.size / 1048576).toFixed(1) + ' MB');
+                var ext = f.path.split('.').pop().toLowerCase();
+                var icon = ext === 'py' ? '🐍' : ext === 'md' ? '📄' : ext === 'yaml' || ext === 'yml' ? '⚙️' : ext === 'toml' ? '📦' : ext === 'json' ? '{}' : ext === 'html' ? '🌐' : '📁';
+                return '<div class="hf-file" onclick="viewEnvFile(\'' + envName + '\', \'' + f.path.replace(/'/g, "\\'") + '\')">' +
+                    '<span class="hf-file-icon">' + icon + '</span>' +
+                    '<span class="hf-file-name">' + f.path + '</span>' +
+                    '<span class="hf-file-size">' + sizeStr + '</span></div>';
+            }).join('');
+        }
+
+        // Dependencies
+        var depsHtml = '';
+        if (pyproject.dependencies && pyproject.dependencies.length > 0) {
+            depsHtml = '<div class="hf-deps"><h3>Dependencies</h3><div class="hf-dep-list">' +
+                pyproject.dependencies.map(function(d) { return '<span class="hf-dep">' + d + '</span>'; }).join('') +
+                '</div></div>';
+        }
+
+        // README
+        var readmeHtml = '';
+        if (readme) {
+            readmeHtml = _simpleMarkdown(readme);
+        }
+
+        return (tagsHtml ? '<div class="hf-tags-row">' + tagsHtml + '</div>' : '') +
+            '<div class="hf-meta-grid">' + metaHtml + '</div>' +
+            '<div class="hf-tabs" id="hf-tabs">' +
+                '<button class="hf-tab active" data-tab="hf-tab-app" onclick="switchHFTab(this)">App</button>' +
+                '<button class="hf-tab" data-tab="hf-tab-files" onclick="switchHFTab(this)">Files <span class="hf-tab-count">' + files.length + '</span></button>' +
+                '<button class="hf-tab" data-tab="hf-tab-readme" onclick="switchHFTab(this)">README</button>' +
+                (endpoints.length > 0 ? '<button class="hf-tab" data-tab="hf-tab-api" onclick="switchHFTab(this)">API</button>' : '') +
+            '</div>' +
+            '<div class="hf-tab-panel active" id="hf-tab-app">' +
+                (hfUrl && hfOwner && hfRepo ?
+                    '<div class="hf-iframe-wrap"><iframe id="hf-app-iframe" class="hf-iframe" src="https://' + hfOwner + '-' + hfRepo + '.hf.space" allow="accelerometer; camera; encrypted-media; geolocation; gyroscope; microphone" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" loading="lazy"></iframe></div>' +
+                    '<p style="text-align:center;font-size:0.75rem;color:#888;margin-top:0.5rem;">Embedded from <a href="' + hfUrl + '" target="_blank" style="color:var(--primary-color);">' + hfUrl + '</a></p>' :
+                '<div class="hf-empty-state">No live preview available. The environment has been cloned locally.</div>') +
+            '</div>' +
+            '<div class="hf-tab-panel" id="hf-tab-files">' +
+                '<div class="hf-file-browser">' + filesHtml + '</div>' +
+                '<div class="hf-file-viewer" id="hf-file-viewer" style="display:none;">' +
+                    '<div class="hf-file-viewer-header"><span id="hf-file-viewer-title"></span>' +
+                        '<button class="hf-file-close-btn" onclick="closeFileViewer()" title="Close (Esc)"><kbd>Esc</kbd></button></div>' +
+                    '<pre class="hf-file-content" id="hf-file-content"></pre>' +
+                '</div>' +
+            '</div>' +
+            '<div class="hf-tab-panel" id="hf-tab-readme">' +
+                (readmeHtml ? '<div class="hf-readme">' + readmeHtml + '</div>' : '<div class="hf-empty-state">No README found.</div>') +
+            '</div>' +
+            '<div class="hf-tab-panel" id="hf-tab-api">' +
+                endpointsHtml + modelsHtml + depsHtml +
+            '</div>';
+    }
+    // Standard: test-console iframe
+    return '<iframe src="/test-console?env=' + encodeURIComponent(envName) + '&embedded=1" style="width:100%;height:700px;border:none;" loading="lazy"></iframe>';
+}
+
 function showEnvironmentDetails(envName) {
     var env = allEnvironments.find(function(e) { return e.name === envName; });
     if (!env) return;
@@ -3504,13 +3627,20 @@ function showEnvironmentDetails(envName) {
     var details = environmentDetails[envName] || {};
 
     // Route to source-specific detail views
-    if (details.source === 'huggingface' || env.source === 'huggingface') {
-        _showHFDetailView(env, details);
-        return;
-    }
     if ((env.sdk === 'custom' || details.sdk === 'custom') && details.terraformTemplate) {
         _showTerraformDetailView(env, details);
         return;
+    }
+
+    // Enrich HuggingFace environments with RL defaults from category registry
+    if (details.source === 'huggingface' || env.source === 'huggingface') {
+        var _cat = env.category || 'cross_workflow';
+        var _reg = CATEGORY_CONFIG_REGISTRY[_cat] || CATEGORY_CONFIG_REGISTRY['cross_workflow'];
+        if (!details.kpis) details.kpis = _reg.kpis;
+        if (!details.whatItDoes && _reg.whatItDoesTemplate) details.whatItDoes = _reg.whatItDoesTemplate(env.name);
+        if (!details.howToUse && _reg.howToUseTemplate) details.howToUse = _reg.howToUseTemplate();
+        if (!details.configTemplate) details.configTemplate = _reg.configTemplate;
+        if (!details.configSchema) details.configSchema = _reg.configSchema;
     }
 
     // Standard RL environment detail view
@@ -3551,6 +3681,7 @@ function showEnvironmentDetails(envName) {
                     '</div>' +
                 '</span>' +
                 '<span class="env-category category-' + env.category + '">' + env.category + '</span>' +
+                ((details.hf_url || env.hf_url) ? '<a href="' + (details.hf_url || env.hf_url) + '" target="_blank" class="hf-source-link" style="margin-left:0.5rem;font-size:0.82rem;">View on HuggingFace ↗</a>' : '') +
             '</div>' +
         '</div>' +
         '<div class="detail-collapsible open" id="section-description">' +
@@ -3586,8 +3717,8 @@ function showEnvironmentDetails(envName) {
                 '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
             '</button>' +
             '<div class="detail-collapsible-body" id="section-environment-body">' +
-                '<div class="detail-collapsible-content" style="padding:0;">' +
-                    '<iframe src="/test-console?env=' + encodeURIComponent(envName) + '&embedded=1" style="width:100%;height:700px;border:none;" loading="lazy"></iframe>' +
+                '<div class="detail-collapsible-content"' + ((details.source !== 'huggingface' && env.source !== 'huggingface') ? ' style="padding:0;"' : '') + '>' +
+                    _buildSimulationsContent(envName, env, details) +
                 '</div>' +
             '</div>' +
         '</div>' +
@@ -3608,161 +3739,6 @@ function showEnvironmentDetails(envName) {
             setTimeout(function() { descBody.style.maxHeight = 'none'; }, 500);
         }
     });
-
-    document.getElementById('catalog-container').style.display = 'none';
-    document.getElementById('env-detail-page').style.display = 'block';
-}
-
-// ─── HuggingFace Environment Detail View ───
-function _showHFDetailView(env, details) {
-    var detailBody = document.getElementById('env-detail-body');
-    var name = env.name;
-    var sdk = details.sdk || env.sdk || 'unknown';
-    var hfUrl = details.hf_url || env.hf_url || '';
-    var hfOwner = details.hf_owner || env.hf_owner || '';
-    var hfRepo = details.hf_repo || env.hf_repo || '';
-    // Parse owner/repo from URL if not stored directly
-    if ((!hfOwner || !hfRepo) && hfUrl) {
-        var _m = hfUrl.match(/huggingface\.co\/spaces\/([^/]+)\/([^/?#]+)/i);
-        if (_m) { hfOwner = _m[1]; hfRepo = _m[2]; }
-    }
-    var author = details.author || hfOwner || '';
-    var license = details.license || '';
-    var tags = details.tags || [];
-    var files = details.files || [];
-    var endpoints = details.endpoints || [];
-    var models = details.models || {};
-    var readme = details.readme || '';
-    var openenv = details.openenv || {};
-    var pyproject = details.pyproject || {};
-    var desc = details.description || env.description || '';
-
-    // Tags HTML
-    var tagsHtml = tags.map(function(t) { return '<span class="hf-tag">' + t + '</span>'; }).join('');
-
-    // Metadata grid
-    var metaItems = [
-        { label: 'SDK', value: sdk },
-        { label: 'Runtime', value: openenv.runtime || sdk },
-        { label: 'Port', value: openenv.port || (details.frontMatter || {}).app_port || '—' },
-        { label: 'Author', value: author },
-        { label: 'License', value: license || 'Not specified' },
-        { label: 'Likes', value: (details.likes || 0) + '' }
-    ];
-    var metaHtml = metaItems.map(function(m) {
-        return '<div class="hf-meta-item"><span class="hf-meta-label">' + m.label + '</span><span class="hf-meta-value">' + m.value + '</span></div>';
-    }).join('');
-
-    // Endpoints HTML
-    var endpointsHtml = '';
-    if (endpoints.length > 0) {
-        endpointsHtml = '<div class="hf-endpoints"><h3>API Endpoints</h3><div class="hf-endpoint-list">' +
-            endpoints.map(function(ep) {
-                return '<div class="hf-endpoint"><span class="hf-method hf-method-' + ep.method.toLowerCase() + '">' + ep.method + '</span><code>' + ep.path + '</code></div>';
-            }).join('') + '</div></div>';
-    }
-
-    // Models HTML
-    var modelsHtml = '';
-    var modelKeys = Object.keys(models);
-    if (modelKeys.length > 0) {
-        modelsHtml = '<div class="hf-models"><h3>Data Models</h3>' +
-            modelKeys.map(function(mk) {
-                var m = models[mk];
-                var fieldsHtml = m.fields.map(function(f) {
-                    if (f.value) return '<div class="hf-model-field"><code>' + f.name + '</code> = <code>"' + f.value + '"</code></div>';
-                    return '<div class="hf-model-field"><code>' + f.name + '</code><span class="hf-model-type">' + (f.type || '') + '</span>' +
-                        (f.description ? '<span class="hf-model-desc">' + f.description + '</span>' : '') + '</div>';
-                }).join('');
-                return '<div class="hf-model-card"><h4>' + mk + (m.doc ? ' <span class="hf-model-doc">' + m.doc + '</span>' : '') + '</h4>' + fieldsHtml + '</div>';
-            }).join('') + '</div>';
-    }
-
-    // Files HTML
-    var filesHtml = '';
-    if (files.length > 0) {
-        filesHtml = files.map(function(f) {
-            var sizeStr = f.size < 1024 ? f.size + ' B' : (f.size < 1048576 ? (f.size / 1024).toFixed(1) + ' KB' : (f.size / 1048576).toFixed(1) + ' MB');
-            var ext = f.path.split('.').pop().toLowerCase();
-            var icon = ext === 'py' ? '🐍' : ext === 'md' ? '📄' : ext === 'yaml' || ext === 'yml' ? '⚙️' : ext === 'toml' ? '📦' : ext === 'json' ? '{}' : ext === 'html' ? '🌐' : '📁';
-            return '<div class="hf-file" onclick="viewEnvFile(\'' + name + '\', \'' + f.path.replace(/'/g, "\\'") + '\')">' +
-                '<span class="hf-file-icon">' + icon + '</span>' +
-                '<span class="hf-file-name">' + f.path + '</span>' +
-                '<span class="hf-file-size">' + sizeStr + '</span></div>';
-        }).join('');
-    }
-
-    // Dependencies
-    var depsHtml = '';
-    if (pyproject.dependencies && pyproject.dependencies.length > 0) {
-        depsHtml = '<div class="hf-deps"><h3>Dependencies</h3><div class="hf-dep-list">' +
-            pyproject.dependencies.map(function(d) { return '<span class="hf-dep">' + d + '</span>'; }).join('') +
-            '</div></div>';
-    }
-
-    // Simple markdown-to-html for README (headers, code blocks, paragraphs)
-    var readmeHtml = '';
-    if (readme) {
-        readmeHtml = _simpleMarkdown(readme);
-    }
-
-    var hfDeleteBtn = '<button class="btn btn-danger btn-small" onclick="deleteEnvironment(\'' + name.replace(/'/g, "\\'") + '\')">' +
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
-        ' Delete</button>';
-
-    detailBody.innerHTML =
-        // Hero
-        '<div class="detail-hero">' +
-            '<div class="detail-hero-left">' +
-                '<h1 class="detail-page-title">' + formatEnvironmentName(name) + '</h1>' +
-                '<span class="hf-badge hf-badge-sdk">' + sdk + '</span>' +
-                (hfUrl ? '<a href="' + hfUrl + '" target="_blank" class="hf-source-link">View on HuggingFace ↗</a>' : '') +
-            '</div>' +
-        '</div>' +
-        (desc ? '<p class="hf-description">' + desc + '</p>' : '') +
-        (tagsHtml ? '<div class="hf-tags-row">' + tagsHtml + '</div>' : '') +
-
-        // Metadata grid
-        '<div class="hf-meta-grid">' + metaHtml + '</div>' +
-
-        // Tabbed content: App / Files / README / API
-        '<div class="hf-tabs" id="hf-tabs">' +
-            '<button class="hf-tab active" data-tab="hf-tab-app" onclick="switchHFTab(this)">App</button>' +
-            '<button class="hf-tab" data-tab="hf-tab-files" onclick="switchHFTab(this)">Files <span class="hf-tab-count">' + files.length + '</span></button>' +
-            '<button class="hf-tab" data-tab="hf-tab-readme" onclick="switchHFTab(this)">README</button>' +
-            (endpoints.length > 0 ? '<button class="hf-tab" data-tab="hf-tab-api" onclick="switchHFTab(this)">API</button>' : '') +
-        '</div>' +
-
-        // Tab: App (embedded directly via HF Space embed URL)
-        '<div class="hf-tab-panel active" id="hf-tab-app">' +
-            (hfUrl && hfOwner && hfRepo ?
-                '<div class="hf-iframe-wrap"><iframe id="hf-app-iframe" class="hf-iframe" src="https://' + hfOwner + '-' + hfRepo + '.hf.space" allow="accelerometer; camera; encrypted-media; geolocation; gyroscope; microphone" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" loading="lazy"></iframe></div>' +
-                '<p style="text-align:center;font-size:0.75rem;color:#888;margin-top:0.5rem;">Embedded from <a href="' + hfUrl + '" target="_blank" style="color:var(--primary-color);">' + hfUrl + '</a></p>' :
-            '<div class="hf-empty-state">No live preview available. The environment has been cloned locally.</div>') +
-        '</div>' +
-
-        // Tab: Files
-        '<div class="hf-tab-panel" id="hf-tab-files">' +
-            '<div class="hf-file-browser">' + filesHtml + '</div>' +
-            '<div class="hf-file-viewer" id="hf-file-viewer" style="display:none;">' +
-                '<div class="hf-file-viewer-header"><span id="hf-file-viewer-title"></span>' +
-                    '<button class="hf-file-close-btn" onclick="closeFileViewer()" title="Close (Esc)"><kbd>Esc</kbd></button></div>' +
-                '<pre class="hf-file-content" id="hf-file-content"></pre>' +
-            '</div>' +
-        '</div>' +
-
-        // Tab: README
-        '<div class="hf-tab-panel" id="hf-tab-readme">' +
-            (readmeHtml ? '<div class="hf-readme">' + readmeHtml + '</div>' : '<div class="hf-empty-state">No README found.</div>') +
-        '</div>' +
-
-        // Tab: API
-        '<div class="hf-tab-panel" id="hf-tab-api">' +
-            endpointsHtml + modelsHtml + depsHtml +
-        '</div>' +
-        '<div class="env-delete-bottom">' + hfDeleteBtn + '</div>';
-
-    // No proxy needed - iframe uses direct HF Space embed URL
 
     document.getElementById('catalog-container').style.display = 'none';
     document.getElementById('env-detail-page').style.display = 'block';
