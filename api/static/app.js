@@ -2306,16 +2306,17 @@ function closeEnvDetailPage() {
 }
 
 // ─── Build Training Section for detail page ───
-function getTrainingRunsForEnv(envCategory) {
+function getTrainingRunsForEnv(envCategory, envName) {
     var cfg = window.TRAINING_CONFIG;
     if (!cfg || !cfg.trainingRuns) return [];
     return cfg.trainingRuns.filter(function(r) {
+        if (envName && r.environment) return r.environment === envName;
         return r.category === envCategory;
     });
 }
 
 function buildTrainingSection(envName, envCategory) {
-    var runs = getTrainingRunsForEnv(envCategory);
+    var runs = getTrainingRunsForEnv(envCategory, envName);
     var encodedEnv = encodeURIComponent(envName);
 
     if (!runs.length) {
@@ -3476,6 +3477,7 @@ function _showHFDetailView(env, details) {
         '<div class="hf-tab-panel" id="hf-tab-api">' +
             endpointsHtml + modelsHtml + depsHtml +
         '</div>' +
+        buildTrainingSection(name, env.category || 'huggingface') +
         '<div class="env-delete-bottom">' + hfDeleteBtn + '</div>';
 
     // No proxy needed - iframe uses direct HF Space embed URL
