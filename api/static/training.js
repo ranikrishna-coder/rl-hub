@@ -610,8 +610,8 @@
         var countHint = document.getElementById('scenario-count-hint');
         if (!scenarioField || !scenarioSel) return;
 
-        var envId = document.getElementById('tr-env') ? document.getElementById('tr-env').value : '';
-        var env = findEnv(envId);
+        var envVal = document.getElementById('tr-env') ? document.getElementById('tr-env').value : '';
+        var env = findEnv(envVal);
         if (!env) {
             // No environment selected — hide scenarios
             scenarioSel.innerHTML = '<option value="">— Select scenario —</option>';
@@ -620,15 +620,21 @@
             return;
         }
         var cat = env ? env.category : '';
+        var envId = env ? env.id : '';
         var envName = env ? env.name : '';
         var system = env ? env.system : '';
 
         // Merge built-in + custom scenarios, filter by category, product, environment, or system
         var allScenarios = getAllScenarios();
         var matches = allScenarios.filter(function (s) {
-            if (s.environment && s.environment === envName) return true;
+            // Match custom scenarios by product or environment field against env ID (raw name)
+            if (envId && s.product && s.product === envId) return true;
+            if (envId && s.environment && s.environment === envId) return true;
+            // Also match against humanized name for backward compat
+            if (envName && s.environment && s.environment === envName) return true;
+            // Match built-in scenarios by category
             if (cat && s.category === cat) return true;
-            if (envName && s.product === envName) return true;
+            // Match by system
             if (system && s.product === system) return true;
             return false;
         });
