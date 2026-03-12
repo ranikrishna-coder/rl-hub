@@ -734,9 +734,9 @@ body {
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1.25rem;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -783,7 +783,7 @@ body {
 .detail-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1.25rem;
+    gap: 0.75rem;
 }
 
 @media (max-width: 768px) {
@@ -793,17 +793,17 @@ body {
 
 .detail-card {
     background: var(--card-bg);
-    border-radius: 10px;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
-    padding: 1.25rem;
+    padding: 0.85rem;
     box-shadow: var(--shadow);
 }
 
 .detail-card h3 {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 600;
     color: var(--primary-color);
-    margin: 0 0 0.75rem 0;
+    margin: 0 0 0.5rem 0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -840,7 +840,7 @@ body {
 }
 
 .detail-section {
-    margin-bottom: 1.25rem;
+    margin-bottom: 0.75rem;
 }
 
 .detail-section h3 {
@@ -867,10 +867,10 @@ body {
 
 .detail-section .info-box {
     background: var(--info-bg);
-    padding: 1rem;
-    border-radius: 8px;
+    padding: 0.65rem;
+    border-radius: 6px;
     border: 1px solid var(--border-color);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 .detail-section .kpi-list {
@@ -906,17 +906,17 @@ body {
 /* ── Description Section (always visible) ─────────────────── */
 .detail-description-section {
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    margin-bottom: 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.6rem;
     background: var(--card-bg);
     box-shadow: var(--shadow);
-    padding: 1.25rem;
+    padding: 0.85rem;
 }
 .detail-section-title {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: var(--text-primary);
-    margin: 0 0 1rem 0;
+    margin: 0 0 0.5rem 0;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -924,8 +924,8 @@ body {
 
 .detail-collapsible {
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    margin-bottom: 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.6rem;
     background: var(--card-bg);
     box-shadow: var(--shadow);
     overflow: hidden;
@@ -934,7 +934,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 1.25rem;
+    padding: 0.65rem 1rem;
     cursor: pointer;
     user-select: none;
     background: var(--card-bg);
@@ -948,13 +948,13 @@ body {
     background: var(--info-bg, #f8f5ff);
 }
 .detail-collapsible-header h2 {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: var(--text-primary);
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
 }
 .detail-collapsible-chevron {
     width: 20px;
@@ -975,20 +975,20 @@ body {
     overflow: visible;
 }
 .detail-collapsible-content {
-    padding: 0 1.25rem 1.25rem;
+    padding: 0 1rem 0.85rem;
 }
 
 /* ── Scenario Cards ─────────────────────────────── */
 .scenarios-list, .verifiers-list {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
 }
 .scenario-card, .verifier-card {
     background: var(--bg-tertiary, #f8f9fa);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 0.875rem 1rem;
+    border-radius: 6px;
+    padding: 0.6rem 0.85rem;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 .scenario-card:hover, .verifier-card:hover {

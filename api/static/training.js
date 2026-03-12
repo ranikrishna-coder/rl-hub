@@ -16,6 +16,9 @@
     var CATEGORY_MAP = {}; // { category: [env, ...] }
     var SYSTEM_MAP = {}; // { system: [env, ...] }
 
+    // Custom scenarios loaded from API — populated by loadScenarios()
+    var CUSTOM_SCENARIOS = [];
+
     // Deferred environment preselection (set via ?preselect_env= param, applied on "New Training" click)
     var _preselectedEnv = null;
     // Persistent filter for training list — when opened embedded for a specific env, only show matching runs
@@ -226,6 +229,44 @@
             });
     }
 
+    // ─── Load custom scenarios from API ─────────────────────────
+    function loadScenarios() {
+        var apiBase = window.API_BASE || '';
+        return fetch(apiBase + '/api/scenarios')
+            .then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function (data) {
+                CUSTOM_SCENARIOS = (data.scenarios || []).map(function (s) {
+                    var tasks = s.tasks || [];
+                    return {
+                        id: s.id || '',
+                        name: s.name || s.id || '',
+                        category: s.category || '',
+                        product: s.product || '',
+                        task_count: tasks.length || s.task_count || 0,
+                        description: s.description || (s.system_prompt || '').substring(0, 120),
+                        source: 'custom',
+                        _full: s   // keep original full JSON
+                    };
+                });
+            })
+            .catch(function (err) {
+                console.warn('Failed to load custom scenarios:', err);
+                CUSTOM_SCENARIOS = [];
+            });
+    }
+
+    function getAllScenarios() {
+        // Merge built-in scenarios (from training-config-data.js) with custom ones from API
+        var builtIn = (CFG.scenarios || []).map(function (s) {
+            s.source = s.source || 'built-in';
+            return s;
+        });
+        return builtIn.concat(CUSTOM_SCENARIOS);
+    }
+
     function humanizeName(name) {
         if (!name) return '';
         return name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
@@ -331,7 +372,7 @@
         var sel = document.getElementById('tr-env-system');
         if (!sel) return;
         var systems = Object.keys(SYSTEM_MAP).sort();
-        sel.innerHTML = '<option value="">— All systems —</option>';
+        sel.innerHTML = '<option value="">— All tools —</option>';
         systems.forEach(function (sys) {
             var o = document.createElement('option');
             o.value = sys;
@@ -339,7 +380,7 @@
             sel.appendChild(o);
         });
         var hint = document.getElementById('env-system-hint');
-        if (hint) hint.textContent = systems.length + ' system' + (systems.length !== 1 ? 's' : '');
+        if (hint) hint.textContent = systems.length + ' tool' + (systems.length !== 1 ? 's' : '');
     }
 
     // Keep for backward compat (hidden category select)
@@ -373,7 +414,7 @@
         var hint = document.getElementById('env-count-hint');
         if (hint) {
             hint.textContent = envs.length + ' scenario' + (envs.length !== 1 ? 's' : '') +
-                (systemFilter ? ' in ' + systemFilter : ' across ' + Object.keys(SYSTEM_MAP).length + ' systems');
+                (systemFilter ? ' in ' + systemFilter : ' across ' + Object.keys(SYSTEM_MAP).length + ' tools');
         }
     }
 
@@ -392,30 +433,137 @@
     }
 
     function populateVerifiers() {
-        var sel = document.getElementById('tr-verifier-existing');
-        sel.innerHTML = '<option value="">— Select verifier —</option>';
+        var field = document.getElementById('verifier-field');
+        var container = document.getElementById('verifier-options');
+        var countHint = document.getElementById('verifier-count-hint');
+        var selectAll = document.getElementById('verifier-select-all');
+        if (!field || !container) return;
+
         var env = findEnv(document.getElementById('tr-env').value);
         var cat = env ? env.category : '';
 
-        VERIFIERS.forEach(function (v) {
-            if (cat && v.environment && v.environment !== cat) return;
-            var o = document.createElement('option');
-            o.value = v.id;
-            o.textContent = v.name + ' (' + v.type + ')';
-            sel.appendChild(o);
+        var matches = VERIFIERS.filter(function (v) {
+            if (cat && v.environment && v.environment !== cat) return false;
+            return true;
         });
+
+        container.innerHTML = '';
+        if (matches.length > 0) {
+            field.style.display = '';
+            matches.forEach(function (v) {
+                var lbl = document.createElement('label');
+                var cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.value = v.id;
+                cb.dataset.verifierType = v.type || '';
+                cb.addEventListener('change', onVerifierCheckboxChange);
+                lbl.appendChild(cb);
+                lbl.appendChild(document.createTextNode(' ' + v.name + ' (' + v.type + ')'));
+                container.appendChild(lbl);
+            });
+            if (countHint) countHint.textContent = '(' + matches.length + ')';
+            if (selectAll) {
+                selectAll.checked = false;
+                selectAll.onchange = function () {
+                    var cbs = container.querySelectorAll('input[type="checkbox"]');
+                    cbs.forEach(function (cb) { cb.checked = selectAll.checked; });
+                    onVerifierCheckboxChange();
+                };
+            }
+        } else {
+            field.style.display = 'none';
+            if (countHint) countHint.textContent = '';
+        }
+        // Reset HIL panel
+        var hilPanel = document.getElementById('existing-hil-panel');
+        if (hilPanel) hilPanel.style.display = 'none';
     }
 
-    // Scenario is now the RL environment itself (selected via tr-env in Section C).
-    // Keep function signature for backward compat — no longer populates a separate dropdown.
+    function onVerifierCheckboxChange() {
+        var container = document.getElementById('verifier-options');
+        var hilPanel = document.getElementById('existing-hil-panel');
+        if (!container || !hilPanel) return;
+        var checked = container.querySelectorAll('input[type="checkbox"]:checked');
+        var hasHil = false;
+        checked.forEach(function (cb) {
+            var t = cb.dataset.verifierType || '';
+            if (t === 'human-eval' || t === 'human_evaluation') hasHil = true;
+        });
+        if (hasHil) {
+            hilPanel.style.display = '';
+            // Populate default conditions if empty
+            var rows = document.getElementById('existing-condition-rows');
+            if (rows && rows.children.length === 0) {
+                addExistingConditionRow('Correct resolution', '0.4');
+                addExistingConditionRow('Proper status transitions', '0.3');
+                addExistingConditionRow('Communication quality', '0.3');
+            }
+        } else {
+            hilPanel.style.display = 'none';
+        }
+    }
+
+    function populateActions() {
+        var field = document.getElementById('action-field');
+        var container = document.getElementById('action-options');
+        var countHint = document.getElementById('action-count-hint');
+        var selectAll = document.getElementById('action-select-all');
+        if (!field || !container) return;
+
+        var env = findEnv(document.getElementById('tr-env').value);
+        var actions = (env && env.actions) ? env.actions : [];
+
+        container.innerHTML = '';
+        if (actions.length > 0) {
+            field.style.display = '';
+            actions.forEach(function (a) {
+                var lbl = document.createElement('label');
+                var cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.value = a;
+                cb.checked = true; // default all selected
+                lbl.appendChild(cb);
+                lbl.appendChild(document.createTextNode(' ' + a));
+                container.appendChild(lbl);
+            });
+            if (countHint) countHint.textContent = '(' + actions.length + ')';
+            if (selectAll) {
+                selectAll.checked = true;
+                selectAll.onchange = function () {
+                    var cbs = container.querySelectorAll('input[type="checkbox"]');
+                    cbs.forEach(function (cb) { cb.checked = selectAll.checked; });
+                };
+            }
+        } else {
+            field.style.display = 'none';
+            if (countHint) countHint.textContent = '';
+        }
+    }
+
+    // Populate scenario dropdown based on selected environment / system
+    // Task Scenario is hidden for now
     function filterScenarios() {
-        // no-op: scenario selection is now handled by tr-env (populateEnvironments)
+        var scenarioField = document.getElementById('scenario-field');
+        if (scenarioField) scenarioField.style.display = 'none';
     }
 
     function updateEnvPreview() {
         var envId = document.getElementById('tr-env').value;
         var panel = document.getElementById('env-preview-panel');
         var env = findEnv(envId);
+
+        // Update clean tools display row
+        var toolsField = document.getElementById('tools-display-field');
+        var toolsValue = document.getElementById('tools-display-value');
+        if (toolsField && toolsValue) {
+            if (env && env.system) {
+                toolsValue.textContent = env.system;
+                toolsField.style.display = '';
+            } else {
+                toolsField.style.display = 'none';
+            }
+        }
+
         if (!env) { panel.style.display = 'none'; return; }
         panel.style.display = 'block';
         document.getElementById('ep-system').textContent = env.system || '—';
@@ -481,6 +629,7 @@
     function onEnvironmentChange() {
         updateEnvPreview();
         filterScenarios();
+        populateActions();
         populateVerifiers();
         filterAgents();
         updateVerifierSystem();
@@ -542,33 +691,8 @@
     }
 
     function initExistingVerifierChange() {
-        var sel = document.getElementById('tr-verifier-existing');
-        sel.addEventListener('change', function () {
-            var hilPanel = document.getElementById('existing-hil-panel');
-            var container = document.getElementById('existing-condition-rows');
-            var verifier = VERIFIERS.find(function (v) { return v.id === sel.value; });
-
-            if (verifier && (verifier.type === 'human-eval' || verifier.type === 'human_evaluation' ||
-                (verifier.logic && verifier.logic.type === 'human_evaluation'))) {
-                // Show HIL condition/weight editor
-                container.innerHTML = '';
-                var criteria = (verifier.logic && verifier.logic.criteria) || [];
-                if (criteria.length) {
-                    var equalWeight = Math.round((1 / criteria.length) * 100) / 100;
-                    criteria.forEach(function (c) {
-                        addExistingConditionRow(c, String(equalWeight));
-                    });
-                } else {
-                    addExistingConditionRow('Correct resolution', '0.4');
-                    addExistingConditionRow('Proper status transitions', '0.3');
-                    addExistingConditionRow('Communication quality', '0.3');
-                }
-                hilPanel.style.display = '';
-            } else {
-                hilPanel.style.display = 'none';
-                container.innerHTML = '';
-            }
-        });
+        // Verifier is now multi-select checkboxes — HIL panel handled by onVerifierCheckboxChange()
+        // This function retained for backward compat but is now a no-op
     }
 
     function addExistingConditionRow(cond, weight) {
@@ -722,9 +846,24 @@
             if (advWandbName) body.wandb.name = advWandbName;
         }
 
-        // Verifier — only existing verifier selection (create new was removed)
-        body.verifier_id = document.getElementById('tr-verifier-existing').value;
-        // Include conditions if an existing HIL verifier is selected
+        // Scenario (optional — from the scenario dropdown)
+        var scenarioVal = document.getElementById('tr-scenario') ? document.getElementById('tr-scenario').value : '';
+        if (scenarioVal) body.scenario_id = scenarioVal;
+
+        // Actions — collect checked actions
+        var actionCbs = document.querySelectorAll('#action-options input[type="checkbox"]:checked');
+        if (actionCbs.length > 0) {
+            body.actions = [];
+            actionCbs.forEach(function (cb) { body.actions.push(cb.value); });
+        }
+
+        // Verifiers — collect all checked verifier IDs (multi-select)
+        var verifierCbs = document.querySelectorAll('#verifier-options input[type="checkbox"]:checked');
+        body.verifier_ids = [];
+        verifierCbs.forEach(function (cb) { body.verifier_ids.push(cb.value); });
+        // Backward compat: also set verifier_id as first selected
+        body.verifier_id = body.verifier_ids.length > 0 ? body.verifier_ids[0] : '';
+        // Include conditions if any HIL verifier is selected
         var existingHilPanel = document.getElementById('existing-hil-panel');
         if (existingHilPanel && existingHilPanel.style.display !== 'none') {
             body.verifier_conditions = [];
@@ -1990,7 +2129,7 @@
     function init() {
         // Load environments and agents/algorithms in parallel; agents/algorithms
         // tries the backend API first, falls back to hardcoded sample data
-        Promise.all([loadEnvironments(), fetchAgentsAndAlgorithms()]).then(function () {
+        Promise.all([loadEnvironments(), loadScenarios(), fetchAgentsAndAlgorithms()]).then(function () {
             populateSystems();
             populateCategories();
             populateEnvironments();
@@ -2103,7 +2242,13 @@
                 loadRolloutList(rolloutEnvFilter.value || undefined);
             });
         }
+
     }
+
+    // ─── Scenario Library UI (removed — managed via API only) ─────
+    function initScenarioLibrary() { /* no-op */ }
+    window._renderCustomScenarioList = function() { /* no-op */ };
+    function renderCustomScenarioList() { /* no-op */ }
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);

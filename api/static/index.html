@@ -219,6 +219,17 @@
                         </div>
                         <div class="add-env-import-fields">
                             <div class="add-env-field">
+                                <label for="add-env-import-domain">Domain</label>
+                                <select id="add-env-import-domain">
+                                    <option value="">— Auto-detect —</option>
+                                    <option value="dev-sim">dev-sim (Enterprise / DevOps)</option>
+                                    <option value="hr-sim">hr-sim (Human Resources)</option>
+                                    <option value="fin-sim">fin-sim (Financial / Trading)</option>
+                                    <option value="med-sim">med-sim (Healthcare / Medical)</option>
+                                    <option value="retail-sim">retail-sim (Retail / E-commerce)</option>
+                                </select>
+                            </div>
+                            <div class="add-env-field">
                                 <label for="add-env-import-name">Environment name <span class="add-env-required">*</span></label>
                                 <input type="text" id="add-env-import-name" placeholder="e.g. ClinKriya Clinic" required pattern="[A-Za-z][A-Za-z0-9_-]*">
                             </div>
@@ -308,11 +319,12 @@
                         <option value="med-sim">med-sim</option>
                         <option value="fin-sim">fin-sim</option>
                         <option value="hr-sim">hr-sim</option>
+                        <option value="retail-sim">retail-sim</option>
                     </select>
                 </div>
-                <div class="system-filter-wrap" id="system-filter-wrap" style="display: none; align-items: center; gap: 0.5rem;">
-                    <label for="system-filter" style="font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">System:</label>
-                    <select id="system-filter" class="system-filter-select" title="Filter environments by software system.">
+                <!-- System filter hidden for now -->
+                <div class="system-filter-wrap" id="system-filter-wrap" style="display: none;">
+                    <select id="system-filter" style="display:none;">
                         <option value="all">All systems</option>
                     </select>
                 </div>
@@ -359,9 +371,9 @@
 
     <script src="/static/toast.js"></script>
     <script src="/static/verifier-data.js"></script>
-    <script src="/static/training-config-data.js?v=3"></script>
+    <script src="/static/training-config-data.js?v=4"></script>
     <script src="/static/rollout-comparison.js"></script>
-    <script src="/static/app.js?v=36"></script>
+    <script src="/static/app.js?v=37"></script>
     <script>
         function toggleTheme() {
             var current = document.documentElement.getAttribute('data-theme');

@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/static/styles.css">
     <link rel="stylesheet" href="/static/global-nav.css">
     <link rel="stylesheet" href="/static/toast.css">
-    <link rel="stylesheet" href="/static/training.css?v=9">
+    <link rel="stylesheet" href="/static/training.css?v=12">
     <script>
         (function() {
             var hostname = window.location.hostname;
@@ -175,11 +175,15 @@
                 <!-- Section B: Environment -->
                 <div class="training-section training-section--compact">
                     <h3>B. Environment</h3>
-                    <div class="t-field">
-                        <label class="t-label" for="tr-env-system">System <span class="t-hint-inline" id="env-system-hint"></span></label>
-                        <select id="tr-env-system">
-                            <option value="">— All systems —</option>
-                        </select>
+                    <!-- Tools filter (hidden, kept for backward compat) -->
+                    <select id="tr-env-system" style="display:none"><option value="">— All tools —</option></select>
+                    <span id="env-system-hint" style="display:none"></span>
+                    <!-- Clean tools display row (shown when environment selected) -->
+                    <div class="t-field" id="tools-display-field" style="display:none;">
+                        <div class="tools-display-row">
+                            <span class="tools-display-label">Tools</span>
+                            <span class="tools-display-value" id="tools-display-value"></span>
+                        </div>
                     </div>
                     <div class="t-field">
                         <label class="t-label" for="tr-env">Scenario <span class="t-hint-inline" id="env-count-hint"></span></label>
@@ -189,10 +193,45 @@
                     </div>
                     <!-- Hidden: keep category select for backward compat -->
                     <select id="tr-env-category" style="display:none"><option value="">— All —</option></select>
-                    <!-- Hidden: kept for backward compat -->
-                    <select id="tr-scenario" style="display:none"><option value="">—</option></select>
+                    <!-- Scenario dropdown (shown when matching scenarios exist) -->
+                    <div class="t-field" id="scenario-field" style="display:none;">
+                        <label class="t-label" for="tr-scenario">Task Scenario <span class="t-hint-inline" id="scenario-count-hint"></span></label>
+                        <select id="tr-scenario">
+                            <option value="">— No task scenario —</option>
+                        </select>
+                    </div>
+                    <!-- Action list multi-select (shown when env has actions) -->
+                    <div class="t-field" id="action-field" style="display:none;">
+                        <label class="t-label">Actions <span class="t-hint-inline" id="action-count-hint"></span></label>
+                        <div class="multi-select-container" id="action-select-container">
+                            <label class="multi-select-all"><input type="checkbox" id="action-select-all"> Select All</label>
+                            <div class="multi-select-options" id="action-options"></div>
+                        </div>
+                    </div>
+                    <!-- Verifier multi-select (shown when verifiers match env) -->
+                    <div class="t-field" id="verifier-field" style="display:none;">
+                        <label class="t-label">Verifier <span class="t-hint-inline" id="verifier-count-hint"></span></label>
+                        <div class="multi-select-container" id="verifier-select-container">
+                            <label class="multi-select-all"><input type="checkbox" id="verifier-select-all"> Select All</label>
+                            <div class="multi-select-options" id="verifier-options"></div>
+                        </div>
+                    </div>
+                    <!-- Condition/weight editor shown when any HIL verifier is checked -->
+                    <div id="existing-hil-panel" style="display:none;margin-top:0.5rem;">
+                        <div class="t-field">
+                            <label class="t-label">Conditions &amp; Weights</label>
+                            <div class="condition-table-header">
+                                <span>Condition</span><span>Weight</span><span></span>
+                            </div>
+                            <div id="existing-condition-rows"></div>
+                            <button type="button" class="add-condition-btn" id="btn-add-existing-condition">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Add condition
+                            </button>
+                        </div>
+                    </div>
                     <div id="env-preview-panel" class="env-preview" style="display:none">
-                        <div class="ep-row"><span class="ep-label">System</span><span class="ep-value" id="ep-system"></span></div>
+                        <span id="ep-system" style="display:none"></span>
                         <div class="ep-row"><span class="ep-label">Action Space</span><span class="ep-value" id="ep-action-space"></span></div>
                         <div class="ep-row"><span class="ep-label">State Features</span><span class="ep-value" id="ep-state-features"></span></div>
                         <div class="ep-row"><span class="ep-label">Actions</span></div>
@@ -206,31 +245,6 @@
                 <!-- Section C: Training Data & Evaluation -->
                 <div class="training-section training-section--compact">
                     <h3>C. Training Data &amp; Evaluation</h3>
-
-                    <div class="t-field">
-                        <label class="t-label">Verifier</label>
-                        <!-- Existing verifier dropdown -->
-                        <div id="verifier-existing-panel">
-                            <select id="tr-verifier-existing">
-                                <option value="">— Select verifier —</option>
-                            </select>
-                            <!-- Condition/weight editor shown when existing HIL verifier is selected -->
-                            <div id="existing-hil-panel" style="display:none;margin-top:0.5rem;">
-                                <div class="t-field">
-                                    <label class="t-label">Conditions &amp; Weights</label>
-                                    <div class="condition-table-header">
-                                        <span>Condition</span><span>Weight</span><span></span>
-                                    </div>
-                                    <div id="existing-condition-rows"></div>
-                                    <button type="button" class="add-condition-btn" id="btn-add-existing-condition">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                        Add condition
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
 
                     <div class="t-row">
                         <div class="t-field">
@@ -458,9 +472,9 @@
 
     <script src="/static/toast.js"></script>
     <script src="/static/verifier-data.js"></script>
-    <script src="/static/training-config-data.js?v=3"></script>
+    <script src="/static/training-config-data.js?v=4"></script>
     <script src="/static/rollout-comparison.js?v=2"></script>
-    <script src="/static/training.js?v=14"></script>
+    <script src="/static/training.js?v=19"></script>
     <script>
         function toggleTheme() {
             var current = document.documentElement.getAttribute('data-theme');

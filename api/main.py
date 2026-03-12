@@ -416,6 +416,7 @@ async def api_info():
             "studio": "/studio",
             "environments_page": "/environments",
             "environments_api": "/api/environments",
+            "scenarios_api": "/api/scenarios",
             "jira_mock_data": "/jira-mock-data",
             "train": "/train/{environment_name}",
             "kpis": "/kpis/{environment_name}",
@@ -2449,10 +2450,11 @@ HF_SPACES_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__f
 # ---------------------------------------------------------------------------
 _CUSTOM_ENV_STORE_PATH = os.path.join(os.path.dirname(__file__), "data", "custom_environments.json")
 
-from api.persistence import EnvironmentStore, migrate_json_to_sqlite  # noqa: E402
-from api.config import ENV_STORE_DB_PATH  # noqa: E402
+from api.persistence import EnvironmentStore, ScenarioStore, migrate_json_to_sqlite  # noqa: E402
+from api.config import ENV_STORE_DB_PATH, SCENARIO_STORE_DB_PATH  # noqa: E402
 
 _env_store = EnvironmentStore(ENV_STORE_DB_PATH)
+_scenario_store = ScenarioStore(SCENARIO_STORE_DB_PATH)
 _migrated = migrate_json_to_sqlite(_CUSTOM_ENV_STORE_PATH, _env_store)
 
 
@@ -3111,6 +3113,71 @@ async def save_custom_environment_config(request: Request):
             return {"status": "created", "name": name}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# Scenario CRUD (SQLite-persisted, supports any custom JSON structure)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/scenarios")
+async def list_scenarios(product: Optional[str] = None):
+    """List all custom scenarios, optionally filtered by product."""
+    if product:
+        scenarios = _scenario_store.list_by_product(product)
+    else:
+        scenarios = _scenario_store.list_all()
+    return {"count": len(scenarios), "scenarios": scenarios}
+
+
+@app.post("/api/scenarios")
+async def save_scenarios(request: Request):
+    """Save one or more scenarios.
+
+    Accepts two formats:
+      - Bulk:   { "scenarios": [ {...}, {...} ] }
+      - Single: { "id": "...", "name": "...", ... }
+    """
+    try:
+        data = await request.json()
+        items: list = []
+
+        if "scenarios" in data and isinstance(data["scenarios"], list):
+            items = data["scenarios"]
+        elif "id" in data:
+            items = [data]
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Provide either { scenarios: [...] } or a single object with an 'id' field.",
+            )
+
+        created = 0
+        updated = 0
+        for item in items:
+            scenario_id = item.get("id")
+            if not scenario_id:
+                continue  # skip entries without an id
+            existing = _scenario_store.get(scenario_id)
+            item.setdefault("source", "custom")
+            _scenario_store.upsert(scenario_id, item)
+            if existing:
+                updated += 1
+            else:
+                created += 1
+
+        return {"status": "ok", "created": created, "updated": updated}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/scenarios/{scenario_id}")
+async def delete_scenario(scenario_id: str):
+    """Delete a single scenario by ID."""
+    if not _scenario_store.delete(scenario_id):
+        raise HTTPException(status_code=404, detail=f"Scenario '{scenario_id}' not found.")
+    return {"status": "deleted", "id": scenario_id}
 
 
 @app.get("/api/environment/{name}/analyze")

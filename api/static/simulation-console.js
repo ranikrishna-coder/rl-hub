@@ -150,6 +150,7 @@ async function loadJiraMockData() {
 document.addEventListener('DOMContentLoaded', async () => {
     await loadJiraMockData();
     loadEnvironments();
+    loadCustomScenarios();
     setupEventListeners();
     setupRangeInputs();
     setupVerifierControls();
@@ -591,7 +592,7 @@ async function loadEnvironments() {
 
         const systemSelect = document.getElementById('system-select');
         if (systemSelect) {
-            systemSelect.innerHTML = '<option value="all">All systems</option>' +
+            systemSelect.innerHTML = '<option value="all">All tools</option>' +
                 systemList.map(s => {
                     const count = allEnvironments.filter(e => (e.system || '').split(',').map(x => x.trim()).includes(s)).length;
                     return `<option value="${s.replace(/"/g, '&quot;')}">${s} (${count})</option>`;
@@ -664,19 +665,62 @@ function selectEnvironment(envName) {
     populateSimAlgorithms();
 }
 
+/* ── Load custom scenarios from API and merge into TRAINING_CONFIG ── */
+
+function loadCustomScenarios() {
+    var apiBase = window.API_BASE || '';
+    fetch(apiBase + '/api/scenarios')
+        .then(function (res) { return res.ok ? res.json() : { scenarios: [] }; })
+        .then(function (data) {
+            var CFG = window.TRAINING_CONFIG || {};
+            if (!CFG.scenarios) CFG.scenarios = [];
+            var existing = {};
+            CFG.scenarios.forEach(function (s) { existing[s.id] = true; });
+
+            (data.scenarios || []).forEach(function (s) {
+                if (existing[s.id]) return; // skip duplicates
+                var tasks = s.tasks || [];
+                CFG.scenarios.push({
+                    id: s.id || '',
+                    name: s.name || s.id || '',
+                    category: s.category || '',
+                    product: s.product || '',
+                    task_count: tasks.length || s.task_count || 0,
+                    description: s.description || '',
+                    source: 'custom'
+                });
+                existing[s.id] = true;
+            });
+            window.TRAINING_CONFIG = CFG;
+        })
+        .catch(function (err) {
+            console.warn('Failed to load custom scenarios:', err);
+        });
+}
+
 /* ── Scenario / Agent / Algorithm population (from TRAINING_CONFIG) ── */
 
 function populateSimScenarios(env) {
     var sel = document.getElementById('sim-scenario');
     if (!sel) return;
     var cat = env ? env.category : '';
+    var sys = env ? (env.system || '') : '';
+    var sysLower = sys.toLowerCase();
     var CFG = window.TRAINING_CONFIG || {};
     sel.innerHTML = '<option value="">— Select scenario —</option>';
     (CFG.scenarios || []).forEach(function (s) {
-        if (!cat || s.category === cat) {
+        var match = false;
+        if (!cat && !sys) match = true; // no filter — show all
+        if (cat && s.category === cat) match = true;
+        // Also match custom scenarios by product name vs system
+        if (s.product && sysLower && sysLower.indexOf(s.product.toLowerCase()) !== -1) match = true;
+        if (match) {
             var o = document.createElement('option');
             o.value = s.id;
-            o.textContent = s.name + ' (' + s.task_count + ' tasks)';
+            var label = s.name;
+            if (s.task_count) label += ' (' + s.task_count + ' tasks)';
+            // source badge removed
+            o.textContent = label;
             sel.appendChild(o);
         }
     });
