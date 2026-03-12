@@ -1263,6 +1263,11 @@ textarea.code-textarea:focus {
 }
 
 /* ── Dark Mode Overrides ───────────────────────────────────── */
+[data-theme="dark"] .tools-display-row {
+    background: var(--card-bg, #252236);
+    border-color: var(--border-color, #3e3a52);
+}
+
 [data-theme="dark"] .training-info-banner {
     background: rgba(30, 58, 138, 0.2);
     border-color: rgba(99, 102, 241, 0.3);
@@ -1461,4 +1466,61 @@ textarea.code-textarea:focus {
 }
 @media (max-width: 768px) {
     .t-row-3 { grid-template-columns: 1fr; }
+}
+
+/* ── Tools Display Row (clean read-only display) ────────────── */
+.tools-display-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-secondary, #f9fafb);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 0.85rem 1.25rem;
+}
+.tools-display-label {
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+}
+.tools-display-value {
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* ── Multi-select checkbox list (Actions / Verifiers) ───────── */
+.multi-select-container {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px;
+    max-height: 180px;
+    overflow-y: auto;
+    background: var(--bg-card);
+}
+.multi-select-all {
+    display: block;
+    padding: 4px 0;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+    font-size: 13px;
+    cursor: pointer;
+}
+.multi-select-options label {
+    display: block;
+    padding: 3px 0;
+    font-size: 13px;
+    cursor: pointer;
+}
+.multi-select-options label:hover {
+    background: var(--bg-hover, rgba(0,0,0,0.04));
+    border-radius: 4px;
+}
+.multi-select-options input[type="checkbox"] {
+    margin-right: 6px;
+    vertical-align: middle;
+}
+.multi-select-all input[type="checkbox"] {
+    margin-right: 6px;
+    vertical-align: middle;
 }

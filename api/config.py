@@ -18,6 +18,12 @@ ENV_STORE_DB_PATH = os.getenv(
     os.path.join(DATA_DIR, "environments.db"),
 )
 
+# SQLite database path for user scenario state (gitignored by *.db rule)
+SCENARIO_STORE_DB_PATH = os.getenv(
+    "SCENARIO_STORE_DB_PATH",
+    os.path.join(DATA_DIR, "scenarios.db"),
+)
+
 # Legacy JSON path (used for migration and as fallback)
 CUSTOM_ENV_JSON_PATH = os.path.join(DATA_DIR, "custom_environments.json")
 

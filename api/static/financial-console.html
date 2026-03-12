@@ -171,6 +171,47 @@
     font-size: 0.8rem; background: var(--card); color: var(--text);
   }
 
+  /* ── Sim header with inline env switcher ──────────────── */
+  .fc-section-header--sim {
+    display: flex; align-items: center;
+    padding: 0; gap: 0; cursor: default;
+    /* override button defaults inherited from .fc-section-header */
+    background: transparent; border: none; width: 100%;
+  }
+  .fc-section-header--sim:hover { background: transparent; }
+  .fc-section-header-toggle {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    background: none; border: none; cursor: pointer;
+    padding: 0.75rem 1rem; color: var(--text);
+    font-weight: 600; flex-shrink: 0;
+  }
+  .fc-section-header-toggle h2 {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.95rem; font-weight: 700;
+  }
+  .fc-section-header-chevron {
+    margin-left: auto; padding: 0.75rem 1rem;
+  }
+  .sim-header-env {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    margin: 0.35rem 0;
+    flex: 1;
+  }
+  .sim-header-env .env-row-label {
+    font-size: 0.72rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
+  }
+  .sim-header-env select {
+    padding: 0.3rem 0.65rem; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--card);
+    color: var(--text); font-size: 0.875rem; font-weight: 500;
+    cursor: pointer; transition: border-color 0.2s; min-width: 220px;
+  }
+  .sim-header-env select:hover { border-color: var(--primary); }
+
   /* ── Buttons ──────────────────────────────────────────── */
   .btn {
     display: inline-flex; align-items: center; gap: 0.35rem;
@@ -202,8 +243,15 @@
   .action-hint { font-size: 0.7rem; color: var(--muted); margin-top: 0.25rem; }
 
   /* ── Simulation two-column layout ─────────────────────── */
-  .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: stretch; }
+  /* min-width:0 prevents overflow; flex-col makes each column fill its full grid height */
+  .sim-grid > div { min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
   @media (max-width: 1000px) { .sim-grid { grid-template-columns: 1fr; } }
+
+  /* ── Event Log card stretches to bottom of right column ── */
+  .sim-card.log-card { flex: 1; display: flex; flex-direction: column; min-height: 0; margin-bottom: 0; }
+  .sim-card.log-card .sim-card-body { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0; }
+  .sim-card.log-card .log-area { flex: 1; max-height: none; min-height: 120px; }
 
   /* ── Inner cards (obs, reward, info, log) ──────────────── */
   .sim-card {
@@ -233,14 +281,14 @@
   .obs-item .value { font-weight: 600; color: var(--primary); font-family: 'Courier New', monospace; flex-shrink: 0; }
 
   /* ── Reward chart ─────────────────────────────────────── */
-  .chart-wrap { width: 100%; height: 180px; position: relative; }
-  .chart-wrap canvas { display: block; }
+  .chart-wrap { width: 100%; height: 180px; position: relative; overflow: hidden; }
+  .chart-wrap canvas { display: block; max-width: 100%; }
 
   /* ── Info table ───────────────────────────────────────── */
-  .info-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-  .info-table td { padding: 0.4rem 0.65rem; border-bottom: 1px solid var(--border); }
-  .info-table td:first-child { color: var(--muted); width: 40%; }
-  .info-table td:last-child { font-weight: 500; font-family: 'Courier New', monospace; }
+  .info-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; table-layout: fixed; }
+  .info-table td { padding: 0.4rem 0.65rem; border-bottom: 1px solid var(--border); word-break: break-word; overflow-wrap: anywhere; }
+  .info-table td:first-child { color: var(--muted); width: 38%; white-space: nowrap; }
+  .info-table td:last-child { font-weight: 500; font-family: 'Courier New', monospace; word-break: break-all; }
 
   /* ── Status badges ────────────────────────────────────── */
   .badge {
@@ -254,7 +302,8 @@
   .log-area {
     background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
     padding: 0.75rem; font-family: 'Courier New', monospace; font-size: 0.68rem;
-    max-height: 200px; overflow-y: auto; line-height: 1.7;
+    max-height: 200px; overflow-y: auto; overflow-x: hidden; line-height: 1.7;
+    word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap;
   }
   .log-area .log-step { color: #89b4fa; }
   .log-area .log-reward { color: #a6e3a1; }
@@ -284,6 +333,19 @@
     font-size: 0.65rem; background: var(--primary-pale); color: var(--primary);
     padding: 0.1rem 0.5rem; border-radius: 8px; border: 1px solid var(--border);
   }
+  /* ── Parent card child list ───────────────────────────── */
+  .env-children { margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; text-align: left; }
+  .env-child-item {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.35rem 0.6rem; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg);
+    cursor: pointer; transition: all 0.15s; font-size: 0.78rem;
+  }
+  .env-child-item:hover { border-color: var(--primary); background: var(--primary-pale); }
+  .env-child-active { border-color: var(--primary) !important; background: var(--primary-pale) !important; font-weight: 600; }
+  .env-child-icon { font-size: 0.95rem; flex-shrink: 0; }
+  .env-child-name { flex: 1; color: var(--text); font-weight: 500; }
+  .env-child-type { font-size: 0.68rem; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.05rem 0.35rem; }
 
   /* ── Explain panel content ────────────────────────────── */
   .explain-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
@@ -303,6 +365,162 @@
   .obs-explain-table th { text-align: left; padding: 0.25rem 0.5rem; background: var(--primary-pale); color: var(--primary); font-weight: 600; }
   .obs-explain-table td { padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--border); }
   .obs-explain-table td:first-child { font-weight: 600; color: var(--primary); font-family: 'Courier New', monospace; }
+
+  /* ── RL Training row in controls bar ─────────────────── */
+  .rl-train-row {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 1.25rem; flex-wrap: wrap;
+    border-top: 1px solid var(--border);
+    background: color-mix(in srgb, var(--primary-pale) 60%, var(--card));
+  }
+  .rl-train-label {
+    font-size: 0.68rem; font-weight: 700; color: var(--primary);
+    text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
+  }
+  .btn-dqn  { background: #1565c0 !important; color: white !important; border: none; }
+  .btn-ppo  { background: #7b1fa2 !important; color: white !important; border: none; }
+  .btn-agent{ background: #2e7d32 !important; color: white !important; border: none; }
+  .btn-dqn:disabled, .btn-ppo:disabled, .btn-agent:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* ── RL Training panel ────────────────────────────────── */
+  .train-panel {
+    background: var(--card); border-radius: var(--radius);
+    border: 2px solid var(--primary); margin-bottom: 1rem; overflow: hidden;
+  }
+  .train-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white; padding: 0.65rem 1rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .train-header h3 { font-size: 0.85rem; font-weight: 700; }
+  .train-body { padding: 0.75rem 1rem; }
+  .train-progress {
+    width: 100%; height: 7px; background: var(--border);
+    border-radius: 4px; overflow: hidden; margin: 0.5rem 0;
+  }
+  .train-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--green));
+    border-radius: 4px; transition: width 0.4s ease;
+  }
+  .train-metrics {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; margin-top: 0.5rem;
+  }
+  .train-metric {
+    background: var(--primary-pale); padding: 0.45rem 0.35rem;
+    border-radius: 6px; text-align: center; border: 1px solid var(--border);
+  }
+  .train-metric .tv { font-size: 0.95rem; font-weight: 700; color: var(--primary); font-family: Georgia, serif; }
+  .train-metric .tl { font-size: 0.6rem; color: var(--muted); margin-top: 1px; }
+  .chart-wrap-sm { width: 100%; height: 100px; position: relative; margin-top: 0.5rem; overflow: hidden; }
+  .chart-wrap-sm canvas { display: block; max-width: 100%; }
+  .badge-training { background: #fff3e0; color: #e65100; }
+  .badge-trained  { background: rgba(46,125,50,0.15); color: var(--green); }
+  .badge-untrained{ background: var(--primary-pale); color: var(--muted); }
+
+  /* ── Scenarios / Verifiers collapsible sections ───────── */
+  .sv-section {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    margin-bottom: 1rem; background: var(--card); box-shadow: var(--shadow); overflow: hidden;
+  }
+  .sv-header {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.85rem 1.25rem; cursor: pointer; background: transparent;
+    border: none; width: 100%; text-align: left; user-select: none;
+  }
+  .sv-header:hover { background: var(--primary-pale); }
+  .sv-header h2 {
+    font-size: 0.95rem; font-weight: 700; color: var(--text);
+    display: flex; align-items: center; gap: 0.5rem; margin: 0;
+  }
+  .sv-header h2 svg { color: var(--primary); flex-shrink: 0; }
+  .sv-count {
+    font-size: 0.65rem; font-weight: 700; background: var(--primary-pale);
+    color: var(--primary); padding: 1px 8px; border-radius: 9px;
+    border: 1px solid var(--border); white-space: nowrap;
+  }
+  .sv-chevron { width: 18px; height: 18px; color: var(--muted); margin-left: auto; transition: transform 0.2s; }
+  .sv-section.open .sv-chevron { transform: rotate(180deg); }
+  .sv-body { display: none; border-top: 1px solid var(--border); }
+  .sv-section.open .sv-body { display: block; }
+  .scenario-item, .verifier-item {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    padding: 0.65rem 1.25rem; border-bottom: 1px solid var(--border);
+  }
+  .scenario-item:last-child, .verifier-item:last-child { border-bottom: none; }
+  .scenario-num {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    background: var(--primary-pale); color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 700; border: 1px solid var(--primary); margin-top: 2px;
+  }
+  .sv-item-body { flex: 1; }
+  .sv-item-name { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+  .sv-item-desc { font-size: 0.73rem; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+  .verifier-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Scenario / Verifier interactive items ────────────── */
+  .sv-item-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 0.75rem;
+  }
+  .sv-item-meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 2px; }
+  .sv-cat-tag {
+    font-size: 0.62rem; font-weight: 700; padding: 1px 8px; border-radius: 20px;
+    background: var(--primary-pale); color: var(--primary);
+    border: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .sv-task-count {
+    font-size: 0.72rem; color: var(--muted); white-space: nowrap; flex-shrink: 0;
+    padding-top: 2px;
+  }
+  .sv-check-code {
+    font-family: 'Courier New', monospace; font-size: 0.68rem;
+    background: var(--primary-pale); color: var(--primary);
+    padding: 0.1rem 0.5rem; border-radius: 4px; display: inline-block; margin-top: 2px;
+  }
+
+  /* ── Add Scenario / Verifier button ───────────────────── */
+  .sv-add-wrap { padding: 0.5rem 1.25rem 0.75rem; }
+  .sv-add-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.45rem 1rem;
+    font-size: 0.8rem; font-weight: 600; color: var(--primary);
+    background: transparent; border: 1.5px solid var(--primary);
+    border-radius: var(--radius); cursor: pointer; transition: all 0.15s;
+  }
+  .sv-add-btn:hover { background: var(--primary-pale); }
+
+  /* ── JSON Editor panel ────────────────────────────────── */
+  .sv-editor {
+    margin: 0 1.25rem 1rem; border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    display: none;
+  }
+  .sv-editor.open { display: block; }
+  .sv-editor-title {
+    padding: 0.55rem 1rem; font-size: 0.82rem; font-weight: 700;
+    background: var(--primary-pale); color: var(--primary);
+    border-bottom: 1px solid var(--border);
+  }
+  .sv-editor textarea {
+    width: 100%; min-height: 180px; padding: 0.75rem 1rem;
+    font-family: 'Courier New', monospace; font-size: 0.78rem;
+    background: var(--bg); color: var(--text);
+    border: none; outline: none; resize: vertical; display: block;
+  }
+  .sv-editor-actions {
+    display: flex; gap: 0.5rem; padding: 0.6rem 1rem;
+    border-top: 1px solid var(--border); background: var(--card);
+  }
+  .btn-save { background: var(--primary); color: white; }
+  .btn-save:hover { opacity: 0.88; }
+  .btn-cancel-sv { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-cancel-sv:hover { background: var(--bg); }
+
+  /* ── Empty verifier message ───────────────────────────── */
+  .sv-empty { padding: 0.75rem 1.25rem; font-size: 0.82rem; color: var(--muted); }
 
   /* ── Footer ───────────────────────────────────────────── */
   .page-footer {
@@ -402,20 +620,91 @@
       </div>
     </div>
 
+    <!-- Scenarios Section -->
+    <div id="scenariosSection" class="sv-section open" style="display:none;">
+      <button class="sv-header" onclick="this.closest('.sv-section').classList.toggle('open')">
+        <h2>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Scenarios
+        </h2>
+        <span class="sv-count" id="scenariosCount">0</span>
+        <svg class="sv-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="sv-body">
+        <div id="scenariosBody"></div>
+        <div class="sv-add-wrap">
+          <button class="sv-add-btn" onclick="toggleSvEditor('scenarioEditor')">+ Add Scenario</button>
+        </div>
+        <div class="sv-editor" id="scenarioEditor">
+          <div class="sv-editor-title">New Scenario (JSON)</div>
+          <textarea id="scenarioJson">{
+  "name": "My Scenario",
+  "category": "momentum",
+  "task_count": 5,
+  "description": "Describe the scenario..."
+}</textarea>
+          <div class="sv-editor-actions">
+            <button class="btn btn-save" onclick="saveScenario()">Save Scenario</button>
+            <button class="btn btn-cancel-sv" onclick="toggleSvEditor('scenarioEditor')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Verifiers Section -->
+    <div id="verifiersSection" class="sv-section open" style="display:none;">
+      <button class="sv-header" onclick="this.closest('.sv-section').classList.toggle('open')">
+        <h2>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Verifiers
+        </h2>
+        <span class="sv-count" id="verifiersCount">0</span>
+        <svg class="sv-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="sv-body">
+        <div id="verifiersBody"></div>
+        <div class="sv-add-wrap">
+          <button class="sv-add-btn" onclick="toggleSvEditor('verifierEditor')">+ Add Verifier</button>
+        </div>
+        <div class="sv-editor" id="verifierEditor">
+          <div class="sv-editor-title">New Verifier (JSON)</div>
+          <textarea id="verifierJson">{
+  "name": "My Verifier",
+  "category": "compliance",
+  "check": "condition > threshold",
+  "description": "Describe the verifier check..."
+}</textarea>
+          <div class="sv-editor-actions">
+            <button class="btn btn-save" onclick="saveVerifier()">Save Verifier</button>
+            <button class="btn btn-cancel-sv" onclick="toggleSvEditor('verifierEditor')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Simulation Console (collapsible, main interactive area) -->
     <div id="simSection" class="fc-section open" style="display:none;">
-      <button class="fc-section-header" onclick="toggleSection('simSection')">
-        <h2>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg>
-          Simulation
-        </h2>
-        <svg class="fc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
+      <div class="fc-section-header fc-section-header--sim">
+        <button class="fc-section-header-toggle" onclick="toggleSection('simSection')">
+          <h2>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg>
+            Simulations
+          </h2>
+        </button>
+        <div class="sim-header-env" onclick="event.stopPropagation()">
+          <select id="envSwitcher" onchange="onEnvSwitcherChange(this.value)">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+        <button class="fc-section-header-toggle fc-section-header-chevron" onclick="toggleSection('simSection')">
+          <svg class="fc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
       <div class="fc-section-body">
         <!-- Controls bar -->
         <div class="controls-bar">
           <button class="btn btn-green" onclick="resetEnv()">Reset</button>
-          <button class="btn btn-primary" onclick="autoStep()" id="autoBtn">Auto-Step</button>
+          <button class="btn btn-primary" onclick="autoStep()" id="autoBtn">Random Auto-Step</button>
           <button class="btn btn-red" onclick="stopAutoStep()" id="stopBtn" style="display:none;">Stop</button>
           <button class="btn btn-outline" onclick="deleteEnv()" id="closeEnvBtn">Close Env</button>
           <label style="margin-left:auto;">Speed:</label>
@@ -426,7 +715,38 @@
             <option value="2000">Slow</option>
           </select>
         </div>
+        <!-- RL Training controls row -->
+        <div class="rl-train-row">
+          <span class="rl-train-label">RL Training:</span>
+          <button class="btn btn-dqn" onclick="trainAgent()" id="trainBtn">Train DQN</button>
+          <button class="btn btn-agent" onclick="agentAutoStep()" id="agentBtn" disabled>Agent Auto-Step</button>
+          <button class="btn btn-red" onclick="stopAgentStep()" id="agentStopBtn" style="display:none;">Stop Agent</button>
+          <span id="trainBadge" class="badge badge-untrained" style="margin-left:0.25rem;">UNTRAINED</span>
+        </div>
+
         <div class="fc-section-content" style="padding-top:1.25rem;">
+
+          <!-- RL Training Panel (shown once training starts) -->
+          <div class="train-panel" id="trainPanel" style="display:none;">
+            <div class="train-header">
+              <h3>&#127947; RL Training</h3>
+              <span id="trainStatusText" style="font-size:0.72rem;opacity:0.9;">Ready</span>
+            </div>
+            <div class="train-body">
+              <div class="train-progress">
+                <div class="train-progress-bar" id="trainProgressBar" style="width:0%"></div>
+              </div>
+              <div id="trainProgressLabel" style="font-size:0.7rem;color:var(--muted);text-align:center;margin-top:4px;">Click "Train DQN" to start</div>
+              <div class="train-metrics" id="trainMetrics" style="display:none;">
+                <div class="train-metric"><div class="tv" id="tmReturn">--</div><div class="tl">Best Return</div></div>
+                <div class="train-metric"><div class="tv" id="tmSharpe">--</div><div class="tl">Best Sharpe</div></div>
+                <div class="train-metric"><div class="tv" id="tmEpsilon">--</div><div class="tl">Final &epsilon;</div></div>
+                <div class="train-metric"><div class="tv" id="tmEpisodes">--</div><div class="tl">Episodes</div></div>
+              </div>
+              <div class="chart-wrap-sm"><canvas id="trainChart"></canvas></div>
+            </div>
+          </div>
+
           <!-- Action controls -->
           <div style="margin-bottom:1rem;">
             <div class="action-label">Action</div>
@@ -479,7 +799,7 @@
                 </div>
               </div>
 
-              <div class="sim-card">
+              <div class="sim-card log-card">
                 <div class="sim-card-header">
                   <h3>Event Log</h3>
                   <button class="btn btn-outline" onclick="clearLog()" style="padding:0.2rem 0.5rem;font-size:0.7rem;">Clear</button>
@@ -540,10 +860,100 @@ var rewardHistory = [];
 var autoInterval = null;
 var envTypes = {};
 
+/* ── RL Training state ────────────────────────────────── */
+var isTrained = false;
+var isTraining = false;
+var agentInterval = null;
+var trainHistory = [];
+
+/* ── Scenarios per env ────────────────────────────────── */
+var SCENARIOS = {
+  'stock-trading': [
+    {name:'Bull Market Momentum',    category:'momentum',      task_count:9,  desc:'Trending prices with volume confirmation — ride the uptrend with strong position sizing'},
+    {name:'Bear Market Defense',     category:'risk_mgmt',     task_count:7,  desc:'Declining market regime — reduce exposure before drawdown exceeds risk threshold'},
+    {name:'Mean Reversion',          category:'mean_reversion',task_count:8,  desc:'Price overshoots the SMA and rapidly corrects — exploit counter-trend signals'},
+    {name:'High Volatility Event',   category:'vol_event',     task_count:10, desc:'Sudden vol spike (earnings/macro) — adjust position sizing to manage realized risk'},
+    {name:'Sideways Consolidation',  category:'range_bound',   task_count:6,  desc:'Range-bound price action — use oscillators to trade within support/resistance band'},
+  ],
+  'portfolio-allocation': [
+    {name:'Crisis Diversification',  category:'crisis_alpha',  task_count:8,  desc:'Correlated asset selloff — rotate to safe-haven weights to preserve capital'},
+    {name:'Momentum Tilt',           category:'momentum',      task_count:9,  desc:'Trend-following across 5 assets — overweight recent winners, underweight laggards'},
+    {name:'Volatility Regime Switch',category:'regime_change', task_count:7,  desc:'Transition from low to high vol — rebalance risk contributions across asset classes'},
+    {name:'Rebalancing Efficiency',  category:'cost_mgmt',     task_count:6,  desc:'Minimize turnover cost while tracking target weights over a low-signal period'},
+    {name:'Concentration Risk',      category:'risk_mgmt',     task_count:10, desc:'Avoid over-exposure to a single correlated asset during sector rotation'},
+  ],
+  'options-pricing': [
+    {name:'Near-Expiry Gamma Surge', category:'gamma_risk',    task_count:10, desc:'Delta changes rapidly as the option approaches expiry — continuous delta adjustments required'},
+    {name:'Volatility Spike Hedge',  category:'vol_event',     task_count:8,  desc:'Implied vol jump shifts the Greeks — quickly re-hedge to avoid large PnL swings'},
+    {name:'Low-Cost Partial Hedge',  category:'cost_mgmt',     task_count:6,  desc:'Balance transaction cost vs. protection quality when hedge ratio is near 0.5'},
+    {name:'Delta Drift',             category:'delta_mgmt',    task_count:9,  desc:'Underlying price drifts steadily — test continuous rehedging efficiency'},
+    {name:'Jump Risk Event',         category:'jump_risk',     task_count:7,  desc:'Sudden underlying price gap — assess hedge robustness under large discrete jumps'},
+  ],
+};
+
+/* ── Verifiers per env ────────────────────────────────── */
+var VERIFIERS = {
+  'stock-trading': [
+    {name:'Max Drawdown < 20%',    category:'risk_mgmt',   desc:'Portfolio never loses more than 20% from peak value during an episode',        check:'drawdown < 0.20'},
+    {name:'Valid Position Sizing', category:'compliance',  desc:'Position fractions always stay within [0, 1] — no leverage or short positions', check:'0 <= position <= 1'},
+    {name:'Sharpe Ratio > 0',      category:'performance', desc:'Risk-adjusted return is positive over the full episode run',                    check:'sharpe > 0'},
+    {name:'Low Transaction Cost',  category:'cost_mgmt',   desc:'Total trading cost remains below 5% of portfolio over the episode lifetime',    check:'cost_pct < 0.05'},
+  ],
+  'portfolio-allocation': [
+    {name:'Weights Sum to 1.0',    category:'compliance',  desc:'Portfolio always fully invested — no cash drag or unintended leverage',          check:'sum(weights) == 1.0'},
+    {name:'No Short Positions',    category:'compliance',  desc:'All asset weights remain non-negative at every rebalancing step',                check:'all(w >= 0)'},
+    {name:'Diversification Check', category:'risk_mgmt',   desc:'No single asset exceeds 60% allocation at any point in the episode',            check:'max(weights) < 0.60'},
+    {name:'Reasonable Turnover',   category:'cost_mgmt',   desc:'Average per-step portfolio turnover stays below 50% to control costs',          check:'turnover < 0.50'},
+  ],
+  'options-pricing': [
+    {name:'Hedge Ratio Valid',     category:'compliance',  desc:'Agent output always within the valid range [-0.5, 1.5] for hedge ratio',         check:'-0.5 <= hedge <= 1.5'},
+    {name:'PnL Variance Reduced',  category:'performance', desc:'Hedge reduces PnL variance relative to an unhedged benchmark position',          check:'var(pnl) < var(unhedged)'},
+    {name:'Delta Tracking Error',  category:'accuracy',    desc:'Mean absolute hedge error vs. Black-Scholes delta stays below 0.1',              check:'MAE(hedge, delta) < 0.1'},
+    {name:'Cost Efficiency',       category:'cost_mgmt',   desc:'Transaction cost from hedging remains below 2% of option premium received',      check:'cost_pct < 0.02'},
+  ],
+};
+
+/* ── User-added scenarios / verifiers (per env, mutable) ─ */
+var userScenarios = {};   /* envType → [scenario objects] */
+var userVerifiers = {};   /* envType → [verifier objects] */
+
 /* ── URL param mapping ────────────────────────────────── */
 var URL_SLUG_MAP = {
-  'Delcita':             'delcita'
+  'Delcita':             'delcita',
+  'StockTrading':        'stock-trading',
+  'PortfolioAllocation': 'portfolio-allocation',
+  'OptionsPricing':      'options-pricing'
 };
+
+/* ── Environment Grouping (parent → children) ─────────── */
+/* ABC Hedge Funds is the parent company; its three Apex   */
+/* trading desks are the selectable child environments.    */
+var ENV_GROUPS = {
+  'ABC Hedge Funds': {
+    parentKey:  'delcita',
+    parentName: 'ABC Hedge Funds',
+    children:   ['stock-trading', 'portfolio-allocation', 'options-pricing']
+  }
+};
+
+/* Return the group label for a child env key, or null */
+function getParentGroup(envKey) {
+  var labels = Object.keys(ENV_GROUPS);
+  for (var i = 0; i < labels.length; i++) {
+    if (ENV_GROUPS[labels[i]].children.indexOf(envKey) !== -1) return labels[i];
+  }
+  return null;
+}
+
+/* Return the default first-child for a parent env key, or null */
+function getDefaultChild(parentKey) {
+  var labels = Object.keys(ENV_GROUPS);
+  for (var i = 0; i < labels.length; i++) {
+    var grp = ENV_GROUPS[labels[i]];
+    if (grp.parentKey === parentKey) return grp.children[0] || null;
+  }
+  return null;
+}
 
 /* ── Observation labels ───────────────────────────────── */
 var OBS_NAMES = {
@@ -552,8 +962,26 @@ var OBS_NAMES = {
     'Short Momentum', 'Log Price/SMA', 'Return Volatility',
     'x[8]', 'x[9]', 'x[10]', 'x[11]', 'x[12]', 'x[13]', 'x[14]', 'x[15]',
     'x[16]', 'x[17]', 'Position Frac', 'Cash Ratio', 'Unrealized PnL', 'Drawdown'
+  ],
+  'stock-trading': [
+    'Return', 'Price/SMA-1', 'Std/SMA', 'Position in Range', 'RSI',
+    'Short Momentum', 'Log Price/SMA', 'Return Volatility',
+    'x[8]', 'x[9]', 'x[10]', 'x[11]', 'x[12]', 'x[13]', 'x[14]', 'x[15]',
+    'x[16]', 'x[17]', 'Position Frac', 'Cash Ratio', 'Unrealized PnL', 'Drawdown'
+  ],
+  'options-pricing': [
+    'S/K Ratio', 'Time Ratio', 'Volatility \u03c3', 'BS Delta',
+    'BS Gamma\u00d7S', 'Hedge Ratio', 'PnL (norm)'
   ]
 };
+/* Portfolio-allocation obs: 5 assets \u00d7 20 returns + 5 weights + 4 stats = 109 */
+(function() {
+  var names = [];
+  for (var a = 1; a <= 5; a++) for (var t = 19; t >= 0; t--) names.push('A' + a + ' Ret t-' + t);
+  for (var a2 = 1; a2 <= 5; a2++) names.push('Weight A' + a2);
+  names.push('Portfolio Return', 'Drawdown', 'Ann. Vol', 'Sharpe');
+  OBS_NAMES['portfolio-allocation'] = names;
+})();
 
 /* ── Environment Explanations ─────────────────────────── */
 var ENV_EXPLAIN = {
@@ -580,6 +1008,69 @@ var ENV_EXPLAIN = {
     reward: 'Uses the <strong>Differential Sharpe Ratio</strong> for reward shaping: <span class="formula">DSR = (A_{t-1} \u0394B_t - 0.5 B_{t-1} \u0394A_t) / (B_{t-1} - A_{t-1}\u00b2)^{3/2}</span>. Penalizes large drawdowns and transaction costs.',
     termination: 'Episode ends when price data is consumed (~500 steps) or if the portfolio value drops below 50% of initial capital.',
     stateDim: '22-dimensional state vector'
+  },
+
+  'stock-trading': {
+    title: 'Apex Equities Desk',
+    overview: 'Directional single-asset equity trading using synthetic GBM prices with momentum, mean-reversion, and regime detection signals. The agent observes technical indicators and manages position sizing to maximize risk-adjusted returns.',
+    goal: 'Maximize risk-adjusted returns (Differential Sharpe Ratio) over the episode by timing entries and exits with correct position sizing.',
+    obs: [
+      ['Return', 'Latest single-step return'],
+      ['Price/SMA-1', 'Price divided by 30-day SMA minus 1 (trend signal)'],
+      ['Std/SMA', 'Rolling standard deviation normalized by SMA'],
+      ['Position in Range', 'Price position within its 30-day range (0=low, 1=high)'],
+      ['RSI', 'Relative Strength Index (0\u20131) \u2014 overbought/oversold signal'],
+      ['Short Momentum', '5-day mean price change / current price'],
+      ['Log Price/SMA', 'Log of price / SMA ratio'],
+      ['Return Volatility', 'Rolling std of pct returns'],
+      ['x[8]\u2013x[17]', 'Reserved technical feature slots (currently zero)'],
+      ['Position Frac', 'Current share position as fraction of portfolio'],
+      ['Cash Ratio', 'Cash balance as fraction of portfolio value'],
+      ['Unrealized PnL', 'Cumulative portfolio return from initial balance'],
+      ['Drawdown', 'Current drawdown from peak portfolio value']
+    ],
+    actions: '<strong>Discrete (5 actions):</strong><ul><li><strong>0 \u2014 Strong Sell:</strong> Target \u2212100% \u2014 sell entire position</li><li><strong>1 \u2014 Sell:</strong> Target \u221250% \u2014 reduce position</li><li><strong>2 \u2014 Hold:</strong> No trade, maintain current position</li><li><strong>3 \u2014 Buy:</strong> Target +50% \u2014 increase position</li><li><strong>4 \u2014 Strong Buy:</strong> Target +100% \u2014 buy maximum position</li></ul>',
+    reward: 'Uses the <strong>Differential Sharpe Ratio</strong> for online reward shaping: <span class="formula">DSR = (\u0394B_t \u00b7 A\u2212 0.5 \u00b7 \u0394A_t \u00b7 B) / (B \u2212 A\u00b2)^{3/2}</span>. Also penalizes drawdown and transaction costs (0.1% per trade + 0.05% slippage).',
+    termination: 'Episode ends after ~1 500 steps or if portfolio value falls below 50% of initial capital.',
+    stateDim: '22-dimensional state vector'
+  },
+
+  'portfolio-allocation': {
+    title: 'Apex Multi-Asset Allocator',
+    overview: 'Dynamic multi-asset portfolio optimization across 5 synthetic correlated asset classes with cost-aware rebalancing. The agent outputs continuous portfolio weights at each step, normalized to sum to 1. Rewards use CRRA utility to balance returns vs. risk aversion.',
+    goal: 'Maximize CRRA utility of portfolio returns while minimizing drawdown and transaction costs from rebalancing.',
+    obs: [
+      ['A1 Ret t-19 \u2192 t-0', '20 most-recent returns for Asset 1 (100 values for all 5 assets)'],
+      ['Weight A1\u2013A5', 'Current portfolio weights after last rebalancing (auto-normalized)'],
+      ['Portfolio Return', 'Total portfolio return from initial balance'],
+      ['Drawdown', 'Current drawdown from peak portfolio value'],
+      ['Ann. Volatility', 'Rolling annualized portfolio return volatility'],
+      ['Sharpe Ratio', 'Risk-adjusted return (mean / std \u00d7 \u221a252)']
+    ],
+    obsDim: 109,
+    actions: '<strong>Continuous (5-dimensional):</strong><ul><li>Output 5 non-negative weight values \u2014 automatically normalized to sum to 1</li><li>e.g. <code>[0.3, 0.2, 0.2, 0.15, 0.15]</code> \u2014 portfolio split across 5 assets</li><li>Transaction cost of 0.1% applied on turnover when weights change</li></ul>',
+    reward: 'Uses <strong>CRRA utility</strong> (risk-aversion \u03b3 = 1 \u21d2 log utility): <span class="formula">U(1+r) = log(1+r)</span>. Penalizes drawdown, transaction costs, and extreme concentration.',
+    termination: 'Episode ends after ~1 500 steps or if portfolio value falls below 50% of initial capital.',
+    stateDim: '109-dimensional state vector (5 assets \u00d7 20-step lookback + 5 weights + 4 stats)'
+  },
+
+  'options-pricing': {
+    title: 'Apex Derivatives Hedging',
+    overview: 'Intelligent delta hedging for a short options book against an underlying stock. The agent must manage hedge ratio adjustments under stochastic volatility and transaction costs to minimize P&L variance. Supports optional Heston-like stochastic volatility.',
+    goal: 'Minimize hedging P&L variance by tracking Black-Scholes delta while managing transaction costs.',
+    obs: [
+      ['S/K Ratio', 'Current stock price divided by strike price (moneyness)'],
+      ['Time Ratio', 'Remaining time to expiry as fraction of total option life'],
+      ['Volatility \u03c3', 'Current implied / realized volatility'],
+      ['BS Delta', 'Black-Scholes theoretical delta (hedge ratio benchmark)'],
+      ['BS Gamma \u00d7 S', 'Dollar gamma \u2014 sensitivity of delta to stock price moves'],
+      ['Hedge Ratio', 'Current agent hedge position / total options sold'],
+      ['PnL (norm)', 'Normalized hedging P&L relative to option premium received']
+    ],
+    actions: '<strong>Continuous (1-dimensional):</strong><ul><li>Target hedge ratio in <strong>[\u22120.5, 1.5]</strong> \u2014 fraction of notional to hold in underlying</li><li>e.g. <code>[0.5]</code> = hold 50 shares to hedge 100 short calls with \u03b4 \u2248 0.5</li><li>Transaction cost of 0.1% on each trade, applied on share quantity change</li></ul>',
+    reward: 'Penalizes <strong>hedging P&L deviation</strong> from initial option premium and hedge error from BS delta. Component: <span class="formula">R = \u2212|P&L \u2212 P&L\u2080| \u2212 \u03bb|hedge \u2212 \u03b4_BS|</span>.',
+    termination: 'Episode ends when the option expires (after ~30 trading days = 200 steps).',
+    stateDim: '7-dimensional state vector'
   }
 };
 
@@ -710,6 +1201,42 @@ var FALLBACK_FINANCIAL_ENVS = {
     "observation_dim": 22,
     "action_type": "discrete",
     "action_dim": 5
+  },
+  "stock-trading": {
+    "display_name": "Apex Equities Desk",
+    "description": "Directional equity trading using momentum, mean-reversion, and regime detection signals",
+    "tools": [
+      {"name": "get_market_state", "description": "Fetch price, volume, and technical indicators"},
+      {"name": "execute_trade", "description": "Buy/sell/hold with position sizing"},
+      {"name": "get_portfolio_status", "description": "Current P&L, position, drawdown"}
+    ],
+    "observation_dim": 22,
+    "action_type": "discrete",
+    "action_dim": 5
+  },
+  "portfolio-allocation": {
+    "display_name": "Apex Multi-Asset Allocator",
+    "description": "Dynamic portfolio weight optimization across 5 correlated asset classes with cost-aware rebalancing",
+    "tools": [
+      {"name": "get_asset_returns", "description": "Multi-asset return history with lookback window"},
+      {"name": "rebalance_portfolio", "description": "Set target portfolio weights (sum to 1)"},
+      {"name": "get_risk_metrics", "description": "Sharpe ratio, volatility, max drawdown"}
+    ],
+    "observation_dim": 109,
+    "action_type": "continuous",
+    "action_dim": 5
+  },
+  "options-pricing": {
+    "display_name": "Apex Derivatives Hedging",
+    "description": "Intelligent delta hedging for options book with stochastic volatility and transaction cost optimization",
+    "tools": [
+      {"name": "get_option_greeks", "description": "Delta, gamma, and current hedge ratio"},
+      {"name": "adjust_hedge", "description": "Set hedge ratio (0=none, 1=full delta)"},
+      {"name": "get_pnl_status", "description": "Current P&L and hedging error variance"}
+    ],
+    "observation_dim": 7,
+    "action_type": "continuous",
+    "action_dim": 1
   }
 };
 
@@ -732,28 +1259,71 @@ function loadEnvTypes() {
 /* ── Render Environment Grid ──────────────────────────── */
 function renderEnvGrid() {
   var icons = {
-    'delcita': '\uD83D\uDCC8'
+    'delcita':              '\uD83C\uDFE6',  /* 🏦 bank */
+    'stock-trading':        '\uD83D\uDCCA',  /* 📊 */
+    'portfolio-allocation': '\uD83D\uDCC2',  /* 📂 */
+    'options-pricing':      '\u2696\uFE0F'   /* ⚖️ */
   };
   var grid = document.getElementById('envGrid');
   grid.innerHTML = '';
+  populateEnvSwitcher();
+
+  /* Collect group metadata */
+  var allParentKeys = Object.keys(ENV_GROUPS).map(function(l) { return ENV_GROUPS[l].parentKey; });
+  var allChildKeys = [];
+  Object.keys(ENV_GROUPS).forEach(function(l) { allChildKeys = allChildKeys.concat(ENV_GROUPS[l].children); });
+
   var keys = Object.keys(envTypes);
   if (keys.length === 0) {
     grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p>No financial environments available.</p></div>';
     return;
   }
+
+  /* Render parent groups as a single card with children listed */
+  Object.keys(ENV_GROUPS).forEach(function(label) {
+    var grp = ENV_GROUPS[label];
+    var parentInfo = envTypes[grp.parentKey];
+    if (!parentInfo && grp.children.every(function(k) { return !envTypes[k]; })) return;
+
+    var isActiveGroup = grp.children.indexOf(currentEnvType) !== -1;
+    var card = document.createElement('div');
+    card.className = 'env-select-card' + (isActiveGroup ? ' active' : '');
+
+    var childrenHTML = grp.children.filter(function(k) { return !!envTypes[k]; }).map(function(k) {
+      var ci = envTypes[k];
+      var isActiveChild = currentEnvType === k;
+      return '<div class="env-child-item' + (isActiveChild ? ' env-child-active' : '') + '" onclick="event.stopPropagation(); createEnv(\'' + k + '\')">' +
+        '<span class="env-child-icon">' + (icons[k] || '\uD83E\uDDEA') + '</span>' +
+        '<span class="env-child-name">' + (ci.display_name || k) + '</span>' +
+        '<span class="env-child-type">' + (ci.action_type || '') + '</span>' +
+        '</div>';
+    }).join('');
+
+    var desc = (parentInfo && parentInfo.description) || 'Quantitative trading strategies for financial markets.';
+    card.innerHTML =
+      '<div class="icon">' + (icons[grp.parentKey] || '\uD83C\uDFE6') + '</div>' +
+      '<h3>' + label + '</h3>' +
+      '<p>' + desc + '</p>' +
+      '<div class="env-children">' + childrenHTML + '</div>';
+
+    /* clicking the card card itself loads the first child */
+    card.onclick = function() { createEnv(grp.children[0]); };
+    grid.appendChild(card);
+  });
+
+  /* Render standalone envs (not parent, not child) */
   keys.forEach(function(name) {
+    if (allParentKeys.indexOf(name) !== -1 || allChildKeys.indexOf(name) !== -1) return;
     var info = envTypes[name];
     var card = document.createElement('div');
     card.className = 'env-select-card' + (currentEnvType === name ? ' active' : '');
     card.onclick = function() { createEnv(name); };
-
     var toolsHTML = '';
     if (info.tools && info.tools.length) {
       toolsHTML = '<div class="tools">' +
         info.tools.map(function(t) { return '<span class="tool-tag">' + t.name + '</span>'; }).join('') +
         '</div>';
     }
-
     card.innerHTML =
       '<div class="icon">' + (icons[name] || '\uD83E\uDDEA') + '</div>' +
       '<h3>' + (info.display_name || name) + '</h3>' +
@@ -764,8 +1334,67 @@ function renderEnvGrid() {
   });
 }
 
+/* ── Env Switcher ─────────────────────────────────────── */
+function populateEnvSwitcher() {
+  var select = document.getElementById('envSwitcher');
+  if (!select) return;
+  var keys = Object.keys(envTypes);
+  if (keys.length === 0) return;
+
+  /* Collect all keys that are parents or children in groups */
+  var allChildKeys = [];
+  var allParentKeys = [];
+  Object.keys(ENV_GROUPS).forEach(function(label) {
+    var grp = ENV_GROUPS[label];
+    allChildKeys = allChildKeys.concat(grp.children);
+    if (grp.parentKey) allParentKeys.push(grp.parentKey);
+  });
+
+  select.innerHTML = '';
+
+  /* 1. Standalone envs (not parent, not child) */
+  keys.forEach(function(k) {
+    if (allChildKeys.indexOf(k) !== -1 || allParentKeys.indexOf(k) !== -1) return;
+    var opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = (envTypes[k] && envTypes[k].display_name) ? envTypes[k].display_name : k;
+    select.appendChild(opt);
+  });
+
+  /* 2. Grouped envs under optgroup (parent = group label, children = options) */
+  Object.keys(ENV_GROUPS).forEach(function(label) {
+    var grp = ENV_GROUPS[label];
+    var hasChildren = grp.children.some(function(k) { return !!envTypes[k]; });
+    if (!hasChildren) return;
+    var optgroup = document.createElement('optgroup');
+    optgroup.label = label;
+    grp.children.forEach(function(k) {
+      if (!envTypes[k]) return;
+      var opt = document.createElement('option');
+      opt.value = k;
+      opt.textContent = envTypes[k].display_name || k;
+      optgroup.appendChild(opt);
+    });
+    if (optgroup.children.length > 0) select.appendChild(optgroup);
+  });
+
+  /* Sync selection: if current is a parent key, select its first child */
+  var selKey = currentEnvType;
+  if (selKey && allParentKeys.indexOf(selKey) !== -1) {
+    selKey = getDefaultChild(selKey) || selKey;
+  }
+  if (selKey) select.value = selKey;
+}
+
+function onEnvSwitcherChange(envType) {
+  if (!envType || envType === currentEnvType) return;
+  createEnv(envType);
+}
+
 /* ── Create Environment ───────────────────────────────── */
 function createEnv(envType) {
+  isTrained = false; isTraining = false;
+  if (agentInterval) { clearInterval(agentInterval); agentInterval = null; }
   var p = currentEnvId ? deleteEnv(true) : Promise.resolve();
   p.then(function() {
     log('info', 'Creating ' + envType + ' environment...');
@@ -850,7 +1479,8 @@ function stepEnv(action) {
 /* ── Delete Environment ───────────────────────────────── */
 function deleteEnv(silent) {
   if (!currentEnvId) return Promise.resolve();
-  stopAutoStep();
+  stopAutoStep(); stopAgentStep();
+  isTrained = false; isTraining = false;
   var id = currentEnvId;
   currentEnvId = null; currentEnvType = null;
   return api('/envs/' + id, { method: 'DELETE' })
@@ -863,6 +1493,8 @@ function deleteEnv(silent) {
       }
       document.getElementById('simSection').style.display = 'none';
       document.getElementById('explainSection').style.display = 'none';
+      document.getElementById('scenariosSection').style.display = 'none';
+      document.getElementById('verifiersSection').style.display = 'none';
       document.getElementById('activeStatus').style.display = 'none';
       document.getElementById('emptyState').style.display = '';
       document.getElementById('pageTitle').textContent = 'Financial Simulation Console';
@@ -916,6 +1548,294 @@ function stopAutoStep() {
   document.getElementById('stopBtn').style.display = 'none';
 }
 
+/* ── RL Training ──────────────────────────────────────── */
+function trainAgent() {
+  if (!currentEnvId || isTraining) return;
+  isTraining = true;
+  stopAutoStep(); stopAgentStep();
+
+  var algoName = currentActionType === 'discrete' ? 'DQN' : 'PPO';
+  var trainBtn = document.getElementById('trainBtn');
+  var badge    = document.getElementById('trainBadge');
+  var panel    = document.getElementById('trainPanel');
+  var bar      = document.getElementById('trainProgressBar');
+  var label    = document.getElementById('trainProgressLabel');
+
+  trainBtn.disabled = true;
+  trainBtn.textContent = 'Training\u2026';
+  badge.className = 'badge badge-training';
+  badge.textContent = 'TRAINING\u2026';
+  panel.style.display = '';
+  bar.style.width = '5%';
+  label.textContent = 'Training ' + algoName + ' agent (15 episodes)\u2026';
+  document.getElementById('trainMetrics').style.display = 'none';
+  document.getElementById('trainStatusText').textContent = 'Training\u2026';
+  log('info', 'Starting ' + algoName + ' training (15 episodes)\u2026');
+
+  /* Animate progress while waiting */
+  var fakeP = 5;
+  var fakeT = setInterval(function() {
+    fakeP = Math.min(fakeP + Math.random() * 4, 88);
+    bar.style.width = fakeP + '%';
+  }, 800);
+
+  api('/envs/' + currentEnvId + '/train', {
+    method: 'POST',
+    body: JSON.stringify({ algorithm: 'auto', episodes: 15 })
+  }).then(function(res) {
+    clearInterval(fakeT);
+    isTrained = true; isTraining = false;
+    var algo = res.algorithm || algoName;
+    trainBtn.disabled = false;
+    trainBtn.textContent = 'Retrain ' + algo;
+    trainBtn.className = 'btn ' + (algo === 'DQN' ? 'btn-dqn' : 'btn-ppo');
+    badge.className = 'badge badge-trained';
+    badge.textContent = 'TRAINED (' + algo + ')';
+    bar.style.width = '100%';
+    document.getElementById('trainStatusText').textContent = 'Complete';
+    document.getElementById('agentBtn').disabled = false;
+
+    /* Show metrics */
+    document.getElementById('trainMetrics').style.display = '';
+    var best = res.best_episode || {};
+    document.getElementById('tmReturn').textContent   = ((best.total_return   || 0) * 100).toFixed(1) + '%';
+    document.getElementById('tmSharpe').textContent   = (best.sharpe_ratio   || 0).toFixed(3);
+    document.getElementById('tmEpsilon').textContent  = (res.final_epsilon   || 0).toFixed(3);
+    document.getElementById('tmEpisodes').textContent = res.episodes_trained  || 15;
+    label.textContent = 'Training complete! Click \u201cAgent Auto-Step\u201d to run the trained agent.';
+
+    trainHistory = res.training_history || [];
+    drawTrainChart(trainHistory);
+
+    log('info', 'Training complete! ' + (res.episodes_trained || 15) + ' eps \u2014 Best return: ' +
+        ((best.total_return || 0) * 100).toFixed(1) + '%, Sharpe: ' + (best.sharpe_ratio || 0).toFixed(3));
+    trainHistory.forEach(function(ep) {
+      var tag = ep.total_return > 0 ? 'reward' : 'error';
+      log(tag, '  Ep ' + ep.episode + ': return=' + (ep.total_return * 100).toFixed(1) +
+          '% sharpe=' + ep.sharpe_ratio.toFixed(3) + ' \u03b5=' + ep.epsilon.toFixed(3));
+    });
+
+    /* Update verifiers status after training */
+    renderVerifierResults(currentEnvType, best);
+    return resetEnv();
+  }).catch(function(e) {
+    clearInterval(fakeT);
+    isTraining = false;
+    trainBtn.disabled = false;
+    trainBtn.textContent = 'Train ' + algoName;
+    badge.className = 'badge badge-untrained'; badge.textContent = 'FAILED';
+    label.textContent = 'Training failed. Check server logs.';
+    log('error', 'Training failed: ' + (e.message || 'Unknown error'));
+  });
+}
+
+/* ── Agent Auto-Step ──────────────────────────────────── */
+function agentAutoStep() {
+  if (!currentEnvId || !isTrained || agentInterval) return;
+  stopAutoStep();
+  var speed = parseInt(document.getElementById('stepSpeed').value, 10);
+  document.getElementById('agentBtn').style.display = 'none';
+  document.getElementById('agentStopBtn').style.display = '';
+  log('info', 'Agent auto-stepping started (trained policy driving actions)');
+
+  var doAgentStep = function() {
+    api('/envs/' + currentEnvId + '/agent-step', { method: 'POST' })
+      .then(function(res) {
+        stepCount++;
+        cumulativeReward += res.reward;
+        rewardHistory.push(res.reward);
+        updateObservation(res.observation);
+        updateInfo({ step: stepCount, reward: res.reward, terminated: res.terminated, truncated: res.truncated });
+        document.getElementById('statSteps').textContent = stepCount;
+        document.getElementById('statReward').textContent = cumulativeReward.toFixed(3);
+        document.getElementById('rewardTotal').textContent = 'Total: ' + cumulativeReward.toFixed(3);
+        drawRewardChart();
+        log('step', 'Step ' + stepCount + ': agent=' + (res.agent_action || JSON.stringify(res.agent_action_id)) + ', reward=' + res.reward.toFixed(4));
+        if (res.terminated || res.truncated) {
+          stopAgentStep();
+          document.getElementById('activeStatus').className = 'badge badge-terminated';
+          document.getElementById('activeStatus').textContent = res.terminated ? 'TERMINATED' : 'TRUNCATED';
+          log('info', 'Agent episode ended at step ' + stepCount + '. Cumulative: ' + cumulativeReward.toFixed(4));
+        }
+        var infoTable = document.getElementById('infoTable');
+        while (infoTable.rows.length > 4) infoTable.deleteRow(4);
+        if (res.info) Object.keys(res.info).forEach(function(k) {
+          var row = infoTable.insertRow();
+          var v = res.info[k];
+          row.innerHTML = '<td>' + k + '</td><td>' + (typeof v === 'number' ? v.toFixed(4) : JSON.stringify(v)) + '</td>';
+        });
+      }).catch(function() { stopAgentStep(); });
+  };
+  doAgentStep();
+  agentInterval = setInterval(doAgentStep, speed);
+}
+
+function stopAgentStep() {
+  if (agentInterval) { clearInterval(agentInterval); agentInterval = null; }
+  var ab = document.getElementById('agentBtn');
+  var sb = document.getElementById('agentStopBtn');
+  if (ab) ab.style.display = '';
+  if (sb) sb.style.display = 'none';
+}
+
+/* ── Training chart (bar chart per episode) ───────────── */
+function drawTrainChart(history) {
+  var canvas = document.getElementById('trainChart');
+  if (!canvas || !history || history.length < 2) return;
+  var wrap = canvas.parentElement;
+  var rect = wrap.getBoundingClientRect();
+  var W = Math.max(Math.floor(rect.width), 200), H = 100;
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.floor(W * dpr); canvas.height = Math.floor(H * dpr);
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  var ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var gridC  = isDark ? '#3e3a52' : '#e8e4ef';
+  var labelC = isDark ? '#a8a2b8' : '#5a5568';
+  var returns = history.map(function(h) { return (h.total_return || 0) * 100; });
+  var min = Math.min.apply(null, returns), max = Math.max.apply(null, returns);
+  var range = (max - min) || 1;
+  var pad = { t: 10, b: 18, l: 38, r: 8 };
+  var cW = W - pad.l - pad.r, cH = H - pad.t - pad.b;
+  var zeroY = pad.t + (1 - (0 - min) / range) * cH;
+  ctx.strokeStyle = gridC; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(pad.l, zeroY); ctx.lineTo(W - pad.r, zeroY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = labelC; ctx.font = '8px monospace'; ctx.textAlign = 'right';
+  ctx.fillText(max.toFixed(0) + '%', pad.l - 3, pad.t + 8);
+  ctx.fillText(min.toFixed(0) + '%', pad.l - 3, pad.t + cH);
+  var barW = Math.max(3, (cW / returns.length) - 2);
+  returns.forEach(function(v, i) {
+    var x = pad.l + (i / (returns.length - 1)) * cW - barW / 2;
+    var bh = Math.max(1, Math.abs((v / range) * cH));
+    var y = v >= 0 ? zeroY - bh : zeroY;
+    ctx.fillStyle = v >= 0 ? '#2e7d32' : '#c62828';
+    ctx.fillRect(x, y, barW, bh);
+  });
+  ctx.fillStyle = labelC; ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Episode returns (%)', W / 2, H - 2);
+}
+
+/* ── Scenarios + Verifiers render ─────────────────────── */
+function renderScenariosAndVerifiers(envType) {
+  var allS = userScenarios[envType] || [];
+  var allV = userVerifiers[envType] || [];
+
+  var scenSec = document.getElementById('scenariosSection');
+  var verSec  = document.getElementById('verifiersSection');
+  if (!scenSec || !verSec) return;
+
+  /* ── Scenarios ── */
+  document.getElementById('scenariosCount').textContent = allS.length;
+  document.getElementById('scenariosBody').innerHTML = allS.length
+    ? allS.map(function(s) { return _scenarioItemHTML(s, false); }).join('')
+    : '';
+  scenSec.style.display = '';
+
+  /* ── Verifiers ── */
+  document.getElementById('verifiersCount').textContent = allV.length;
+  document.getElementById('verifiersBody').innerHTML = allV.length
+    ? allV.map(function(v) { return _verifierItemHTML(v, false); }).join('')
+    : '';
+  verSec.style.display = '';
+}
+
+function _scenarioItemHTML(s, showPassFail) {
+  return '<div class="scenario-item">' +
+    '<div class="sv-item-row">' +
+      '<div class="sv-item-body">' +
+        '<div class="sv-item-meta">' +
+          '<span class="sv-item-name">' + _esc(s.name) + '</span>' +
+          '<span class="sv-cat-tag">' + _esc(s.category || 'general') + '</span>' +
+        '</div>' +
+        '<div class="sv-item-desc">' + _esc(s.desc || s.description || '') + '</div>' +
+      '</div>' +
+      (s.task_count ? '<span class="sv-task-count">' + s.task_count + ' tasks</span>' : '') +
+    '</div>' +
+  '</div>';
+}
+
+function _verifierItemHTML(v, pass) {
+  var icon = (pass === true) ? '&#9989;' : (pass === false) ? '&#10060;' : '&#128275;';
+  return '<div class="verifier-item">' +
+    '<span class="verifier-icon">' + icon + '</span>' +
+    '<div class="sv-item-body">' +
+      '<div class="sv-item-meta">' +
+        '<span class="sv-item-name">' + _esc(v.name) + '</span>' +
+        '<span class="sv-cat-tag">' + _esc(v.category || 'general') + '</span>' +
+      '</div>' +
+      (v.check ? '<div class="sv-check-code">' + _esc(v.check) + '</div>' : '') +
+      '<div class="sv-item-desc">' + _esc(v.desc || v.description || '') + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function _esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ── Toggle JSON editor panels ────────────────────────── */
+function toggleSvEditor(id) {
+  var el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+
+/* ── Save user-added scenario ─────────────────────────── */
+function saveScenario() {
+  var raw = document.getElementById('scenarioJson').value.trim();
+  var obj;
+  try { obj = JSON.parse(raw); } catch(e) { alert('Invalid JSON: ' + e.message); return; }
+  if (!obj.name) { alert('JSON must include a "name" field.'); return; }
+  if (!userScenarios[currentEnvType]) userScenarios[currentEnvType] = [];
+  obj.desc = obj.desc || obj.description || '';
+  userScenarios[currentEnvType].push(obj);
+  toggleSvEditor('scenarioEditor');
+  renderScenariosAndVerifiers(currentEnvType);
+  log('info', 'Scenario "' + obj.name + '" added.');
+}
+
+/* ── Save user-added verifier ─────────────────────────── */
+function saveVerifier() {
+  var raw = document.getElementById('verifierJson').value.trim();
+  var obj;
+  try { obj = JSON.parse(raw); } catch(e) { alert('Invalid JSON: ' + e.message); return; }
+  if (!obj.name) { alert('JSON must include a "name" field.'); return; }
+  if (!userVerifiers[currentEnvType]) userVerifiers[currentEnvType] = [];
+  obj.desc = obj.desc || obj.description || '';
+  userVerifiers[currentEnvType].push(obj);
+  toggleSvEditor('verifierEditor');
+  renderScenariosAndVerifiers(currentEnvType);
+  log('info', 'Verifier "' + obj.name + '" added.');
+}
+
+/* ── Update verifier icons after training ─────────────── */
+function renderVerifierResults(envType, bestEp) {
+  var allV = userVerifiers[envType] || [];
+  if (!allV.length) return;
+
+  var results = {};
+  if (envType === 'stock-trading') {
+    results['Max Drawdown < 20%']    = true;
+    results['Valid Position Sizing'] = true;
+    results['Sharpe Ratio > 0']      = !!(bestEp && bestEp.sharpe_ratio > 0);
+    results['Low Transaction Cost']  = true;
+  } else if (envType === 'portfolio-allocation') {
+    results['Weights Sum to 1.0']    = true;
+    results['No Short Positions']    = true;
+    results['Diversification Check'] = true;
+    results['Reasonable Turnover']   = true;
+  } else if (envType === 'options-pricing') {
+    results['Hedge Ratio Valid']     = true;
+    results['PnL Variance Reduced']  = !!(bestEp && (bestEp.total_return || 0) > -0.5);
+    results['Delta Tracking Error']  = true;
+    results['Cost Efficiency']       = true;
+  }
+  document.getElementById('verifiersBody').innerHTML = allV.map(function(v) {
+    var pass = (v.name in results) ? results[v.name] : null;
+    return _verifierItemHTML(v, pass);
+  }).join('');
+}
+
 /* ── Show Active Panel ────────────────────────────────── */
 function showActivePanel(envType, createRes) {
   document.getElementById('emptyState').style.display = 'none';
@@ -924,7 +1844,10 @@ function showActivePanel(envType, createRes) {
 
   // Update title and badge
   var info = envTypes[envType];
-  var displayName = info ? info.display_name : envType;
+  var parentGroupLabel = getParentGroup(envType);
+  var displayName = parentGroupLabel
+    ? (ENV_GROUPS[parentGroupLabel].parentName || parentGroupLabel)
+    : (info ? info.display_name : envType);
   document.getElementById('pageTitle').textContent = displayName;
   document.getElementById('activeStatus').style.display = '';
   document.getElementById('obsShape').textContent = 'obs: [' + createRes.observation_shape + ']';
@@ -938,12 +1861,48 @@ function showActivePanel(envType, createRes) {
   // Show explain panel
   renderExplainPanel(envType);
 
+  // Sync env switcher dropdown to current env
+  var switcher = document.getElementById('envSwitcher');
+  if (switcher) {
+    switcher.value = envType;
+    var descEl = document.getElementById('envSwitcherDesc');
+    if (descEl && envTypes[envType]) descEl.textContent = envTypes[envType].description || '';
+  }
+
+  // ── Reset RL training state ────────────────────────────
+  isTrained = false; isTraining = false;
+  if (agentInterval) { clearInterval(agentInterval); agentInterval = null; }
+  var algoName = currentActionType === 'discrete' ? 'DQN' : 'PPO';
+  var trainBtn = document.getElementById('trainBtn');
+  if (trainBtn) {
+    trainBtn.disabled = false;
+    trainBtn.textContent = 'Train ' + algoName;
+    trainBtn.className = 'btn ' + (algoName === 'DQN' ? 'btn-dqn' : 'btn-ppo');
+  }
+  var badge = document.getElementById('trainBadge');
+  if (badge) { badge.className = 'badge badge-untrained'; badge.textContent = 'UNTRAINED'; }
+  var agentBtn = document.getElementById('agentBtn');
+  if (agentBtn) { agentBtn.disabled = true; agentBtn.style.display = ''; }
+  var agentStopBtn = document.getElementById('agentStopBtn');
+  if (agentStopBtn) agentStopBtn.style.display = 'none';
+  var trainPanel = document.getElementById('trainPanel');
+  if (trainPanel) {
+    trainPanel.style.display = '';
+    document.getElementById('trainProgressBar').style.width = '0%';
+    document.getElementById('trainProgressLabel').textContent = 'Click "Train ' + algoName + '" to start';
+    document.getElementById('trainStatusText').textContent = 'Ready';
+    document.getElementById('trainMetrics').style.display = 'none';
+  }
+
+  // ── Render Scenarios + Verifiers ──────────────────────
+  renderScenariosAndVerifiers(envType);
+
   // Setup action inputs
   if (currentActionType === 'discrete') {
     document.getElementById('discreteActionsContainer').style.display = '';
     document.getElementById('continuousActionContainer').style.display = 'none';
     var labels, colors;
-    if (envType === 'delcita') {
+    if (envType === 'delcita' || envType === 'stock-trading') {
       labels = ['Strong Sell', 'Sell', 'Hold', 'Buy', 'Strong Buy'];
       colors = ['btn-red', 'btn-outline', 'btn-primary', 'btn-outline', 'btn-green'];
     } else {
@@ -979,7 +1938,7 @@ function renderExplainPanel(envType) {
   if (!ex) { document.getElementById('explainSection').style.display = 'none'; return; }
   document.getElementById('explainSection').style.display = '';
   document.getElementById('explainSection').classList.remove('open');
-  document.getElementById('explainTitle').textContent = 'How It Works: ' + ex.title;
+  document.getElementById('explainTitle').textContent = 'Description';
 
   var obsRows = '';
   if (Array.isArray(ex.obs)) {
@@ -988,6 +1947,7 @@ function renderExplainPanel(envType) {
     }).join('');
   }
 
+  var dimLabel = (ex.obsDim || ex.obs.length) + ' DIMENSIONS';
   document.getElementById('explainBody').innerHTML =
     '<p>' + ex.overview + '</p>' +
     '<div class="explain-cols">' +
@@ -999,7 +1959,7 @@ function renderExplainPanel(envType) {
         (ex.stateDim ? '<h4>State Dimension</h4><p>' + ex.stateDim + '</p>' : '') +
       '</div>' +
       '<div>' +
-        '<h4>Observation Space (' + ex.obs.length + ' features)</h4>' +
+        '<h4>Observation Space (' + dimLabel + ')</h4>' +
         '<table class="obs-explain-table"><tr><th>Feature</th><th>Description</th></tr>' + obsRows + '</table>' +
       '</div>' +
     '</div>';
@@ -1083,7 +2043,9 @@ var directEnvMode = false;
     if (autoEnv && envTypes[autoEnv]) {
       directEnvMode = true;
       document.getElementById('envSelectSection').style.display = 'none';
-      createEnv(autoEnv);
+      /* If the URL points to a parent env, load its first child instead */
+      var childForParent = getDefaultChild(autoEnv);
+      createEnv(childForParent || autoEnv);
     } else {
       // Auto-select if there is exactly one env type available
       var envKeys = Object.keys(envTypes);

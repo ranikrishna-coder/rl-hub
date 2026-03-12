@@ -14,7 +14,7 @@
         scenarios: [
             { id: 'sc_jira_1', name: 'Resolve Jira ticket ISK2', category: 'jira', task_count: 5, description: 'Resolve a Jira issue by transitioning through correct statuses' },
             { id: 'sc_jira_2', name: 'Jira Status Update Workflow', category: 'jira', task_count: 3, description: 'Update issue status following valid transition paths' },
-            { id: 'sc_jira_3', name: 'True Technologies Inc', category: 'jira', task_count: 8, description: 'Create and manage subtasks for parent issues' },
+            { id: 'sc_jira_3', name: 'Jira Subtask Management', category: 'jira', task_count: 8, description: 'Create and manage subtasks for parent issues' },
             { id: 'sc_jira_4', name: 'Jira Comment Thread', category: 'jira', task_count: 4, description: 'Add and manage comments on Jira issues' },
             { id: 'sc_epic_1', name: 'Epic Patient Lookup', category: 'clinical', task_count: 3, description: 'Search and retrieve patient records in Epic EHR' },
             { id: 'sc_epic_2', name: 'Epic Order Entry', category: 'clinical', task_count: 7, description: 'Place and manage clinical orders in Epic' },

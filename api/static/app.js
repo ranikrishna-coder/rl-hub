@@ -162,7 +162,7 @@ const environmentDetails = {
     'JiraSubtaskManagement': {
         category: 'jira',
         system: 'Jira (Atlassian)',
-        description: 'True Technologies Inc: add subtasks to existing Jira tickets by fetching parent issue and creating subtask under it.',
+        description: 'Jira Subtask Management: add subtasks to existing Jira tickets by fetching parent issue and creating subtask under it.',
         stateFeatures: 6,
         actionType: 'Discrete',
         actionSpace: 3,
@@ -571,6 +571,8 @@ function applyIndustryPersonaFilter() {
         if (domainFilter) domainFilter.value = 'fin-sim';
     } else if (industry === 'healthcare') {
         if (domainFilter) domainFilter.value = 'med-sim';
+    } else if (industry === 'retail') {
+        if (domainFilter) domainFilter.value = 'retail-sim';
     }
     updateSystemFilterOptions();
     filterEnvironments(document.getElementById('search-input').value);
@@ -740,7 +742,16 @@ async function loadEnvironments() {
                 workflow: env.workflow || environmentDetails[env.name]?.workflow || (env.category ? env.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'General')
             };
         });
-        
+
+        // Apply domain/workflow overrides for specific environments
+        allEnvironments.forEach(function(env) {
+            var ovr = ENV_DOMAIN_OVERRIDES[env.name];
+            if (ovr) {
+                if (ovr.domain) env.domain = ovr.domain;
+                if (ovr.workflow) env.workflow = ovr.workflow;
+            }
+        });
+
         // Debug: Verify descriptions are set
         console.log(`✅ Loaded ${allEnvironments.length} environments with descriptions`);
         const sampleEnv = allEnvironments[0];
@@ -748,8 +759,8 @@ async function loadEnvironments() {
             console.log(`📝 Sample: ${sampleEnv.name} - Description: ${sampleEnv.description?.substring(0, 60)}...`);
         }
         
-        // Calculate and update stats dynamically
-        const totalEnvs = allEnvironments.length;
+        // Calculate and update stats dynamically (exclude hidden environments)
+        const totalEnvs = allEnvironments.filter(e => HIDDEN_ENV_NAMES.indexOf(e.name) === -1).length;
         const categories = new Set(allEnvironments.map(e => e.category || 'unknown'));
         const systems = new Set();
         allEnvironments.forEach(env => {
@@ -792,8 +803,8 @@ async function loadEnvironments() {
         // Reset fake counts only once (first time after update)
         resetAllSaveCounts();
         
-        filteredEnvironments = allEnvironments;
-        renderEnvironments();
+        // Initial render goes through filterEnvironments to apply hidden env list
+        filterEnvironments('');
         document.getElementById('loading').style.display = 'none';
         applyIndustryPersonaFilter();
         var urlParams = new URLSearchParams(window.location.search);
@@ -982,51 +993,10 @@ function getActiveDomain() {
     return sel ? sel.value : 'all';
 }
 
+// System filter hidden for now — always reset to 'all'
 function updateSystemFilterOptions() {
-    const domain = getActiveDomain();
     const systemFilter = document.getElementById('system-filter');
-    const systemFilterWrap = document.getElementById('system-filter-wrap');
-    if (!systemFilter) return;
-
-    // Hide system filter when no domain is selected (or "All" is selected)
-    if (domain === 'all') {
-        if (systemFilterWrap) systemFilterWrap.style.display = 'none';
-        systemFilter.value = 'all';
-        return;
-    }
-
-    // Show system filter when a domain is selected
-    if (systemFilterWrap) systemFilterWrap.style.display = 'flex';
-
-    const medCategories = ['clinical', 'imaging', 'population_health', 'hospital_operations',
-                           'telehealth', 'interoperability', 'clinical_trials', 'cross_workflow', 'revenue_cycle'];
-    let envsForSystems = allEnvironments;
-    if (domain === 'dev-sim') {
-        envsForSystems = allEnvironments.filter(env => env.category === 'jira' || (env.system || '').toLowerCase().includes('jira'));
-    } else if (domain === 'med-sim') {
-        envsForSystems = allEnvironments.filter(env => medCategories.includes(env.category));
-    } else if (domain === 'fin-sim') {
-        envsForSystems = allEnvironments.filter(env => env.category === 'financial');
-    } else if (domain === 'hr-sim') {
-        envsForSystems = allEnvironments.filter(env => env.category === 'hr_payroll');
-    }
-
-    const systems = new Set();
-    envsForSystems.forEach(env => {
-        (env.system || '').split(',').forEach(s => {
-            const t = s.trim();
-            if (t) systems.add(t);
-        });
-    });
-    const systemList = Array.from(systems).sort((a, b) => a.localeCompare(b));
-    const currentVal = systemFilter.value;
-    systemFilter.innerHTML = '<option value="all">All systems</option>' +
-        systemList.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('');
-    if (currentVal && systemList.includes(currentVal)) {
-        systemFilter.value = currentVal;
-    } else if (systemList.length === 1) {
-        systemFilter.value = systemList[0];
-    }
+    if (systemFilter) systemFilter.value = 'all';
 }
 
 function filterEnvironments(searchTerm) {
@@ -1044,14 +1014,18 @@ function filterEnvironments(searchTerm) {
         const matchesSystem = system === 'all' || envSystems.includes(system);
 
         let matchesDomain = true;
-        if (system === 'all') {
+        if (domain !== 'all') {
             const medCategories = ['clinical', 'imaging', 'population_health', 'hospital_operations',
                                    'telehealth', 'interoperability', 'clinical_trials', 'cross_workflow', 'revenue_cycle'];
-            if (domain === 'dev-sim') matchesDomain = env.category === 'jira' || (env.system || '').toLowerCase().includes('jira');
-            else if (domain === 'med-sim') matchesDomain = medCategories.includes(env.category);
-            else if (domain === 'fin-sim') matchesDomain = env.category === 'financial';
-            else if (domain === 'hr-sim') matchesDomain = env.category === 'hr_payroll';
+            if (domain === 'dev-sim') matchesDomain = env.category === 'jira' || (env.system || '').toLowerCase().includes('jira') || env.domain === 'dev-sim';
+            else if (domain === 'med-sim') matchesDomain = medCategories.includes(env.category) || env.domain === 'med-sim';
+            else if (domain === 'fin-sim') matchesDomain = env.category === 'financial' || env.domain === 'fin-sim';
+            else if (domain === 'hr-sim') matchesDomain = env.category === 'hr_payroll' || env.domain === 'hr-sim';
+            else if (domain === 'retail-sim') matchesDomain = env.domain === 'retail-sim';
         }
+
+        // Hide disabled environments
+        if (HIDDEN_ENV_NAMES.indexOf(env.name) !== -1) return false;
 
         return matchesSearch && matchesSystem && matchesDomain;
     });
@@ -1062,6 +1036,9 @@ function filterEnvironments(searchTerm) {
 // Names of environments that should always appear first in the grid
 var PINNED_ENV_NAMES = ['ClinKriya Clinic', 'Delcita'];
 
+// Environments hidden from the catalog (disabled)
+var HIDDEN_ENV_NAMES = ['JiraIssueResolution', 'JiraStatusUpdate', 'JiraCommentManagement'];
+
 function renderEnvironments() {
     const grid = document.getElementById('environments-grid');
 
@@ -1070,7 +1047,7 @@ function renderEnvironments() {
         return;
     }
 
-    // Sort: pinned environments first (in order), then the rest
+    // Sort: pinned environments first (in order), then rest by most recent first
     var pinned = [];
     var rest = [];
     filteredEnvironments.forEach(function(env) {
@@ -1082,6 +1059,8 @@ function renderEnvironments() {
         }
     });
     pinned.sort(function(a, b) { return a.order - b.order; });
+    // Most recent first: reverse the rest so latest-added environments appear at top
+    rest.reverse();
     var sorted = pinned.map(function(p) { return p.env; }).concat(rest);
 
     grid.innerHTML = sorted.map(env => createEnvCard(env)).join('');
@@ -1105,10 +1084,16 @@ function renderEnvironments() {
 }
 
 var ENV_DISPLAY_NAME_OVERRIDES = {
-    'JiraSubtaskManagement': 'True Technologies Inc',
+    'JiraSubtaskManagement': 'CoSys Technologies inc',
     'clinKriya': 'ClinKriya Clinic',
     'ClinKriya Clinic': 'ClinKriya Clinic',
     'Delcita': 'ABC Hedge Funds'
+};
+
+// Domain and workflow overrides for specific environments
+var ENV_DOMAIN_OVERRIDES = {
+    'eAmaze':   { domain: 'retail-sim', workflow: 'AI Assistant' },
+    'e-Amaze':  { domain: 'retail-sim', workflow: 'AI Assistant' }
 };
 
 function formatEnvironmentName(name) {
@@ -1245,7 +1230,7 @@ function getEnvironmentDescription(envName, category) {
         'JiraIssueResolution': 'Jira Issue Resolution Flow: resolve issues end-to-end via get_issue_summary_and_description → get_transitions → transition_issue.',
         'JiraStatusUpdate': 'Jira Status Update Workflow: change issue status using get_transitions → transition_issue with valid transition IDs.',
         'JiraCommentManagement': 'Jira Comment Thread Management: add_comment → get_comments for issue comment workflows.',
-        'JiraSubtaskManagement': 'True Technologies Inc: get_issue_summary_and_description → create_subtask for adding subtasks to issues.',
+        'JiraSubtaskManagement': 'Jira Subtask Management: get_issue_summary_and_description → create_subtask for adding subtasks to issues.',
         // HR & Payroll (Workday, SAP SuccessFactors, ADP)
         'WorkdayCreateRecord': 'Workday: Create worker record with correct supervisory org placement and compensation plan initialization.',
         'WorkdayBulkImport': 'Workday: Bulk integration with EIB processing and error summary report for worker records.',
@@ -1339,7 +1324,7 @@ function getUseCaseDescription(envName, category) {
         'JiraIssueResolution': 'Issue resolution workflows, ticket closure, and status transitions in Jira.',
         'JiraStatusUpdate': 'Status updates and moving issues (e.g. To Do → In Progress → Done) in Jira.',
         'JiraCommentManagement': 'Adding and retrieving issue comments in Jira.',
-        'JiraSubtaskManagement': 'True Technologies Inc: subtask management for existing Jira issues.',
+        'JiraSubtaskManagement': 'Jira Subtask Management: subtask management for existing Jira issues.',
         // HR & Payroll
         'WorkdayCreateRecord': 'HR operations, worker onboarding, and Workday CCX API integration.',
         'WorkdayBulkImport': 'Bulk worker data import and EIB integration in Workday.',
@@ -1458,12 +1443,9 @@ function createEnvCard(env) {
         }
     }
 
-    var pinnedClass = isPinned ? ' env-card--pinned' : '';
-    var pinnedBadge = isPinned ? '<span class="env-pinned-badge">&#11088;</span>' : '';
-
-    return '<div class="env-card' + pinnedClass + '" data-env="' + env.name + '" style="cursor:pointer;">' +
+    return '<div class="env-card" data-env="' + env.name + '" style="cursor:pointer;">' +
         '<div class="env-card-header"><div>' +
-            '<div class="env-name">' + pinnedBadge + displayName + '</div>' +
+            '<div class="env-name">' + displayName + '</div>' +
         '</div></div>' +
         '<div class="env-description">' +
             (env.description || getEnvironmentDescription(env.name, env.category || 'other') || 'Reinforcement learning environment for workflow optimization.') +
@@ -4114,6 +4096,7 @@ function showEnvironmentDetails(envName) {
         '</div>' +
         buildScenariosSection(envName, env.category) +
         buildVerifiersSection(envName, env.category) +
+        buildConfigEditorSection(envName, details) +
         '<div class="detail-collapsible" id="section-environment">' +
             '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-environment\')">' +
                 '<h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Simulations</h2>' +
@@ -6218,6 +6201,10 @@ function clearEnvImport() {
     if (nameInput) nameInput.value = '';
     if (descInput) descInput.value = '';
     if (urlInput) urlInput.value = '';
+    var domainInput = document.getElementById('add-env-import-domain');
+    if (domainInput) domainInput.value = '';
+    var workflowInput = document.getElementById('add-env-import-workflow');
+    if (workflowInput) workflowInput.value = '';
     _hfImportedMeta = null;
     // Reset source selector to HuggingFace
     _importSource = 'huggingface';
@@ -6236,9 +6223,13 @@ function submitImportedEnvironment() {
     var nameInput = document.getElementById('add-env-import-name');
     var descInput = document.getElementById('add-env-import-desc');
     var urlInput = document.getElementById('add-env-import-path');
+    var domainInput = document.getElementById('add-env-import-domain');
+    var workflowInput = document.getElementById('add-env-import-workflow');
     var name = nameInput ? nameInput.value.trim() : '';
     var desc = descInput ? descInput.value.trim() : '';
     var url = urlInput ? urlInput.value.trim() : '';
+    var selectedDomain = domainInput ? domainInput.value : '';
+    var selectedWorkflow = workflowInput ? workflowInput.value.trim() : '';
 
     if (!name) {
         if (window.showToast) showToast('Please enter an environment name.', 'error');
@@ -6252,12 +6243,14 @@ function submitImportedEnvironment() {
     // Branch by import source
     if (_importSource === 'github' || _importSource === 'url') {
         // Direct import — no clone, just persist as custom env with source_url
+        // Use domain as category tag when provided; workflow from user input
         var newEnv = {
             name: name,
             description: desc || 'Imported from ' + (_importSource === 'github' ? 'GitHub' : 'URL'),
-            category: 'custom',
+            category: selectedDomain || 'custom',
             system: 'Custom',
-            domain: 'custom',
+            domain: selectedDomain || 'custom',
+            workflow: selectedWorkflow || '',
             sdk: 'custom',
             actions: [],
             source: _importSource,
@@ -6266,7 +6259,7 @@ function submitImportedEnvironment() {
         };
         environmentDetails[name] = generateEnvironmentDetails(newEnv);
         _addEnvironmentToGrid(newEnv);
-        // Persist (auto-classifies) then update local state
+        // Persist then classify — user-provided domain/workflow take precedence
         fetch(API_BASE + '/api/custom-environments', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -6280,10 +6273,11 @@ function submitImportedEnvironment() {
         }).then(function(r) { return r && r.ok ? r.json() : null; })
         .then(function(cls) {
             if (cls && cls.category) {
-                newEnv.category = cls.category;
-                newEnv.system = cls.system;
-                newEnv.domain = cls.domain;
-                newEnv.workflow = cls.workflow;
+                // Only use classifier results for fields the user didn't provide
+                newEnv.category = selectedDomain || cls.category;
+                newEnv.system = cls.system || 'Custom';
+                newEnv.domain = selectedDomain || cls.domain;
+                newEnv.workflow = selectedWorkflow || cls.workflow;
                 newEnv.tags = cls.tags;
                 environmentDetails[name] = generateEnvironmentDetails(newEnv);
                 if (typeof filterEnvironments === 'function') {
@@ -6333,9 +6327,10 @@ function submitImportedEnvironment() {
         var newEnv = {
             name: name,
             description: desc || (data.description || 'Imported from HuggingFace'),
-            category: 'custom',
+            category: selectedDomain || 'custom',
             system: 'Custom',
-            domain: 'custom',
+            domain: selectedDomain || 'custom',
+            workflow: selectedWorkflow || '',
             sdk: data.sdk || (_hfImportedMeta ? _hfImportedMeta.sdk : 'gradio'),
             actions: [],
             source: 'huggingface',
@@ -6383,10 +6378,11 @@ function submitImportedEnvironment() {
                 }).then(function(r) { return r.ok ? r.json() : null; })
                 .then(function(cls) {
                     if (cls && cls.category) {
-                        newEnv.category = cls.category;
-                        newEnv.system = cls.system;
-                        newEnv.domain = cls.domain;
-                        newEnv.workflow = cls.workflow;
+                        // User-provided domain/workflow take precedence over classifier
+                        newEnv.category = selectedDomain || cls.category;
+                        newEnv.system = cls.system || 'Custom';
+                        newEnv.domain = selectedDomain || cls.domain;
+                        newEnv.workflow = selectedWorkflow || cls.workflow;
                         newEnv.tags = cls.tags;
                         // Re-persist with classified fields
                         fetch(API_BASE + '/api/custom-environments', {

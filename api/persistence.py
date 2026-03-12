@@ -1,16 +1,20 @@
 """
-Persistence layer for user-created environments.
+Persistence layer for user-created environments and scenarios.
 
 Stores data in SQLite (gitignored by *.db rule) so it survives code
 deployments that run ``git reset --hard``.
 
 Usage
 -----
-    from api.persistence import EnvironmentStore, migrate_json_to_sqlite
+    from api.persistence import EnvironmentStore, ScenarioStore, migrate_json_to_sqlite
 
     store = EnvironmentStore()              # uses default path
     store.upsert("my-env", {...})
     envs = store.list_all()
+
+    scenarios = ScenarioStore()
+    scenarios.upsert("my-scenario", {...})
+    all_scenarios = scenarios.list_all()
 """
 
 import json
@@ -226,6 +230,109 @@ class EnvironmentStore:
             s["_recorded_at"] = r["created_at"]
             result.append(s)
         return result
+
+    # ------------------------------------------------------------------
+    # Utility
+    # ------------------------------------------------------------------
+
+    def db_size_bytes(self) -> int:
+        try:
+            return os.path.getsize(self.db_path)
+        except OSError:
+            return 0
+
+
+class ScenarioStore:
+    """SQLite-backed store for user / imported scenarios."""
+
+    def __init__(self, db_path: Optional[str] = None):
+        if db_path is None:
+            from api.config import SCENARIO_STORE_DB_PATH
+            db_path = SCENARIO_STORE_DB_PATH
+        self.db_path = db_path
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        self._init_db()
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _init_db(self) -> None:
+        with self._conn() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_scenarios (
+                    id         TEXT PRIMARY KEY,
+                    data       TEXT NOT NULL,
+                    product    TEXT DEFAULT '',
+                    source     TEXT DEFAULT 'custom',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            """)
+
+    # ------------------------------------------------------------------
+    # CRUD for scenarios
+    # ------------------------------------------------------------------
+
+    def list_all(self) -> List[Dict[str, Any]]:
+        """Return every user scenario as a dict."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT data FROM user_scenarios ORDER BY created_at"
+            ).fetchall()
+        return [json.loads(r["data"]) for r in rows]
+
+    def get(self, scenario_id: str) -> Optional[Dict[str, Any]]:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT data FROM user_scenarios WHERE id = ?", (scenario_id,)
+            ).fetchone()
+        return json.loads(row["data"]) if row else None
+
+    def upsert(self, scenario_id: str, data: dict) -> None:
+        now = _utcnow_iso()
+        blob = json.dumps(data, default=str)
+        product = data.get("product", "")
+        source = data.get("source", "custom")
+        with self._conn() as conn:
+            conn.execute(
+                """INSERT INTO user_scenarios (id, data, product, source, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(id) DO UPDATE SET
+                       data       = excluded.data,
+                       product    = excluded.product,
+                       source     = excluded.source,
+                       updated_at = excluded.updated_at
+                """,
+                (scenario_id, blob, product, source, now, now),
+            )
+
+    def delete(self, scenario_id: str) -> bool:
+        with self._conn() as conn:
+            cur = conn.execute(
+                "DELETE FROM user_scenarios WHERE id = ?", (scenario_id,)
+            )
+        return cur.rowcount > 0
+
+    def count(self) -> int:
+        with self._conn() as conn:
+            row = conn.execute("SELECT COUNT(*) AS c FROM user_scenarios").fetchone()
+        return row["c"]
+
+    def list_by_product(self, product: str) -> List[Dict[str, Any]]:
+        """Return scenarios filtered by product name."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT data FROM user_scenarios WHERE product = ? ORDER BY created_at",
+                (product,),
+            ).fetchall()
+        return [json.loads(r["data"]) for r in rows]
 
     # ------------------------------------------------------------------
     # Utility
