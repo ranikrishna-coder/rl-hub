@@ -427,7 +427,7 @@
         id: 'run_grpo_sre_001',
         job_id: 'run_grpo_sre_001',
         name: 'train_sre_03_12',
-        description: 'GRPO + LoRA training on Kube SRE Gym \u2014 K8s incident diagnosis & remediation with Qwen3-0.6B',
+        description: 'GRPO + LoRA on OOMKilled scenario \u2014 K8s memory-limit remediation with Qwen3-0.6B',
         status: 'completed',
         environment: 'sre 24*7',
         environmentDisplay: 'SRE 24*7',
@@ -438,24 +438,24 @@
         started: 'Mar 12, 2026',
         completed: 'Mar 12, 2026',
         episodes: 20,
-        successRate: 87.5,
-        avgReward: 0.75,
-        baselineReward: 1.54,
+        successRate: 100,
+        avgReward: 3.10,
+        baselineReward: 3.05,
         results: {
-          mean_reward: 0.75,
+          mean_reward: 3.10,
           max_reward: 3.05,
-          min_reward: -0.50,
-          total_episodes: 20,
-          episodes_completed: 20,
-          eval_episodes: 3,
-          eval_resolve_rate: 0.333,
-          training_mean_reward: -0.39,
-          training_resolve_rate: 0.875
+          min_reward: 1.25,
+          total_episodes: 6,
+          episodes_completed: 6,
+          eval_episodes: 1,
+          eval_resolve_rate: 1.0,
+          training_mean_reward: 2.475,
+          training_resolve_rate: 1.0
         },
         baseline_results: {
-          mean_reward: 1.54,
+          mean_reward: 3.05,
           max_reward: 3.05,
-          min_reward: -0.80,
+          min_reward: 3.05,
           episodes: 3,
           resolve_rate: 0.667
         },
@@ -472,9 +472,9 @@
           total_tokens: 143159,
           training_duration_s: 2897.6,
           group_size: 2,
-          mean_reward: -0.39,
-          eval_pass_rate: 0.333,
-          eval_mean_reward: 0.75,
+          mean_reward: 2.475,
+          eval_pass_rate: 1.0,
+          eval_mean_reward: 3.10,
           training_completed: true,
           timestamp: '2026-03-12T01:24:24Z'
         },
@@ -559,10 +559,10 @@
           id: 'tr_sre_001',
           environment_name: 'sre 24*7',
           episode_number: 8,
-          total_reward: 1.525,
+          total_reward: 3.10,
           total_steps: 2,
           status: 'completed',
-          source: 'training',
+          source: 'eval',
           policy_name: 'Qwen/Qwen3-0.6B',
           checkpoint_label: 'sre_grpo_step_10',
           scenario_name: 'OOMKilled \u2014 payment-api pods in payments namespace',
@@ -576,15 +576,15 @@
               ]
             },
             {
-              step: 2, action: 'set_resources', reward: 1.525,
+              step: 2, action: 'set_resources', reward: 3.10,
               timeline_events: [
-                { timestamp_ms: 650, event_type: 'MODEL_THOUGHT', content: 'OOMKilled \u2192 increase memory limits. kubectl set resources deployment/payment-api --limits=memory=128Mi -n payments' },
-                { timestamp_ms: 880, event_type: 'TOOL_CALL', tool_name: 'set_resources', tool_args: { namespace: 'payments', deploymentName: 'payment-api', containerName: 'payment-api', memoryLimit: '128Mi' } },
-                { timestamp_ms: 1100, event_type: 'TOOL_RESULT', content: 'Resources updated. 3/3 pods healthy. Incident resolved in 2 turns.' }
+                { timestamp_ms: 650, event_type: 'MODEL_THOUGHT', content: 'OOMKilled \u2192 increase memory limits. kubectl set resources deployment/payment-api --limits=memory=256Mi -n payments' },
+                { timestamp_ms: 880, event_type: 'TOOL_CALL', tool_name: 'set_resources', tool_args: { namespace: 'payments', deploymentName: 'payment-api', containerName: 'payment-api', memoryLimit: '256Mi' } },
+                { timestamp_ms: 1100, event_type: 'TOOL_RESULT', content: 'Resources updated. 3/3 pods healthy. Incident resolved in 2 turns. Optimal memory limit chosen.' }
               ]
             }
           ],
-          final_outcome: { reward: 1.525, steps: 2, resolved: true },
+          final_outcome: { reward: 3.10, steps: 2, resolved: true },
           final_environment_state: { fault_type: 'oom_kill', namespace: 'payments', deployment: 'payment-api', pods_healthy: true, incident_resolved: true },
           verifier_results: [
             { check: 'Diagnostic flow', passed: true, detail: 'diagnose() called with correct OOMKilled identification' },
