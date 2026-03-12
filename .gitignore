@@ -79,3 +79,6 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# HuggingFace Space clones (large, sourced directly from HF)
+hf_spaces/
+
