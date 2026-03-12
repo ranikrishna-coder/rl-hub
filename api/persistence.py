@@ -345,6 +345,79 @@ class ScenarioStore:
             return 0
 
 
+class VerifierStore:
+    """SQLite-backed store for user-created verifier definitions."""
+
+    def __init__(self, db_path: Optional[str] = None):
+        if db_path is None:
+            db_path = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)), "api", "data", "verifiers.db"
+            )
+        self.db_path = db_path
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        self._init_db()
+
+    def _conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _init_db(self) -> None:
+        with self._conn() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_verifiers (
+                    id         TEXT PRIMARY KEY,
+                    data       TEXT NOT NULL,
+                    system     TEXT DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            """)
+
+    def list_all(self) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT data FROM user_verifiers ORDER BY created_at"
+            ).fetchall()
+        return [json.loads(r["data"]) for r in rows]
+
+    def get(self, verifier_id: str) -> Optional[Dict[str, Any]]:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT data FROM user_verifiers WHERE id = ?", (verifier_id,)
+            ).fetchone()
+        return json.loads(row["data"]) if row else None
+
+    def upsert(self, verifier_id: str, data: dict) -> None:
+        now = _utcnow_iso()
+        blob = json.dumps(data, default=str)
+        system = data.get("system", "")
+        with self._conn() as conn:
+            conn.execute(
+                """INSERT INTO user_verifiers (id, data, system, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?)
+                   ON CONFLICT(id) DO UPDATE SET
+                       data       = excluded.data,
+                       system     = excluded.system,
+                       updated_at = excluded.updated_at
+                """,
+                (verifier_id, blob, system, now, now),
+            )
+
+    def delete(self, verifier_id: str) -> bool:
+        with self._conn() as conn:
+            cur = conn.execute(
+                "DELETE FROM user_verifiers WHERE id = ?", (verifier_id,)
+            )
+        return cur.rowcount > 0
+
+    def count(self) -> int:
+        with self._conn() as conn:
+            row = conn.execute("SELECT COUNT(*) AS c FROM user_verifiers").fetchone()
+        return row["c"]
+
+
 # ======================================================================
 # JSON → SQLite migration
 # ======================================================================

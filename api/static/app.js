@@ -6417,9 +6417,19 @@ function deleteEnvironment(envName) {
     if (!confirm('Are you sure you want to delete the environment "' + envName + '"? This action cannot be undone.')) {
         return;
     }
-    fetch(API_BASE + '/api/custom-environments/' + encodeURIComponent(envName), { method: 'DELETE' })
+    fetch(API_BASE + '/api/custom-environments/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: envName })
+    })
         .then(function(res) {
-            if (!res.ok) return res.json().then(function(d) { throw new Error(d.detail || 'Delete failed'); });
+            if (!res.ok) {
+                var ct = res.headers.get('content-type') || '';
+                if (ct.indexOf('application/json') !== -1) {
+                    return res.json().then(function(d) { throw new Error(d.detail || 'Delete failed'); });
+                }
+                throw new Error('Delete failed (HTTP ' + res.status + ')');
+            }
             return res.json();
         })
         .then(function() {
