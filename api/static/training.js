@@ -183,7 +183,7 @@
     // ─── Load environments from API ─────────────────────────────
     function loadEnvironments() {
         var apiBase = window.API_BASE || '';
-        return fetch(apiBase + '/environments')
+        return fetch(apiBase + '/api/environments')
             .then(function (res) {
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 return res.json();
@@ -487,50 +487,11 @@
     }
 
     function initVerifierToggle() {
-        var toggle = document.getElementById('verifier-toggle');
-        var existingPanel = document.getElementById('verifier-existing-panel');
-        var createPanel = document.getElementById('verifier-create-panel');
-
-        toggle.addEventListener('click', function (e) {
-            var btn = e.target.closest('button');
-            if (!btn) return;
-            toggle.querySelectorAll('button').forEach(function (b) { b.classList.remove('active'); });
-            btn.classList.add('active');
-            var mode = btn.getAttribute('data-mode');
-            existingPanel.style.display = mode === 'existing' ? '' : 'none';
-            createPanel.style.display = mode === 'create' ? '' : 'none';
-        });
+        // Removed — create new verifier is no longer available here
     }
 
     function initVerifierType() {
-        var sel = document.getElementById('tr-verifier-type');
-        var hilPanel = document.getElementById('human-eval-panel');
-        var stdPanel = document.getElementById('verifier-standard-panel');
-        var ljPanel = document.getElementById('llm-judge-panel');
-        sel.addEventListener('change', function () {
-            var isHil = sel.value === 'human_eval';
-            var isLJ = sel.value === 'llm_judge';
-            hilPanel.style.display = isHil ? '' : 'none';
-            ljPanel.style.display = isLJ ? '' : 'none';
-            stdPanel.style.display = (isHil || isLJ) ? 'none' : '';
-            if (isHil && !document.querySelector('#condition-rows .condition-row')) {
-                addConditionRow('Correct resolution', '0.4');
-                addConditionRow('Proper status transitions', '0.3');
-                addConditionRow('Communication quality', '0.3');
-            }
-        });
-        // LLM Judge tab switching
-        var ljTabs = document.querySelectorAll('.llm-judge-tab');
-        ljTabs.forEach(function (tab) {
-            tab.addEventListener('click', function () {
-                ljTabs.forEach(function (t) { t.classList.remove('active'); });
-                tab.classList.add('active');
-                var target = tab.getAttribute('data-ljtab');
-                document.querySelectorAll('.llm-judge-tab-content').forEach(function (c) {
-                    c.classList.toggle('active', c.getAttribute('data-ljtab-content') === target);
-                });
-            });
-        });
+        // Removed — create new verifier panel no longer exists
     }
 
     function updateVerifierSystem() {
@@ -723,67 +684,56 @@
             }
         };
 
-        var verifierMode = document.querySelector('#verifier-toggle button.active').getAttribute('data-mode');
-        if (verifierMode === 'existing') {
-            body.verifier_id = document.getElementById('tr-verifier-existing').value;
-            // Include conditions if an existing HIL verifier is selected
-            var existingHilPanel = document.getElementById('existing-hil-panel');
-            if (existingHilPanel && existingHilPanel.style.display !== 'none') {
-                body.verifier_conditions = [];
-                document.querySelectorAll('#existing-condition-rows .condition-row').forEach(function (row) {
-                    body.verifier_conditions.push({
-                        condition: row.querySelector('.cond-name').value.trim(),
-                        weight: parseFloat(row.querySelector('.cond-weight').value) || 0
-                    });
-                });
-            }
-        } else {
-            body.verifier = {
-                name: document.getElementById('tr-verifier-name').value.trim(),
-                type: document.getElementById('tr-verifier-type').value,
-                system: (document.getElementById('tr-verifier-system').value || '').trim()
-            };
-            if (body.verifier.type === 'human_eval') {
-                body.verifier.conditions = [];
-                document.querySelectorAll('#condition-rows .condition-row').forEach(function (row) {
-                    body.verifier.conditions.push({
-                        condition: row.querySelector('.cond-name').value.trim(),
-                        weight: parseFloat(row.querySelector('.cond-weight').value) || 0
-                    });
-                });
-            } else if (body.verifier.type === 'llm_judge') {
-                // LLM Judge — collect prompt, model, scoring field, examples, failure policy
-                body.verifier.judge_prompt = (document.getElementById('tr-lj-prompt').value || '').trim();
-                body.verifier.judge_model = document.getElementById('tr-lj-model').value;
-                body.verifier.judge_temperature = parseFloat(document.getElementById('tr-lj-temp').value) || 0;
-                body.verifier.scoring_field = (document.getElementById('tr-lj-scoring-field').value || 'score').trim();
-                body.verifier.example_input = (document.getElementById('tr-lj-example-input').value || '').trim();
-                body.verifier.example_output = (document.getElementById('tr-lj-example-output').value || '').trim();
-                var ljFailureRaw = (document.getElementById('tr-lj-failure-policy').value || '').trim();
-                if (ljFailureRaw) {
-                    try { body.verifier.failurePolicy = JSON.parse(ljFailureRaw); } catch (e) {
-                        showToast('Invalid JSON in LLM Judge Failure Policy', 'error');
-                        return;
-                    }
-                } else {
-                    body.verifier.failurePolicy = { hard_fail: false, penalty: 0.5, log_failure: true };
+        // ── Advanced optional configuration ──
+        var _advVal = function(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+        var _advInt = function(id) { var v = _advVal(id); return v ? parseInt(v) : null; };
+
+        var advMaxSteps = _advInt('adv-max-steps');
+        var advBatchSize = _advInt('adv-batch-size');
+        var advRollouts = _advInt('adv-rollouts');
+        var advSamplingTokens = _advInt('adv-sampling-max-tokens');
+        var advEnvId = _advVal('adv-env-id');
+        var advEnvArgsRaw = _advVal('adv-env-args');
+        var advWandbProject = _advVal('adv-wandb-project');
+        var advWandbName = _advVal('adv-wandb-name');
+
+        if (advMaxSteps) body.adv_max_steps = advMaxSteps;
+        if (advBatchSize) body.batch_size = advBatchSize;
+        if (advRollouts) body.rollouts_per_example = advRollouts;
+
+        if (advSamplingTokens) {
+            body.sampling = { max_tokens: advSamplingTokens };
+        }
+
+        if (advEnvId || advEnvArgsRaw) {
+            body.env_override = {};
+            if (advEnvId) body.env_override.id = advEnvId;
+            if (advEnvArgsRaw) {
+                try { body.env_override.args = JSON.parse(advEnvArgsRaw); } catch (e) {
+                    showToast('Invalid JSON in env args', 'error');
+                    return;
                 }
-            } else {
-                // rule_based, trajectory — collect description, logic, failure policy
-                body.verifier.description = (document.getElementById('tr-verifier-desc').value || '').trim();
-                var logicRaw = (document.getElementById('tr-verifier-logic').value || '').trim();
-                if (logicRaw) {
-                    try { body.verifier.logic = JSON.parse(logicRaw); } catch (e) {
-                        showToast('Invalid JSON in verifier Logic field', 'error');
-                        return;
-                    }
-                }
-                body.verifier.failurePolicy = {
-                    hard_fail: document.getElementById('tr-verifier-hardfail').checked,
-                    log_failure: document.getElementById('tr-verifier-logfail').checked,
-                    penalty: parseFloat(document.getElementById('tr-verifier-penalty').value) || -0.5
-                };
             }
+        }
+
+        if (advWandbProject || advWandbName) {
+            body.wandb = {};
+            if (advWandbProject) body.wandb.project = advWandbProject;
+            if (advWandbName) body.wandb.name = advWandbName;
+        }
+
+        // Verifier — only existing verifier selection (create new was removed)
+        body.verifier_id = document.getElementById('tr-verifier-existing').value;
+        // Include conditions if an existing HIL verifier is selected
+        var existingHilPanel = document.getElementById('existing-hil-panel');
+        if (existingHilPanel && existingHilPanel.style.display !== 'none') {
+            body.verifier_conditions = [];
+            document.querySelectorAll('#existing-condition-rows .condition-row').forEach(function (row) {
+                body.verifier_conditions.push({
+                    condition: row.querySelector('.cond-name').value.trim(),
+                    weight: parseFloat(row.querySelector('.cond-weight').value) || 0
+                });
+            });
         }
 
         showToast('Starting training run: ' + name, 'info');
@@ -985,8 +935,7 @@
 
         // Training info panel
         try {
-        document.getElementById('detail-training-info').innerHTML =
-            '<h3>Training Information</h3>' +
+        var _trainingInfoHtml = '<h3>Training Information</h3>' +
             infoRow('Environment', envDisplay) +
             infoRow('Category', formatCategory(run.category)) +
             infoRow('Algorithm', run.algorithm) +
@@ -994,6 +943,26 @@
             infoRow('Started', run.started || '—') +
             (run.completed ? infoRow('Completed', run.completed) : '') +
             infoRow('Progress', run.progress + '%');
+
+        // Show advanced config if present
+        if (run.adv_max_steps || run.batch_size || run.rollouts_per_example || run.sampling || run.env_override || run.wandb) {
+            _trainingInfoHtml += '<div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-color)">' +
+                '<h4 style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem">Advanced Config</h4>';
+            if (run.adv_max_steps) _trainingInfoHtml += infoRow('max_steps', run.adv_max_steps);
+            if (run.batch_size) _trainingInfoHtml += infoRow('batch_size', run.batch_size);
+            if (run.rollouts_per_example) _trainingInfoHtml += infoRow('rollouts_per_example', run.rollouts_per_example);
+            if (run.sampling && run.sampling.max_tokens) _trainingInfoHtml += infoRow('sampling.max_tokens', run.sampling.max_tokens);
+            if (run.env_override) {
+                if (run.env_override.id) _trainingInfoHtml += infoRow('env.id', run.env_override.id);
+                if (run.env_override.args) _trainingInfoHtml += infoRow('env.args', '<code style="font-size:0.8rem">' + JSON.stringify(run.env_override.args) + '</code>');
+            }
+            if (run.wandb) {
+                if (run.wandb.project) _trainingInfoHtml += infoRow('wandb.project', run.wandb.project);
+                if (run.wandb.name) _trainingInfoHtml += infoRow('wandb.name', run.wandb.name);
+            }
+            _trainingInfoHtml += '</div>';
+        }
+        document.getElementById('detail-training-info').innerHTML = _trainingInfoHtml;
 
         // Model / Compute config
         var modelHtml = '<h3>Model &amp; Compute</h3>' +

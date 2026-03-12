@@ -1069,58 +1069,51 @@ body {
 .clickable-card { cursor: pointer; }
 .clickable-card:hover { transform: translateY(-1px); }
 
-/* ── Scenario & Verifier Detail Overlays ─────────────────────── */
-.sv-detail-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 2000;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 3rem 1rem;
-    overflow-y: auto;
-    backdrop-filter: blur(4px);
+/* ── Scenario & Verifier Inline Expand ─────────────────────── */
+.sv-card-active {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25) !important;
+    transform: none !important;
 }
-.sv-detail-overlay.active {
-    display: flex;
+.sv-inline-expand {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.25s ease, margin 0.25s ease;
+    margin: 0;
 }
-.sv-detail-box {
+.sv-inline-expand.sv-expand-active {
+    max-height: 2000px;
+    opacity: 1;
+    margin: 0.75rem 0;
+}
+.sv-expand-inner {
     background: var(--card-bg, #fff);
-    border-radius: 16px;
-    padding: 2rem;
-    max-width: 720px;
-    width: 100%;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--primary-color, #6366f1);
+    border-radius: 12px;
+    padding: 1.5rem;
     position: relative;
-    animation: svSlideIn 0.25s ease-out;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.1);
 }
-.vd-box {
-    max-width: 800px;
-}
-@keyframes svSlideIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.sv-detail-close {
+.sv-expand-close {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: 0.75rem;
+    right: 0.75rem;
     background: none;
     border: none;
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     cursor: pointer;
     color: var(--text-secondary);
     line-height: 1;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 8px;
     transition: background 0.2s, color 0.2s;
 }
-.sv-detail-close:hover {
+.sv-expand-close:hover {
     background: var(--bg-tertiary, #f1f5f9);
     color: var(--text-primary);
 }

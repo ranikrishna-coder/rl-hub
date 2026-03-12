@@ -1417,3 +1417,48 @@ textarea.code-textarea:focus {
 [data-theme="dark"] .btn-ghost:hover {
     background: rgba(126, 34, 106, 0.12);
 }
+
+/* ── Advanced Configuration (collapsible) ────────────────────── */
+.adv-config-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 0;
+}
+.adv-config-toggle:hover { color: var(--primary-color); }
+.adv-config-toggle svg { transition: transform 0.2s; }
+.adv-config-toggle.adv-expanded svg { transform: rotate(90deg); }
+.adv-config-toggle .t-hint-inline { font-weight: 400; font-size: 0.82rem; }
+
+.adv-config-body {
+    display: none;
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+}
+.adv-config-body.adv-open { display: block; }
+
+.adv-group-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 1rem 0 0.5rem;
+}
+.adv-group-label:first-child { margin-top: 0; }
+
+.t-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+}
+@media (max-width: 768px) {
+    .t-row-3 { grid-template-columns: 1fr; }
+}

@@ -331,7 +331,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
   </button>
   <ul class="gn-links">
-    <li><a href="/catalog" class="gn-link">Environments</a></li>
+    <li><a href="/environments" class="gn-link">Environments</a></li>
     <li><a href="/training-console" class="gn-link">Training</a></li>
     <li><a href="/agent-console" class="gn-link">Agent</a></li>
     <li>
@@ -347,7 +347,7 @@
   <div class="page-inner">
 
     <!-- Back button -->
-    <a href="/catalog" class="btn-back" id="btnBack">&#8592; Back to Environments</a>
+    <a href="/environments" class="btn-back" id="btnBack">&#8592; Back to Environments</a>
 
     <!-- Hero: title + category + health -->
     <div class="detail-hero">
@@ -858,7 +858,7 @@ function deleteEnv(silent) {
     .catch(function() {})
     .then(function() {
       if (directEnvMode && !silent) {
-        window.location.href = '/catalog';
+        window.location.href = '/environments';
         return;
       }
       document.getElementById('simSection').style.display = 'none';
