@@ -399,7 +399,7 @@
     function populateEnvironments() {
         var sel = document.getElementById('tr-env');
         var systemFilter = document.getElementById('tr-env-system') ? document.getElementById('tr-env-system').value : '';
-        sel.innerHTML = '<option value="">— Select scenario —</option>';
+        sel.innerHTML = '<option value="">— Select environment —</option>';
 
         var envs = systemFilter ? (SYSTEM_MAP[systemFilter] || []) : ALL_ENVIRONMENTS;
         envs.sort(function (a, b) { return a.name.localeCompare(b.name); });
@@ -413,8 +413,8 @@
 
         var hint = document.getElementById('env-count-hint');
         if (hint) {
-            hint.textContent = envs.length + ' scenario' + (envs.length !== 1 ? 's' : '') +
-                (systemFilter ? ' in ' + systemFilter : ' across ' + Object.keys(SYSTEM_MAP).length + ' tools');
+            hint.textContent = envs.length + ' environment' + (envs.length !== 1 ? 's' : '') +
+                (systemFilter ? ' in ' + systemFilter : ' across ' + Object.keys(SYSTEM_MAP).length + ' software');
         }
     }
 
@@ -544,57 +544,51 @@
     // Task Scenario is hidden for now
     function filterScenarios() {
         var scenarioField = document.getElementById('scenario-field');
-        if (scenarioField) scenarioField.style.display = 'none';
+        var scenarioSel = document.getElementById('tr-scenario');
+        var countHint = document.getElementById('scenario-count-hint');
+        if (!scenarioField || !scenarioSel) return;
+
+        var env = findEnv(document.getElementById('tr-env').value);
+        var cat = env ? env.category : '';
+        var system = env ? env.system : '';
+
+        var allScenarios = getAllScenarios();
+        var matches = allScenarios.filter(function (s) {
+            if (cat && s.category && s.category !== cat) return false;
+            if (system && s.product && s.product !== system) return false;
+            return true;
+        });
+
+        scenarioSel.innerHTML = '<option value="">— Select scenario —</option>';
+        if (matches.length > 0) {
+            scenarioField.style.display = '';
+            matches.forEach(function (s) {
+                var o = document.createElement('option');
+                o.value = s.id;
+                o.textContent = s.name + (s.task_count ? ' (' + s.task_count + ' tasks)' : '');
+                scenarioSel.appendChild(o);
+            });
+            if (countHint) countHint.textContent = '(' + matches.length + ')';
+        } else {
+            scenarioField.style.display = 'none';
+            if (countHint) countHint.textContent = '';
+        }
     }
 
     function updateEnvPreview() {
         var envId = document.getElementById('tr-env').value;
-        var panel = document.getElementById('env-preview-panel');
         var env = findEnv(envId);
 
-        // Update clean tools display row
+        // Update Software inline hint below environment dropdown
         var toolsField = document.getElementById('tools-display-field');
         var toolsValue = document.getElementById('tools-display-value');
         if (toolsField && toolsValue) {
             if (env && env.system) {
                 toolsValue.textContent = env.system;
-                toolsField.style.display = '';
+                toolsField.style.display = 'block';
             } else {
                 toolsField.style.display = 'none';
             }
-        }
-
-        if (!env) { panel.style.display = 'none'; return; }
-        panel.style.display = 'block';
-        document.getElementById('ep-system').textContent = env.system || '—';
-        var actionSpaceRow = document.getElementById('ep-action-space').closest('.ep-row');
-        var stateFeaturesRow = document.getElementById('ep-state-features').closest('.ep-row');
-        var actionsLabelRow = document.getElementById('ep-tools').previousElementSibling;
-        var toolsEl = document.getElementById('ep-tools');
-
-        if (env.actionSpace && env.actionSpace !== 'N/A') {
-            document.getElementById('ep-action-space').textContent = env.actionSpace;
-            actionSpaceRow.style.display = '';
-        } else {
-            actionSpaceRow.style.display = 'none';
-        }
-        if (env.stateFeatures && env.stateFeatures !== 'N/A') {
-            document.getElementById('ep-state-features').textContent = env.stateFeatures;
-            stateFeaturesRow.style.display = '';
-        } else {
-            stateFeaturesRow.style.display = 'none';
-        }
-
-        toolsEl.innerHTML = '';
-        if (env.actions && env.actions.length) {
-            if (actionsLabelRow) actionsLabelRow.style.display = '';
-            toolsEl.style.display = '';
-            env.actions.forEach(function (t) {
-                toolsEl.insertAdjacentHTML('beforeend', '<span class="ep-tool-tag">' + esc(t) + '</span>');
-            });
-        } else {
-            if (actionsLabelRow) actionsLabelRow.style.display = 'none';
-            toolsEl.style.display = 'none';
         }
     }
 

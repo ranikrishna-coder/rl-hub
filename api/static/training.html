@@ -175,32 +175,27 @@
                 <!-- Section B: Environment -->
                 <div class="training-section training-section--compact">
                     <h3>B. Environment</h3>
-                    <!-- Tools filter (hidden, kept for backward compat) -->
+                    <!-- Hidden filters (kept for backward compat) -->
                     <select id="tr-env-system" style="display:none"><option value="">— All tools —</option></select>
                     <span id="env-system-hint" style="display:none"></span>
-                    <!-- Clean tools display row (shown when environment selected) -->
-                    <div class="t-field" id="tools-display-field" style="display:none;">
-                        <div class="tools-display-row">
-                            <span class="tools-display-label">Tools</span>
-                            <span class="tools-display-value" id="tools-display-value"></span>
-                        </div>
-                    </div>
+                    <select id="tr-env-category" style="display:none"><option value="">— All —</option></select>
+
+                    <!-- 1. Select Environment -->
                     <div class="t-field">
-                        <label class="t-label" for="tr-env">Scenario <span class="t-hint-inline" id="env-count-hint"></span></label>
+                        <label class="t-label" for="tr-env">Environment <span class="t-hint-inline" id="env-count-hint"></span></label>
                         <select id="tr-env">
+                            <option value="">— Select environment —</option>
+                        </select>
+                        <span class="t-hint" id="tools-display-field" style="display:none;">Software: <strong id="tools-display-value"></strong></span>
+                    </div>
+                    <!-- 3. Scenario dropdown (shown when matching scenarios exist) -->
+                    <div class="t-field" id="scenario-field" style="display:none;">
+                        <label class="t-label" for="tr-scenario">Scenario <span class="t-hint-inline" id="scenario-count-hint"></span></label>
+                        <select id="tr-scenario">
                             <option value="">— Select scenario —</option>
                         </select>
                     </div>
-                    <!-- Hidden: keep category select for backward compat -->
-                    <select id="tr-env-category" style="display:none"><option value="">— All —</option></select>
-                    <!-- Scenario dropdown (shown when matching scenarios exist) -->
-                    <div class="t-field" id="scenario-field" style="display:none;">
-                        <label class="t-label" for="tr-scenario">Task Scenario <span class="t-hint-inline" id="scenario-count-hint"></span></label>
-                        <select id="tr-scenario">
-                            <option value="">— No task scenario —</option>
-                        </select>
-                    </div>
-                    <!-- Action list multi-select (shown when env has actions) -->
+                    <!-- 4. Action list multi-select (shown when env has actions) -->
                     <div class="t-field" id="action-field" style="display:none;">
                         <label class="t-label">Actions <span class="t-hint-inline" id="action-count-hint"></span></label>
                         <div class="multi-select-container" id="action-select-container">
@@ -208,7 +203,7 @@
                             <div class="multi-select-options" id="action-options"></div>
                         </div>
                     </div>
-                    <!-- Verifier multi-select (shown when verifiers match env) -->
+                    <!-- 5. Verifier multi-select (shown when verifiers match env) -->
                     <div class="t-field" id="verifier-field" style="display:none;">
                         <label class="t-label">Verifier <span class="t-hint-inline" id="verifier-count-hint"></span></label>
                         <div class="multi-select-container" id="verifier-select-container">
@@ -229,13 +224,6 @@
                                 Add condition
                             </button>
                         </div>
-                    </div>
-                    <div id="env-preview-panel" class="env-preview" style="display:none">
-                        <span id="ep-system" style="display:none"></span>
-                        <div class="ep-row"><span class="ep-label">Action Space</span><span class="ep-value" id="ep-action-space"></span></div>
-                        <div class="ep-row"><span class="ep-label">State Features</span><span class="ep-value" id="ep-state-features"></span></div>
-                        <div class="ep-row"><span class="ep-label">Actions</span></div>
-                        <div class="ep-tools" id="ep-tools"></div>
                     </div>
                 </div>
             </div>
@@ -474,7 +462,7 @@
     <script src="/static/verifier-data.js"></script>
     <script src="/static/training-config-data.js?v=4"></script>
     <script src="/static/rollout-comparison.js?v=2"></script>
-    <script src="/static/training.js?v=19"></script>
+    <script src="/static/training.js?v=20"></script>
     <script>
         function toggleTheme() {
             var current = document.documentElement.getAttribute('data-theme');
