@@ -340,14 +340,14 @@ async def root():
     return {"message": "RL Environment & Agent API", "version": "1.0.0"}
 
 
-@app.get("/catalog")
-async def catalog_page():
-    """Catalog UI - user journey: Industry → Persona → RL environments"""
+@app.get("/environments")
+async def environments_page():
+    """Environments UI - user journey: Industry → Persona → RL environments"""
     static_dir = os.path.join(os.path.dirname(__file__), "static")
     index_path = os.path.join(static_dir, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    raise HTTPException(status_code=404, detail="Catalog not found")
+    raise HTTPException(status_code=404, detail="Environments page not found")
 
 
 
@@ -393,9 +393,16 @@ async def agent_console_page():
 # Legacy: redirect old references
 @app.get("/index.html")
 async def index_redirect():
-    """Redirect to catalog"""
+    """Redirect to environments"""
     from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/catalog", status_code=302)
+    return RedirectResponse(url="/environments", status_code=302)
+
+
+@app.get("/catalog")
+async def catalog_redirect():
+    """Redirect old /catalog URL to /environments"""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/environments", status_code=301)
 
 
 @app.get("/api")
@@ -405,10 +412,10 @@ async def api_info():
         "version": "1.0.0",
         "endpoints": {
             "landing": "/",
-            "catalog": "/catalog",
             "simulation_console": "/test-console",
             "studio": "/studio",
-            "environments": "/environments",
+            "environments_page": "/environments",
+            "environments_api": "/api/environments",
             "jira_mock_data": "/jira-mock-data",
             "train": "/train/{environment_name}",
             "kpis": "/kpis/{environment_name}",
@@ -903,7 +910,7 @@ async def test_console(env: Optional[str] = None):
     raise HTTPException(status_code=404, detail="Simulation console not found")
 
 
-@app.get("/environments")
+@app.get("/api/environments")
 async def list_environments():
     """List all available environments with enhanced metadata"""
     environments = list_all_environments()
@@ -2691,7 +2698,7 @@ _CATEGORY_TO_DOMAIN = {
 _CATEGORY_TO_WORKFLOW = {
     "clinical": "Clinical", "claims": "Claims Processing",
     "payment": "Payment Processing", "revenue": "Revenue Audit",
-    "jira": "IT Service Management", "servicenow": "IT Operations",
+    "jira": "IT Service Management", "servicenow": "True Technologies Inc",
     "devops": "DevOps", "hr": "Human Resources", "crm": "CRM",
     "supply_chain": "Supply Chain", "cross_workflow": "Cross-Workflow",
     "financial": "Financial Trading",

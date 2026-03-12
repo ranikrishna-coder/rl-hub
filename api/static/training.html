@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/static/styles.css">
     <link rel="stylesheet" href="/static/global-nav.css">
     <link rel="stylesheet" href="/static/toast.css">
-    <link rel="stylesheet" href="/static/training.css?v=8">
+    <link rel="stylesheet" href="/static/training.css?v=9">
     <script>
         (function() {
             var hostname = window.location.hostname;
@@ -43,7 +43,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
         <ul class="gn-links">
-            <li><a href="/catalog" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Environments</a></li>
+            <li><a href="/environments" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Environments</a></li>
             <li><a href="/training-console" class="gn-link gn-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg> Training</a></li>
             <li><a href="/agent-console" class="gn-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.07A7 7 0 0 1 14 22h-4a7 7 0 0 1-6.93-3H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="9" cy="14" r="1.5"/><circle cx="15" cy="14" r="1.5"/></svg> Agent</a></li>
             <li><button type="button" class="gn-theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode"><span class="theme-icon-sun">&#9728;&#65039;</span><span class="theme-icon-moon">&#127769;</span></button></li>
@@ -176,13 +176,21 @@
                 <div class="training-section training-section--compact">
                     <h3>B. Environment</h3>
                     <div class="t-field">
-                        <label class="t-label" for="tr-env-system">Environment <span class="t-hint-inline" id="env-system-hint"></span></label>
+                        <label class="t-label" for="tr-env-system">System <span class="t-hint-inline" id="env-system-hint"></span></label>
                         <select id="tr-env-system">
                             <option value="">— All systems —</option>
                         </select>
                     </div>
+                    <div class="t-field">
+                        <label class="t-label" for="tr-env">Scenario <span class="t-hint-inline" id="env-count-hint"></span></label>
+                        <select id="tr-env">
+                            <option value="">— Select scenario —</option>
+                        </select>
+                    </div>
                     <!-- Hidden: keep category select for backward compat -->
                     <select id="tr-env-category" style="display:none"><option value="">— All —</option></select>
+                    <!-- Hidden: kept for backward compat -->
+                    <select id="tr-scenario" style="display:none"><option value="">—</option></select>
                     <div id="env-preview-panel" class="env-preview" style="display:none">
                         <div class="ep-row"><span class="ep-label">System</span><span class="ep-value" id="ep-system"></span></div>
                         <div class="ep-row"><span class="ep-label">Action Space</span><span class="ep-value" id="ep-action-space"></span></div>
@@ -198,24 +206,9 @@
                 <!-- Section C: Training Data & Evaluation -->
                 <div class="training-section training-section--compact">
                     <h3>C. Training Data &amp; Evaluation</h3>
-                    <p class="t-hint" style="margin-bottom:0.5rem">Filtered by the selected environment</p>
-
-                    <div class="t-field">
-                        <label class="t-label" for="tr-env">Scenario <span class="t-hint-inline" id="env-count-hint"></span></label>
-                        <select id="tr-env">
-                            <option value="">— Select scenario —</option>
-                        </select>
-                    </div>
-                    <!-- Hidden: kept for backward compat -->
-                    <select id="tr-scenario" style="display:none"><option value="">—</option></select>
 
                     <div class="t-field">
                         <label class="t-label">Verifier</label>
-                        <div class="verifier-toggle" id="verifier-toggle">
-                            <button type="button" class="active" data-mode="existing">Select Existing</button>
-                            <button type="button" data-mode="create">Create New</button>
-                        </div>
-
                         <!-- Existing verifier dropdown -->
                         <div id="verifier-existing-panel">
                             <select id="tr-verifier-existing">
@@ -237,128 +230,6 @@
                             </div>
                         </div>
 
-                        <!-- Create new verifier inline form -->
-                        <div id="verifier-create-panel" style="display:none">
-                            <div class="verifier-inline-form">
-                                <div class="t-row">
-                                    <div class="t-field">
-                                        <label class="t-label" for="tr-verifier-name">Name</label>
-                                        <input type="text" id="tr-verifier-name" placeholder="e.g. My Custom Verifier">
-                                    </div>
-                                    <div class="t-field">
-                                        <label class="t-label" for="tr-verifier-type">Type</label>
-                                        <select id="tr-verifier-type">
-                                            <option value="rule_based">Rule-based</option>
-                                            <option value="trajectory">Trajectory-based</option>
-                                            <option value="llm_judge">LLM Judge</option>
-                                            <option value="human_eval">Human Eval (HIL)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="t-field" id="verifier-system-field">
-                                    <label class="t-label" for="tr-verifier-system">System</label>
-                                    <input type="text" id="tr-verifier-system" readonly>
-                                </div>
-                                <!-- Fields for rule_based, trajectory -->
-                                <div id="verifier-standard-panel">
-                                    <div class="t-field">
-                                        <label class="t-label" for="tr-verifier-desc">Description</label>
-                                        <textarea id="tr-verifier-desc" rows="2" placeholder="What does this verifier check?"></textarea>
-                                    </div>
-                                    <div class="t-field">
-                                        <label class="t-label" for="tr-verifier-logic">Logic (JSON)</label>
-                                        <textarea id="tr-verifier-logic" rows="3" placeholder='{"checks": {}, "scoring": {}}'></textarea>
-                                    </div>
-                                    <div class="t-field">
-                                        <label class="t-label">Failure Policy</label>
-                                        <div style="display:flex;gap:1.5rem;align-items:center;margin-bottom:0.4rem;">
-                                            <label style="font-weight:400;font-size:0.82rem;display:flex;align-items:center;gap:0.3rem;cursor:pointer;">
-                                                <input type="checkbox" id="tr-verifier-hardfail"> Hard fail
-                                            </label>
-                                            <label style="font-weight:400;font-size:0.82rem;display:flex;align-items:center;gap:0.3rem;cursor:pointer;">
-                                                <input type="checkbox" id="tr-verifier-logfail" checked> Log failure
-                                            </label>
-                                        </div>
-                                        <div class="t-field" style="margin-bottom:0;">
-                                            <label class="t-label" for="tr-verifier-penalty">Penalty</label>
-                                            <input type="number" id="tr-verifier-penalty" value="-0.5" step="0.1">
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- LLM Judge panel (shown when type=llm_judge) -->
-                                <div id="llm-judge-panel" style="display:none">
-                                    <div class="llm-judge-tabs">
-                                        <button type="button" class="llm-judge-tab active" data-ljtab="prompt">Prompt</button>
-                                        <button type="button" class="llm-judge-tab" data-ljtab="model">Model</button>
-                                        <button type="button" class="llm-judge-tab" data-ljtab="examples">Examples</button>
-                                        <button type="button" class="llm-judge-tab" data-ljtab="failure">Failure policy</button>
-                                    </div>
-                                    <div class="llm-judge-tab-content active" data-ljtab-content="prompt">
-                                        <div class="t-field">
-                                            <label class="t-label">Judge Prompt <span class="t-hint-inline">use {{output}} and {{expected}}</span></label>
-                                            <textarea id="tr-lj-prompt" rows="6" class="code-textarea" placeholder="You are an expert evaluator.&#10;Agent output: {{output}}&#10;Expected: {{expected}}&#10;&#10;Score 0.0–1.0: how well does the output satisfy the task?&#10;Return JSON only: { &quot;score&quot;: float, &quot;rationale&quot;: string }"></textarea>
-                                        </div>
-                                    </div>
-                                    <div class="llm-judge-tab-content" data-ljtab-content="model">
-                                        <div class="t-row">
-                                            <div class="t-field" style="flex:2">
-                                                <label class="t-label">Judge Model</label>
-                                                <select id="tr-lj-model">
-                                                    <option value="claude-sonnet-4-6" selected>claude-sonnet-4-6</option>
-                                                    <option value="claude-opus-4-6">claude-opus-4-6</option>
-                                                    <option value="claude-haiku-4-5">claude-haiku-4-5</option>
-                                                    <option value="gpt-4o">gpt-4o</option>
-                                                    <option value="gpt-4o-mini">gpt-4o-mini</option>
-                                                </select>
-                                            </div>
-                                            <div class="t-field" style="flex:1">
-                                                <label class="t-label">Temp</label>
-                                                <input type="number" id="tr-lj-temp" value="0" min="0" max="2" step="0.1">
-                                            </div>
-                                        </div>
-                                        <div class="t-field">
-                                            <label class="t-label">Scoring Field <span class="t-hint-inline">JSON key in judge response</span></label>
-                                            <input type="text" id="tr-lj-scoring-field" value="score" placeholder="score">
-                                        </div>
-                                    </div>
-                                    <div class="llm-judge-tab-content" data-ljtab-content="examples">
-                                        <div class="t-field">
-                                            <label class="t-label">Example Input</label>
-                                            <textarea id="tr-lj-example-input" rows="3" class="code-textarea" placeholder='{ "output": "Agent response", "expected": "Ground truth" }'></textarea>
-                                        </div>
-                                        <div class="t-field">
-                                            <label class="t-label">Example Judge Output</label>
-                                            <textarea id="tr-lj-example-output" rows="3" class="code-textarea" placeholder='{ "score": 0.9, "rationale": "Output captures key terms but misses X" }'></textarea>
-                                        </div>
-                                    </div>
-                                    <div class="llm-judge-tab-content" data-ljtab-content="failure">
-                                        <div class="t-field">
-                                            <label class="t-label">Failure Policy <span class="t-hint-inline">JSON</span></label>
-                                            <textarea id="tr-lj-failure-policy" rows="5" class="code-textarea" placeholder='{&#10;  "hard_fail": false,&#10;  "penalty": 0.5,&#10;  "log_failure": true&#10;}'>{
-  "hard_fail": false,
-  "penalty": 0.5,
-  "log_failure": true
-}</textarea>
-                                        </div>
-                                        <p class="t-hint">hard_fail &middot; penalty (0-1) &middot; log_failure</p>
-                                    </div>
-                                </div>
-                                <!-- Human eval condition/weight table (shown when type=human_eval) -->
-                                <div id="human-eval-panel" style="display:none">
-                                    <div class="t-field">
-                                        <label class="t-label">Conditions &amp; Weights</label>
-                                        <div class="condition-table-header">
-                                            <span>Condition</span><span>Weight</span><span></span>
-                                        </div>
-                                        <div id="condition-rows"></div>
-                                        <button type="button" class="add-condition-btn" id="btn-add-condition">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                            Add condition
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <div class="t-row">
@@ -369,6 +240,68 @@
                         <div class="t-field">
                             <label class="t-label" for="tr-steps">Max Steps / Episode</label>
                             <input type="number" id="tr-steps" placeholder="50" min="1">
+                        </div>
+                    </div>
+
+                    <!-- Advanced Configuration (optional, collapsible) -->
+                    <div class="t-field" style="margin-top:0.75rem;">
+                        <button type="button" class="adv-config-toggle" id="adv-config-toggle" onclick="document.getElementById('adv-config-body').classList.toggle('adv-open'); this.classList.toggle('adv-expanded')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                            Advanced Configuration
+                            <span class="t-hint-inline">(optional)</span>
+                        </button>
+                        <div class="adv-config-body" id="adv-config-body">
+                            <!-- Training Params -->
+                            <p class="adv-group-label">Training Parameters</p>
+                            <div class="t-row t-row-3">
+                                <div class="t-field">
+                                    <label class="t-label" for="adv-max-steps">max_steps</label>
+                                    <input type="number" id="adv-max-steps" placeholder="500" min="1">
+                                </div>
+                                <div class="t-field">
+                                    <label class="t-label" for="adv-batch-size">batch_size</label>
+                                    <input type="number" id="adv-batch-size" placeholder="256" min="1">
+                                </div>
+                                <div class="t-field">
+                                    <label class="t-label" for="adv-rollouts">rollouts_per_example</label>
+                                    <input type="number" id="adv-rollouts" placeholder="8" min="1">
+                                </div>
+                            </div>
+
+                            <!-- Sampling -->
+                            <p class="adv-group-label">Sampling</p>
+                            <div class="t-row">
+                                <div class="t-field">
+                                    <label class="t-label" for="adv-sampling-max-tokens">max_tokens</label>
+                                    <input type="number" id="adv-sampling-max-tokens" placeholder="512" min="1">
+                                </div>
+                            </div>
+
+                            <!-- Environment -->
+                            <p class="adv-group-label">Environment Override</p>
+                            <div class="t-row">
+                                <div class="t-field">
+                                    <label class="t-label" for="adv-env-id">env id</label>
+                                    <input type="text" id="adv-env-id" placeholder="e.g. primeintellect/alphabet-sort">
+                                </div>
+                            </div>
+                            <div class="t-field">
+                                <label class="t-label" for="adv-env-args">env args <span class="t-hint-inline">(JSON)</span></label>
+                                <textarea id="adv-env-args" rows="2" placeholder='{"min_turns": 3, "max_turns": 5, "power_per_turn": false}'></textarea>
+                            </div>
+
+                            <!-- W&B -->
+                            <p class="adv-group-label">Weights &amp; Biases</p>
+                            <div class="t-row">
+                                <div class="t-field">
+                                    <label class="t-label" for="adv-wandb-project">wandb project</label>
+                                    <input type="text" id="adv-wandb-project" placeholder="e.g. alphabet-sort">
+                                </div>
+                                <div class="t-field">
+                                    <label class="t-label" for="adv-wandb-name">wandb name</label>
+                                    <input type="text" id="adv-wandb-name" placeholder="e.g. qwen3-30b-i-alphabet-sort">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -527,7 +460,7 @@
     <script src="/static/verifier-data.js"></script>
     <script src="/static/training-config-data.js?v=3"></script>
     <script src="/static/rollout-comparison.js?v=2"></script>
-    <script src="/static/training.js?v=13"></script>
+    <script src="/static/training.js?v=14"></script>
     <script>
         function toggleTheme() {
             var current = document.documentElement.getAttribute('data-theme');

@@ -7,7 +7,7 @@ def test_root_page(client):
 
 
 def test_catalog_page(client):
-    resp = client.get("/catalog")
+    resp = client.get("/environments")
     assert resp.status_code == 200
 
 

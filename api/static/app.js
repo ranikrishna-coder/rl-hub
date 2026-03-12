@@ -162,7 +162,7 @@ const environmentDetails = {
     'JiraSubtaskManagement': {
         category: 'jira',
         system: 'Jira (Atlassian)',
-        description: 'IT Operations: add subtasks to existing Jira tickets by fetching parent issue and creating subtask under it.',
+        description: 'True Technologies Inc: add subtasks to existing Jira tickets by fetching parent issue and creating subtask under it.',
         stateFeatures: 6,
         actionType: 'Discrete',
         actionSpace: 3,
@@ -544,7 +544,7 @@ function applyJourneyFromUrl() {
         var container = document.getElementById('journey-persona-cards');
         if (container) {
             var links = JOURNEY_PERSONAS[industry].map(function(p) {
-                var url = '/catalog?industry=' + encodeURIComponent(industry) + '&persona=' + encodeURIComponent(p.id);
+                var url = '/environments?industry=' + encodeURIComponent(industry) + '&persona=' + encodeURIComponent(p.id);
                 return '<a href="' + url + '" class="journey-card"><span class="journey-card-icon">' + (p.id === 'all' ? '📂' : '👤') + '</span><h2>' + p.label + '</h2><p>' + (p.desc || '') + '</p></a>';
             });
             container.innerHTML = links.join('');
@@ -560,30 +560,20 @@ function applyJourneyFromUrl() {
 function applyIndustryPersonaFilter() {
     var params = new URLSearchParams(window.location.search);
     var industry = (params.get('industry') || '').toLowerCase();
-    var persona = (params.get('persona') || '').toLowerCase();
     if (!allEnvironments.length) return;
     if (industry === 'all' || !industry) return;
     var domainFilter = document.getElementById('domain-filter');
-    var category = 'all';
     if (industry === 'enterprise') {
         if (domainFilter) domainFilter.value = 'dev-sim';
-        category = persona && persona === 'jira' ? 'jira' : 'all';
     } else if (industry === 'human_resources') {
         if (domainFilter) domainFilter.value = 'hr-sim';
-        category = persona && persona !== 'all' ? 'hr_payroll' : 'all';
     } else if (industry === 'finance') {
         if (domainFilter) domainFilter.value = 'fin-sim';
-        category = persona && persona !== 'all' ? persona : 'revenue_cycle';
     } else if (industry === 'healthcare') {
         if (domainFilter) domainFilter.value = 'med-sim';
-        category = persona && persona !== 'all' ? persona : 'all';
     }
-    updateFilterButtonsForDomain();
     updateSystemFilterOptions();
-    document.querySelectorAll('.filter-btn').forEach(function(btn) { btn.classList.remove('active'); });
-    var activeBtn = document.querySelector('.filter-btn[data-category="' + category + '"]');
-    if (activeBtn) activeBtn.classList.add('active'); else if (document.querySelector('.filter-btn[data-category="all"]')) document.querySelector('.filter-btn[data-category="all"]').classList.add('active');
-    filterEnvironments(document.getElementById('search-input').value, category);
+    filterEnvironments(document.getElementById('search-input').value);
 }
 
 // Initialize
@@ -594,7 +584,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadEnvironments() {
     try {
-        const response = await fetch(`${API_BASE}/environments`);
+        const response = await fetch(`${API_BASE}/api/environments`);
         if (!response.ok) throw new Error('Failed to load environments');
         
         const data = await response.json();
@@ -782,20 +772,18 @@ async function loadEnvironments() {
         const domainFilter = document.getElementById('domain-filter');
         if (domainFilter) {
             domainFilter.addEventListener('change', () => {
-                updateFilterButtonsForDomain();
                 updateSystemFilterOptions();
-                filterEnvironments(document.getElementById('search-input').value, getActiveCategory());
+                filterEnvironments(document.getElementById('search-input').value);
             });
         }
-        updateFilterButtonsForDomain();
         updateSystemFilterOptions();
         const systemFilter = document.getElementById('system-filter');
         if (systemFilter) {
             systemFilter.addEventListener('change', () => {
-                filterEnvironments(document.getElementById('search-input').value, getActiveCategory());
+                filterEnvironments(document.getElementById('search-input').value);
             });
         }
-        
+
         // Initialize save data for all environments
         allEnvironments.forEach(env => {
             initializeSaveData(env.name);
@@ -815,7 +803,7 @@ async function loadEnvironments() {
             var searchInput = document.getElementById('search-input');
             if (searchInput) {
                 searchInput.value = searchParam;
-                filterEnvironments(searchParam, getActiveCategory());
+                filterEnvironments(searchParam);
             }
         }
         var envParam = urlParams.get('env');
@@ -839,21 +827,7 @@ function setupEventListeners() {
     
     // Search
     document.getElementById('search-input').addEventListener('input', (e) => {
-        filterEnvironments(e.target.value, getActiveCategory());
-    });
-    
-    // Category filters
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            // Financial tag → navigate directly to ABC Hedge Funds
-            if (btn.dataset.category === 'financial') {
-                window.location.href = '/financial-console?env=delcita';
-                return;
-            }
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            filterEnvironments(document.getElementById('search-input').value, btn.dataset.category);
-        });
+        filterEnvironments(e.target.value);
     });
     
     // Modal close
@@ -998,11 +972,6 @@ function openHelpSection() {
     document.getElementById('help-modal').style.display = 'block';
 }
 
-function getActiveCategory() {
-    const activeBtn = document.querySelector('.filter-btn.active');
-    return activeBtn ? activeBtn.dataset.category : 'all';
-}
-
 function getActiveSystem() {
     const sel = document.getElementById('system-filter');
     return sel ? sel.value : 'all';
@@ -1011,27 +980,6 @@ function getActiveSystem() {
 function getActiveDomain() {
     const sel = document.getElementById('domain-filter');
     return sel ? sel.value : 'all';
-}
-
-function updateFilterButtonsForDomain() {
-    const domain = getActiveDomain();
-    const container = document.getElementById('filter-buttons');
-    if (!container) return;
-    container.querySelectorAll('.filter-btn').forEach(btn => {
-        const btnDomain = btn.dataset.domain || 'all';
-        if (domain === 'all') {
-            btn.style.display = '';
-        } else {
-            btn.style.display = (btnDomain === domain || btn.dataset.category === 'all') ? '' : 'none';
-        }
-    });
-    // If active button is now hidden, reset to "All"
-    const activeBtn = container.querySelector('.filter-btn.active');
-    if (activeBtn && activeBtn.style.display === 'none') {
-        container.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        const allBtn = container.querySelector('.filter-btn[data-category="all"]');
-        if (allBtn && allBtn.style.display !== 'none') allBtn.classList.add('active');
-    }
 }
 
 function updateSystemFilterOptions() {
@@ -1051,14 +999,14 @@ function updateSystemFilterOptions() {
     if (systemFilterWrap) systemFilterWrap.style.display = 'flex';
 
     const medCategories = ['clinical', 'imaging', 'population_health', 'hospital_operations',
-                           'telehealth', 'interoperability', 'clinical_trials', 'cross_workflow'];
+                           'telehealth', 'interoperability', 'clinical_trials', 'cross_workflow', 'revenue_cycle'];
     let envsForSystems = allEnvironments;
     if (domain === 'dev-sim') {
         envsForSystems = allEnvironments.filter(env => env.category === 'jira' || (env.system || '').toLowerCase().includes('jira'));
     } else if (domain === 'med-sim') {
         envsForSystems = allEnvironments.filter(env => medCategories.includes(env.category));
     } else if (domain === 'fin-sim') {
-        envsForSystems = allEnvironments.filter(env => env.category === 'revenue_cycle' || env.category === 'financial');
+        envsForSystems = allEnvironments.filter(env => env.category === 'financial');
     } else if (domain === 'hr-sim') {
         envsForSystems = allEnvironments.filter(env => env.category === 'hr_payroll');
     }
@@ -1081,7 +1029,7 @@ function updateSystemFilterOptions() {
     }
 }
 
-function filterEnvironments(searchTerm, category) {
+function filterEnvironments(searchTerm) {
     const system = getActiveSystem();
     const domain = getActiveDomain();
     filteredEnvironments = allEnvironments.filter(env => {
@@ -1091,27 +1039,23 @@ function filterEnvironments(searchTerm, category) {
             env.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (descText && descText.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (useCaseText && useCaseText.toLowerCase().includes(searchTerm.toLowerCase()));
-        
-        const matchesCategory = category === 'all' ||
-            (category === 'custom' ? (env.isCustom === true || env.source === 'custom') : env.category === category);
-        
+
         const envSystems = (env.system || '').split(',').map(s => s.trim()).filter(Boolean);
         const matchesSystem = system === 'all' || envSystems.includes(system);
-        
+
         let matchesDomain = true;
-        // When a specific system is selected, system filter takes precedence over domain
         if (system === 'all') {
             const medCategories = ['clinical', 'imaging', 'population_health', 'hospital_operations',
-                                   'telehealth', 'interoperability', 'clinical_trials', 'cross_workflow'];
+                                   'telehealth', 'interoperability', 'clinical_trials', 'cross_workflow', 'revenue_cycle'];
             if (domain === 'dev-sim') matchesDomain = env.category === 'jira' || (env.system || '').toLowerCase().includes('jira');
             else if (domain === 'med-sim') matchesDomain = medCategories.includes(env.category);
-            else if (domain === 'fin-sim') matchesDomain = env.category === 'revenue_cycle' || env.category === 'financial';
+            else if (domain === 'fin-sim') matchesDomain = env.category === 'financial';
             else if (domain === 'hr-sim') matchesDomain = env.category === 'hr_payroll';
         }
-        
-        return matchesSearch && matchesCategory && matchesSystem && matchesDomain;
+
+        return matchesSearch && matchesSystem && matchesDomain;
     });
-    
+
     renderEnvironments();
 }
 
@@ -1161,7 +1105,7 @@ function renderEnvironments() {
 }
 
 var ENV_DISPLAY_NAME_OVERRIDES = {
-    'JiraSubtaskManagement': 'IT Operations',
+    'JiraSubtaskManagement': 'True Technologies Inc',
     'clinKriya': 'ClinKriya Clinic',
     'ClinKriya Clinic': 'ClinKriya Clinic',
     'Delcita': 'ABC Hedge Funds'
@@ -1301,7 +1245,7 @@ function getEnvironmentDescription(envName, category) {
         'JiraIssueResolution': 'Jira Issue Resolution Flow: resolve issues end-to-end via get_issue_summary_and_description → get_transitions → transition_issue.',
         'JiraStatusUpdate': 'Jira Status Update Workflow: change issue status using get_transitions → transition_issue with valid transition IDs.',
         'JiraCommentManagement': 'Jira Comment Thread Management: add_comment → get_comments for issue comment workflows.',
-        'JiraSubtaskManagement': 'IT Operations: get_issue_summary_and_description → create_subtask for adding subtasks to issues.',
+        'JiraSubtaskManagement': 'True Technologies Inc: get_issue_summary_and_description → create_subtask for adding subtasks to issues.',
         // HR & Payroll (Workday, SAP SuccessFactors, ADP)
         'WorkdayCreateRecord': 'Workday: Create worker record with correct supervisory org placement and compensation plan initialization.',
         'WorkdayBulkImport': 'Workday: Bulk integration with EIB processing and error summary report for worker records.',
@@ -1395,7 +1339,7 @@ function getUseCaseDescription(envName, category) {
         'JiraIssueResolution': 'Issue resolution workflows, ticket closure, and status transitions in Jira.',
         'JiraStatusUpdate': 'Status updates and moving issues (e.g. To Do → In Progress → Done) in Jira.',
         'JiraCommentManagement': 'Adding and retrieving issue comments in Jira.',
-        'JiraSubtaskManagement': 'IT Operations: subtask management for existing Jira issues.',
+        'JiraSubtaskManagement': 'True Technologies Inc: subtask management for existing Jira issues.',
         // HR & Payroll
         'WorkdayCreateRecord': 'HR operations, worker onboarding, and Workday CCX API integration.',
         'WorkdayBulkImport': 'Bulk worker data import and EIB integration in Workday.',
@@ -2679,18 +2623,37 @@ function showScenarioDetail(envCategory, idx) {
         ? connectedVerifiers.map(function(n) { return '<span class="sd-connected-badge">' + n + '</span>'; }).join('')
         : '<span style="color:var(--text-secondary);font-size:0.85rem;">None</span>';
 
-    // Build the overlay
-    var overlay = document.getElementById('scenario-detail-overlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'scenario-detail-overlay';
-        overlay.className = 'sv-detail-overlay';
-        overlay.onclick = function(e) { if (e.target === overlay) closeScenarioDetail(); };
-        document.body.appendChild(overlay);
+    // Inline expand below the clicked card
+    var card = document.getElementById('scenario-card-' + idx);
+    if (!card) return;
+
+    // If already expanded, collapse it
+    var existing = document.getElementById('scenario-expand-' + idx);
+    if (existing) {
+        existing.classList.remove('sv-expand-active');
+        card.classList.remove('sv-card-active');
+        setTimeout(function() { if (existing.parentNode) existing.parentNode.removeChild(existing); }, 250);
+        return;
     }
-    overlay.innerHTML =
-        '<div class="sv-detail-box">' +
-            '<button class="sv-detail-close" onclick="closeScenarioDetail()">&times;</button>' +
+
+    // Collapse any other open scenario expansion
+    var prevExpand = document.querySelector('.sv-inline-expand.scenario-expand');
+    if (prevExpand) {
+        var prevIdx = prevExpand.dataset.idx;
+        var prevCard = document.getElementById('scenario-card-' + prevIdx);
+        if (prevCard) prevCard.classList.remove('sv-card-active');
+        prevExpand.classList.remove('sv-expand-active');
+        setTimeout(function() { if (prevExpand.parentNode) prevExpand.parentNode.removeChild(prevExpand); }, 250);
+    }
+
+    // Build inline detail panel
+    var panel = document.createElement('div');
+    panel.id = 'scenario-expand-' + idx;
+    panel.className = 'sv-inline-expand scenario-expand';
+    panel.dataset.idx = idx;
+    panel.innerHTML =
+        '<div class="sv-expand-inner">' +
+            '<button class="sv-expand-close" onclick="closeScenarioDetail(' + idx + ')" title="Collapse">&times;</button>' +
             '<div class="sd-header-card">' +
                 '<h2 class="sd-title">' + scenario.name + '</h2>' +
                 '<p class="sd-subtitle">' + scenario.description + '</p>' +
@@ -2715,15 +2678,31 @@ function showScenarioDetail(envCategory, idx) {
                 '<div class="sd-workflow-list">' + workflowHtml + '</div>' +
             '</div>' +
         '</div>';
-    overlay.classList.add('active');
-    document.body.style.overflow = 'hidden';
+
+    // Insert after the card
+    card.parentNode.insertBefore(panel, card.nextSibling);
+    card.classList.add('sv-card-active');
+
+    // Trigger expand animation on next frame
+    requestAnimationFrame(function() {
+        panel.classList.add('sv-expand-active');
+        // Scroll into view smoothly
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
 }
 window.showScenarioDetail = showScenarioDetail;
 
-function closeScenarioDetail() {
-    var overlay = document.getElementById('scenario-detail-overlay');
-    if (overlay) overlay.classList.remove('active');
-    document.body.style.overflow = '';
+function closeScenarioDetail(idx) {
+    var expand = idx !== undefined
+        ? document.getElementById('scenario-expand-' + idx)
+        : document.querySelector('.sv-inline-expand.scenario-expand');
+    if (expand) {
+        var cardIdx = expand.dataset.idx;
+        var card = document.getElementById('scenario-card-' + cardIdx);
+        if (card) card.classList.remove('sv-card-active');
+        expand.classList.remove('sv-expand-active');
+        setTimeout(function() { if (expand.parentNode) expand.parentNode.removeChild(expand); }, 250);
+    }
 }
 window.closeScenarioDetail = closeScenarioDetail;
 
@@ -2791,18 +2770,37 @@ function showVerifierDetail(envCategory, idx) {
     // Full JSON config
     var jsonStr = JSON.stringify(verifier, null, 2);
 
-    // Build the overlay
-    var overlay = document.getElementById('verifier-detail-overlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'verifier-detail-overlay';
-        overlay.className = 'sv-detail-overlay';
-        overlay.onclick = function(e) { if (e.target === overlay) closeVerifierDetail(); };
-        document.body.appendChild(overlay);
+    // Inline expand below the clicked card
+    var card = document.getElementById('verifier-card-' + idx);
+    if (!card) return;
+
+    // If already expanded, collapse it
+    var existing = document.getElementById('verifier-expand-' + idx);
+    if (existing) {
+        existing.classList.remove('sv-expand-active');
+        card.classList.remove('sv-card-active');
+        setTimeout(function() { if (existing.parentNode) existing.parentNode.removeChild(existing); }, 250);
+        return;
     }
-    overlay.innerHTML =
-        '<div class="sv-detail-box vd-box">' +
-            '<button class="sv-detail-close" onclick="closeVerifierDetail()">&times;</button>' +
+
+    // Collapse any other open verifier expansion
+    var prevExpand = document.querySelector('.sv-inline-expand.verifier-expand');
+    if (prevExpand) {
+        var prevIdx = prevExpand.dataset.idx;
+        var prevCard = document.getElementById('verifier-card-' + prevIdx);
+        if (prevCard) prevCard.classList.remove('sv-card-active');
+        prevExpand.classList.remove('sv-expand-active');
+        setTimeout(function() { if (prevExpand.parentNode) prevExpand.parentNode.removeChild(prevExpand); }, 250);
+    }
+
+    // Build inline detail panel
+    var panel = document.createElement('div');
+    panel.id = 'verifier-expand-' + idx;
+    panel.className = 'sv-inline-expand verifier-expand';
+    panel.dataset.idx = idx;
+    panel.innerHTML =
+        '<div class="sv-expand-inner vd-box">' +
+            '<button class="sv-expand-close" onclick="closeVerifierDetail(' + idx + ')" title="Collapse">&times;</button>' +
             '<div class="sd-header-card">' +
                 '<h2 class="sd-title">' + verifier.name + '</h2>' +
                 '<p class="sd-subtitle">' + verifier.description + '</p>' +
@@ -2822,15 +2820,30 @@ function showVerifierDetail(envCategory, idx) {
                 '<pre class="vd-json-block" id="vd-json-content">' + escapeHtml(jsonStr) + '</pre>' +
             '</div>' +
         '</div>';
-    overlay.classList.add('active');
-    document.body.style.overflow = 'hidden';
+
+    // Insert after the card
+    card.parentNode.insertBefore(panel, card.nextSibling);
+    card.classList.add('sv-card-active');
+
+    // Trigger expand animation on next frame
+    requestAnimationFrame(function() {
+        panel.classList.add('sv-expand-active');
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
 }
 window.showVerifierDetail = showVerifierDetail;
 
-function closeVerifierDetail() {
-    var overlay = document.getElementById('verifier-detail-overlay');
-    if (overlay) overlay.classList.remove('active');
-    document.body.style.overflow = '';
+function closeVerifierDetail(idx) {
+    var expand = idx !== undefined
+        ? document.getElementById('verifier-expand-' + idx)
+        : document.querySelector('.sv-inline-expand.verifier-expand');
+    if (expand) {
+        var cardIdx = expand.dataset.idx;
+        var card = document.getElementById('verifier-card-' + cardIdx);
+        if (card) card.classList.remove('sv-card-active');
+        expand.classList.remove('sv-expand-active');
+        setTimeout(function() { if (expand.parentNode) expand.parentNode.removeChild(expand); }, 250);
+    }
 }
 window.closeVerifierDetail = closeVerifierDetail;
 
@@ -4069,7 +4082,7 @@ function showEnvironmentDetails(envName) {
                 ((details.hf_url || env.hf_url) ? '<a href="' + (details.hf_url || env.hf_url) + '" target="_blank" class="hf-source-link" style="margin-left:0.5rem;font-size:0.82rem;">View on HuggingFace ↗</a>' : '') +
             '</div>' +
         '</div>' +
-        '<div class="detail-collapsible open" id="section-description">' +
+        '<div class="detail-collapsible" id="section-description">' +
             '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-description\')">' +
                 '<h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Description</h2>' +
                 '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
@@ -4117,10 +4130,10 @@ function showEnvironmentDetails(envName) {
         (deleteBtn ? '<div class="env-delete-bottom">' + deleteBtn + '</div>' : '');
 
     requestAnimationFrame(function() {
-        var descBody = document.getElementById('section-description-body');
-        if (descBody) {
-            descBody.style.maxHeight = descBody.scrollHeight + 'px';
-            setTimeout(function() { descBody.style.maxHeight = 'none'; }, 500);
+        var envBody = document.getElementById('section-environment-body');
+        if (envBody) {
+            envBody.style.maxHeight = envBody.scrollHeight + 'px';
+            setTimeout(function() { envBody.style.maxHeight = 'none'; }, 500);
         }
     });
 
@@ -5944,7 +5957,7 @@ window.resetTerraformToDefault = resetTerraformToDefault;
 
 // ─── Domain-to-category mapping for new environments ───
 var _categoryToDomain = {
-    jira: 'dev-sim', clinical: 'med-sim', imaging: 'med-sim', revenue_cycle: 'fin-sim',
+    jira: 'dev-sim', clinical: 'med-sim', imaging: 'med-sim', revenue_cycle: 'med-sim',
     hr_payroll: 'hr-sim', population_health: 'med-sim', clinical_trials: 'med-sim',
     hospital_operations: 'med-sim', telehealth: 'med-sim', interoperability: 'med-sim',
     cross_workflow: 'med-sim', financial: 'fin-sim'
@@ -5956,10 +5969,7 @@ function _addEnvironmentToGrid(envData) {
     // Re-run current filter to include the new environment in the grid
     var searchInput = document.getElementById('search-input');
     var searchTerm = searchInput ? searchInput.value.trim() : '';
-    var activeCategory = 'all';
-    var activeBtn = document.querySelector('.filter-btn.active');
-    if (activeBtn) activeCategory = activeBtn.getAttribute('data-category') || 'all';
-    filterEnvironments(searchTerm, activeCategory);
+    filterEnvironments(searchTerm);
     // Update total count
     var totalEl = document.getElementById('total-envs');
     if (totalEl) totalEl.textContent = allEnvironments.length;
@@ -6043,8 +6053,7 @@ function submitAddEnvironment(event) {
             // Refresh catalog grid to show updated tags
             if (typeof filterEnvironments === 'function') {
                 var searchVal = document.getElementById('env-search') ? document.getElementById('env-search').value : '';
-                var catVal = document.querySelector('.catalog-tab.active') ? document.querySelector('.catalog-tab.active').getAttribute('data-category') || 'all' : 'all';
-                filterEnvironments(searchVal, catVal);
+                filterEnvironments(searchVal);
             }
             console.log('[AddEnvironment] Classified:', name, cls);
         }
@@ -6422,7 +6431,7 @@ function deleteEnvironment(envName) {
             var totalEl = document.getElementById('total-envs');
             if (totalEl) totalEl.textContent = allEnvironments.length;
             var searchInput = document.getElementById('search-input');
-            filterEnvironments(searchInput ? searchInput.value.trim() : '', getActiveCategory());
+            filterEnvironments(searchInput ? searchInput.value.trim() : '');
         })
         .catch(function(err) {
             if (window.showToast) showToast('Delete failed: ' + err.message, 'error');
