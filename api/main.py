@@ -3559,6 +3559,9 @@ _financial_start_time: float = _time.time()
 # Registry mapping slugs to catalog names
 _FINANCIAL_ENV_SLUG_MAP = {
     "delcita": "Delcita",
+    "stock-trading": "StockTrading",
+    "portfolio-allocation": "PortfolioAllocation",
+    "options-pricing": "OptionsPricing",
 }
 
 # Metadata for the financial env list endpoint
@@ -3574,6 +3577,42 @@ _FINANCIAL_ENV_META = {
         "observation_dim": 22,
         "action_type": "discrete",
         "action_dim": 5,
+    },
+    "stock-trading": {
+        "display_name": "Apex Equities Desk",
+        "description": "Directional equity trading using momentum, mean-reversion, and regime detection signals",
+        "tools": [
+            {"name": "get_market_state", "description": "Fetch price, volume, and technical indicators"},
+            {"name": "execute_trade", "description": "Buy/sell/hold with position sizing"},
+            {"name": "get_portfolio_status", "description": "Current P&L, position, drawdown"},
+        ],
+        "observation_dim": 22,
+        "action_type": "discrete",
+        "action_dim": 5,
+    },
+    "portfolio-allocation": {
+        "display_name": "Apex Multi-Asset Allocator",
+        "description": "Dynamic portfolio weight optimization across 5 correlated asset classes with cost-aware rebalancing",
+        "tools": [
+            {"name": "get_asset_returns", "description": "Multi-asset return history with lookback window"},
+            {"name": "rebalance_portfolio", "description": "Set target portfolio weights (sum to 1)"},
+            {"name": "get_risk_metrics", "description": "Sharpe ratio, volatility, max drawdown"},
+        ],
+        "observation_dim": 109,
+        "action_type": "continuous",
+        "action_dim": 5,
+    },
+    "options-pricing": {
+        "display_name": "Apex Derivatives Hedging",
+        "description": "Intelligent delta hedging for options book with stochastic volatility and transaction cost optimization",
+        "tools": [
+            {"name": "get_option_greeks", "description": "Delta, gamma, and current hedge ratio"},
+            {"name": "adjust_hedge", "description": "Set hedge ratio (0=none, 1=full delta)"},
+            {"name": "get_pnl_status", "description": "Current P&L and hedging error variance"},
+        ],
+        "observation_dim": 7,
+        "action_type": "continuous",
+        "action_dim": 1,
     },
 }
 
@@ -3789,6 +3828,203 @@ async def financial_delete_env(env_id: str):
         rollout["status"] = "aborted"
     del _financial_active_envs[env_id]
     return {"status": "deleted", "env_id": env_id}
+
+
+# ── Financial RL Training ──────────────────────────────────────────────────────
+
+_financial_trained_agents: Dict[str, Dict[str, Any]] = {}
+
+
+def _train_dqn_financial(env, n_episodes: int = 15):
+    """Simple linear Q-learning for discrete-action financial envs."""
+    obs_dim = env.observation_space.shape[0]
+    n_actions = int(env.action_space.n)
+    W = _np.zeros((n_actions, obs_dim))
+    lr, gamma, epsilon, epsilon_min, epsilon_decay = 0.02, 0.99, 1.0, 0.1, 0.80
+    history, best_episode, best_raw = [], None, -1e9
+    for ep in range(n_episodes):
+        obs, _ = env.reset()
+        total_reward, ep_rewards, done, step = 0.0, [], False, 0
+        while not done and step < 600:
+            if _np.random.random() < epsilon:
+                action = int(env.action_space.sample())
+            else:
+                action = int(_np.argmax(W @ obs))
+            next_obs, reward, term, trunc, _ = env.step(action)
+            done = term or trunc
+            q_next = 0.0 if done else float(_np.max(W @ next_obs))
+            target = float(reward) + gamma * q_next
+            q_curr = float(W[action] @ obs)
+            W[action] += lr * (target - q_curr) * obs
+            obs = next_obs
+            total_reward += float(reward)
+            ep_rewards.append(float(reward))
+            step += 1
+        epsilon = max(epsilon_min, epsilon * epsilon_decay)
+        arr = _np.array(ep_rewards)
+        sharpe = float(arr.mean() / (arr.std() + 1e-8) * (252 ** 0.5)) if len(arr) > 1 else 0.0
+        norm_return = total_reward / (abs(total_reward) + 1e-8) * min(1.0, abs(total_reward) / 10)
+        ep_data = {"episode": ep + 1, "total_return": round(norm_return, 4),
+                   "sharpe_ratio": round(sharpe, 4), "epsilon": round(epsilon, 4), "steps": step}
+        history.append(ep_data)
+        if total_reward > best_raw:
+            best_raw = total_reward
+            best_episode = {**ep_data}
+    return {"policy": W, "history": history, "best_episode": best_episode or history[-1],
+            "final_epsilon": round(epsilon, 4)}
+
+
+def _train_ppo_financial(env, n_episodes: int = 15):
+    """Simple policy-gradient for continuous-action financial envs."""
+    obs_dim = env.observation_space.shape[0]
+    action_shape = env.action_space.shape
+    action_dim = int(_np.prod(action_shape))
+    W = _np.zeros((action_dim, obs_dim))
+    lr, best_raw = 5e-4, -1e9
+    history, best_episode = [], None
+    lo = env.action_space.low.flatten()
+    hi = env.action_space.high.flatten()
+    for ep in range(n_episodes):
+        obs, _ = env.reset()
+        noise = max(0.05, 0.6 * (0.75 ** ep))
+        total_reward, ep_rewards, trajectories, done, step = 0.0, [], [], False, 0
+        while not done and step < 400:
+            mean_act = _np.clip(W @ obs, lo, hi)
+            action = _np.clip(mean_act + noise * _np.random.randn(action_dim), lo, hi)
+            next_obs, reward, term, trunc, _ = env.step(action.reshape(action_shape))
+            done = term or trunc
+            trajectories.append((obs.copy(), action.copy(), float(reward)))
+            obs = next_obs
+            total_reward += float(reward)
+            ep_rewards.append(float(reward))
+            step += 1
+        if trajectories:
+            r_arr = _np.array([t[2] for t in trajectories])
+            if r_arr.std() > 1e-8:
+                r_arr = (r_arr - r_arr.mean()) / (r_arr.std() + 1e-8)
+            for i, (o, a, _) in enumerate(trajectories):
+                W += lr * r_arr[i] * _np.outer(a - W @ o, o)
+        arr = _np.array(ep_rewards)
+        sharpe = float(arr.mean() / (arr.std() + 1e-8) * (252 ** 0.5)) if len(arr) > 1 else 0.0
+        norm_return = total_reward / (abs(total_reward) + 1e-8) * min(1.0, abs(total_reward) / 10)
+        ep_data = {"episode": ep + 1, "total_return": round(norm_return, 4),
+                   "sharpe_ratio": round(sharpe, 4), "epsilon": round(noise, 4), "steps": step}
+        history.append(ep_data)
+        if total_reward > best_raw:
+            best_raw = total_reward
+            best_episode = {**ep_data}
+    return {"policy": W, "history": history, "best_episode": best_episode or history[-1],
+            "final_epsilon": round(noise, 4)}
+
+
+class _FinTrainRequest(BaseModel):
+    algorithm: str = "auto"
+    episodes: int = 15
+
+
+@app.post("/financial/envs/{env_id}/train")
+async def financial_train_env(env_id: str, req: _FinTrainRequest):
+    """Train a DQN (discrete) or policy-gradient (continuous) agent on the active env."""
+    if env_id not in _financial_active_envs:
+        raise HTTPException(status_code=404, detail=f"Environment '{env_id}' not found")
+    entry = _financial_active_envs[env_id]
+    env = entry["env"]
+    env_type = entry["env_type"]
+    meta = _FINANCIAL_ENV_META.get(env_type, {})
+    action_type = meta.get("action_type", "discrete")
+
+    import asyncio
+    loop = asyncio.get_event_loop()
+    n_ep = max(5, min(req.episodes, 30))
+
+    if action_type == "discrete":
+        algo = "DQN"
+        result = await loop.run_in_executor(None, _train_dqn_financial, env, n_ep)
+    else:
+        algo = "PPO"
+        result = await loop.run_in_executor(None, _train_ppo_financial, env, n_ep)
+
+    _financial_trained_agents[env_id] = {
+        "algo": algo,
+        "policy": result["policy"],
+        "action_type": action_type,
+        "env_type": env_type,
+    }
+
+    # Reset env after training
+    obs, _ = env.reset()
+    entry["last_obs"] = obs
+    entry["steps"] = 0
+
+    return {
+        "algorithm": algo,
+        "episodes_trained": n_ep,
+        "training_history": result["history"],
+        "best_episode": result["best_episode"],
+        "final_epsilon": result.get("final_epsilon", 0.0),
+    }
+
+
+@app.post("/financial/envs/{env_id}/agent-step")
+async def financial_agent_step(env_id: str):
+    """Take one step using the trained agent policy."""
+    if env_id not in _financial_active_envs:
+        raise HTTPException(status_code=404, detail=f"Environment '{env_id}' not found")
+    if env_id not in _financial_trained_agents:
+        raise HTTPException(status_code=400, detail="Agent not trained yet. Call /train first.")
+
+    entry = _financial_active_envs[env_id]
+    agent = _financial_trained_agents[env_id]
+    env = entry["env"]
+    obs = _np.array(entry["last_obs"], dtype=_np.float32)
+    W = agent["policy"]
+    action_type = agent["action_type"]
+
+    if action_type == "discrete":
+        q_vals = W @ obs
+        action = int(_np.argmax(q_vals))
+        action_label = str(action)
+        action_for_step = action
+    else:
+        lo = env.action_space.low.flatten()
+        hi = env.action_space.high.flatten()
+        raw = W @ obs
+        env_type = agent.get("env_type", "")
+        if env_type == "portfolio-allocation":
+            raw = raw - raw.max()
+            exp_r = _np.exp(raw)
+            action_arr = exp_r / (exp_r.sum() + 1e-8)
+        else:
+            action_arr = _np.clip(raw, lo, hi)
+        action_label = "policy"
+        action_for_step = action_arr.reshape(env.action_space.shape)
+
+    next_obs, reward, term, trunc, info = env.step(action_for_step)
+    entry["last_obs"] = next_obs
+    entry["steps"] += 1
+
+    rollout_id = entry.get("rollout_id")
+    rollout = _financial_rollout_store.get(rollout_id) if rollout_id else None
+    if rollout is not None:
+        rollout["steps"].append({
+            "step": int(entry["steps"]),
+            "action": _fin_ndarray_to_list(action_for_step),
+            "reward": float(reward),
+        })
+        rollout["total_reward"] = float(rollout.get("total_reward", 0.0)) + float(reward)
+        rollout["total_steps"] = int(entry["steps"])
+        if term or trunc:
+            rollout["status"] = "completed"
+
+    return {
+        "observation": _fin_ndarray_to_list(next_obs),
+        "reward": float(reward),
+        "terminated": bool(term),
+        "truncated": bool(trunc),
+        "info": _fin_ndarray_to_list(dict(info) if isinstance(info, dict) else {}),
+        "agent_action": action_label,
+        "agent_action_id": _fin_ndarray_to_list(action_for_step),
+    }
 
 
 if __name__ == "__main__":
