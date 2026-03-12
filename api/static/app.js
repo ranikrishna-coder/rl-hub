@@ -2326,7 +2326,10 @@ function closeEnvDetailPage() {
 function buildScenariosSection(envName, envCategory) {
     var cfg = window.TRAINING_CONFIG;
     var allScenarios = (cfg && cfg.scenarios) ? cfg.scenarios : [];
-    var filtered = allScenarios.filter(function(s) { return s.category === envCategory; });
+    var filtered = allScenarios.filter(function(s) {
+        if (s.environment) return s.environment === envName;
+        return s.category === envCategory;
+    });
 
     var listHtml = '';
     if (filtered.length) {
@@ -2412,7 +2415,10 @@ window.saveNewScenario = saveNewScenario;
 function buildVerifiersSection(envName, envCategory) {
     var verifierData = window.VERIFIER_DATA;
     var allVerifiers = (verifierData && verifierData.all) ? verifierData.all : [];
-    var filtered = allVerifiers.filter(function(v) { return v.environment === envCategory; });
+    var filtered = allVerifiers.filter(function(v) {
+        if (v.envName) return v.envName === envName;
+        return v.environment === envCategory;
+    });
 
     var listHtml = '';
     if (filtered.length) {
