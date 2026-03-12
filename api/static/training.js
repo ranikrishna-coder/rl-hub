@@ -399,7 +399,7 @@
     function populateEnvironments() {
         var sel = document.getElementById('tr-env');
         var systemFilter = document.getElementById('tr-env-system') ? document.getElementById('tr-env-system').value : '';
-        sel.innerHTML = '<option value="">— Select scenario —</option>';
+        sel.innerHTML = '<option value="">— Select environment —</option>';
 
         var envs = systemFilter ? (SYSTEM_MAP[systemFilter] || []) : ALL_ENVIRONMENTS;
         envs.sort(function (a, b) { return a.name.localeCompare(b.name); });
@@ -413,8 +413,8 @@
 
         var hint = document.getElementById('env-count-hint');
         if (hint) {
-            hint.textContent = envs.length + ' scenario' + (envs.length !== 1 ? 's' : '') +
-                (systemFilter ? ' in ' + systemFilter : ' across ' + Object.keys(SYSTEM_MAP).length + ' tools');
+            hint.textContent = envs.length + ' environment' + (envs.length !== 1 ? 's' : '') +
+                (systemFilter ? ' in ' + systemFilter : ' across ' + Object.keys(SYSTEM_MAP).length + ' software');
         }
     }
 
@@ -578,25 +578,29 @@
         var env = findEnv(envId);
         var cat = env ? env.category : '';
         var envName = env ? env.name : '';
+        var system = env ? env.system : '';
 
-        // Merge built-in + custom scenarios, filter by category or product (env name)
-        var all = getAllScenarios();
-        var matches = all.filter(function (s) {
+        // Merge built-in + custom scenarios, filter by category, product, environment, or system
+        var allScenarios = getAllScenarios();
+        var matches = allScenarios.filter(function (s) {
             if (!cat && !envName) return true; // no env selected — show all
-            return (cat && s.category === cat) || (envName && s.product === envName);
+            if (s.environment && s.environment === envName) return true;
+            if (cat && s.category === cat) return true;
+            if (envName && s.product === envName) return true;
+            if (system && s.product === system) return true;
+            return false;
         });
 
         // Rebuild dropdown
-        scenarioSel.innerHTML = '<option value="">— No task scenario —</option>';
-        matches.forEach(function (s) {
-            var opt = document.createElement('option');
-            opt.value = s.id;
-            opt.textContent = s.name + (s.task_count ? ' (' + s.task_count + ' tasks)' : '');
-            scenarioSel.appendChild(opt);
-        });
-
+        scenarioSel.innerHTML = '<option value="">— Select scenario —</option>';
         if (matches.length > 0) {
             scenarioField.style.display = '';
+            matches.forEach(function (s) {
+                var o = document.createElement('option');
+                o.value = s.id;
+                o.textContent = s.name + (s.task_count ? ' (' + s.task_count + ' tasks)' : '');
+                scenarioSel.appendChild(o);
+            });
             if (countHint) countHint.textContent = '(' + matches.length + ')';
         } else {
             scenarioField.style.display = 'none';
@@ -606,52 +610,18 @@
 
     function updateEnvPreview() {
         var envId = document.getElementById('tr-env').value;
-        var panel = document.getElementById('env-preview-panel');
         var env = findEnv(envId);
 
-        // Update clean tools display row
+        // Update Software inline hint below environment dropdown
         var toolsField = document.getElementById('tools-display-field');
         var toolsValue = document.getElementById('tools-display-value');
         if (toolsField && toolsValue) {
             if (env && env.system) {
                 toolsValue.textContent = env.system;
-                toolsField.style.display = '';
+                toolsField.style.display = 'block';
             } else {
                 toolsField.style.display = 'none';
             }
-        }
-
-        if (!env) { panel.style.display = 'none'; return; }
-        panel.style.display = 'block';
-        document.getElementById('ep-system').textContent = env.system || '—';
-        var actionSpaceRow = document.getElementById('ep-action-space').closest('.ep-row');
-        var stateFeaturesRow = document.getElementById('ep-state-features').closest('.ep-row');
-        var actionsLabelRow = document.getElementById('ep-tools').previousElementSibling;
-        var toolsEl = document.getElementById('ep-tools');
-
-        if (env.actionSpace && env.actionSpace !== 'N/A') {
-            document.getElementById('ep-action-space').textContent = env.actionSpace;
-            actionSpaceRow.style.display = '';
-        } else {
-            actionSpaceRow.style.display = 'none';
-        }
-        if (env.stateFeatures && env.stateFeatures !== 'N/A') {
-            document.getElementById('ep-state-features').textContent = env.stateFeatures;
-            stateFeaturesRow.style.display = '';
-        } else {
-            stateFeaturesRow.style.display = 'none';
-        }
-
-        toolsEl.innerHTML = '';
-        if (env.actions && env.actions.length) {
-            if (actionsLabelRow) actionsLabelRow.style.display = '';
-            toolsEl.style.display = '';
-            env.actions.forEach(function (t) {
-                toolsEl.insertAdjacentHTML('beforeend', '<span class="ep-tool-tag">' + esc(t) + '</span>');
-            });
-        } else {
-            if (actionsLabelRow) actionsLabelRow.style.display = 'none';
-            toolsEl.style.display = 'none';
         }
     }
 

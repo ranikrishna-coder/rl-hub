@@ -2368,8 +2368,9 @@ function _loadPersistedScenarios(envName, envCategory) {
 function buildScenariosSection(envName, envCategory) {
     var cfg = window.TRAINING_CONFIG;
     var allScenarios = (cfg && cfg.scenarios) ? cfg.scenarios : [];
-    // Match scenarios by category OR by product (environment name)
+    // Match scenarios by category, product, or environment name
     var filtered = allScenarios.filter(function (s) {
+        if (s.environment) return s.environment === envName;
         return s.category === envCategory || s.product === envName;
     });
 
@@ -2527,7 +2528,10 @@ function _loadPersistedVerifiers(envName, envCategory) {
 function buildVerifiersSection(envName, envCategory) {
     var verifierData = window.VERIFIER_DATA;
     var allVerifiers = (verifierData && verifierData.all) ? verifierData.all : [];
-    var filtered = allVerifiers.filter(function (v) { return v.environment === envCategory; });
+    var filtered = allVerifiers.filter(function (v) {
+        if (v.envName) return v.envName === envName;
+        return v.environment === envCategory;
+    });
 
     // Also load persisted verifiers from backend (async, will re-render if new ones found)
     _loadPersistedVerifiers(envName, envCategory);
@@ -6574,9 +6578,19 @@ function deleteEnvironment(envName) {
     if (!confirm('Are you sure you want to delete the environment "' + envName + '"? This action cannot be undone.')) {
         return;
     }
-    fetch(API_BASE + '/api/custom-environments/' + encodeURIComponent(envName), { method: 'DELETE' })
-        .then(function (res) {
-            if (!res.ok) return res.json().then(function (d) { throw new Error(d.detail || 'Delete failed'); });
+    fetch(API_BASE + '/api/custom-environments/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: envName })
+    })
+        .then(function(res) {
+            if (!res.ok) {
+                var ct = res.headers.get('content-type') || '';
+                if (ct.indexOf('application/json') !== -1) {
+                    return res.json().then(function(d) { throw new Error(d.detail || 'Delete failed'); });
+                }
+                throw new Error('Delete failed (HTTP ' + res.status + ')');
+            }
             return res.json();
         })
         .then(function () {

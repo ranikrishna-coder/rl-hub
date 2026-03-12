@@ -935,6 +935,126 @@
     ];
 
     // ── Combine all verifiers ───────────────────────────────────────────
+    // ── ClinKriya Clinic Verifiers (MedAgentBench shaped reward) ────────
+    const clinKriyaVerifiers = [
+        {
+            id: 'ck-correctness',
+            name: 'Correctness Verifier',
+            type: 'rule-based',
+            system: 'MedAgentBench',
+            environment: 'clinical',
+            envName: 'ClinKriya Clinic',
+            version: 1,
+            status: 'active',
+            usedInScenarios: ['Task 7 – Prolonged QT Management', 'Task 3 – Blood Pressure Recording', 'Task 8 – Orthopedic Referral', 'Task 10 – A1C Lab Order'],
+            description: 'Binary refsol pass/fail check against MedAgentBench reference solutions. Contributes up to 0.40 reward. Runs the task-specific grader (task3, task7, task8, task10) and awards full credit on pass.',
+            metadata: { type: 'rule-based', environment: 'ClinKriya Clinic', onFailure: 'partial_credit', timeout: '10s' },
+            logic: {
+                type: 'refsol_binary_grader',
+                checks: { refsol_pass: { weight: 0.4, grader: 'task_type_specific' } },
+                scoring: { pass: 0.4, fail: 0.0 }
+            },
+            subVerifiers: [
+                { id: 'ck-correctness-refsol', name: 'Reference Solution Match', description: 'Runs task-specific grader against agent answer', enabled: true },
+                { id: 'ck-correctness-partial', name: 'Partial Field Credit', description: 'Awards partial credit for correct FHIR fields', enabled: true }
+            ]
+        },
+        {
+            id: 'ck-structure',
+            name: 'FHIR Structure Verifier',
+            type: 'rule-based',
+            system: 'MedAgentBench',
+            environment: 'clinical',
+            envName: 'ClinKriya Clinic',
+            version: 1,
+            status: 'active',
+            usedInScenarios: ['Task 7 – Prolonged QT Management', 'Task 3 – Blood Pressure Recording', 'Task 8 – Orthopedic Referral', 'Task 10 – A1C Lab Order'],
+            description: 'Validates that the agent POSTed to the correct FHIR endpoint and used the right resourceType. Awards up to 0.20 reward: +0.05 for correct endpoint, +0.05 for correct resourceType, +0.10 for field-level partial credit.',
+            metadata: { type: 'rule-based', environment: 'ClinKriya Clinic', onFailure: 'partial_credit', timeout: '5s' },
+            logic: {
+                type: 'fhir_structural_validator',
+                checks: {
+                    endpoint_match: { expected: { task3: 'Observation', task8: 'ServiceRequest', task10: 'ServiceRequest' }, weight: 0.05 },
+                    resource_type: { must_match_endpoint: true, weight: 0.05 },
+                    field_partial_credit: { checker: 'task_type_field_checker', weight: 0.1 }
+                }
+            },
+            subVerifiers: [
+                { id: 'ck-struct-endpoint', name: 'Endpoint Check', description: 'POST URL targets correct FHIR resource endpoint', enabled: true },
+                { id: 'ck-struct-resource', name: 'ResourceType Check', description: 'Payload resourceType matches expected FHIR type', enabled: true },
+                { id: 'ck-struct-fields', name: 'Field-level Partial Credit', description: 'Scores individual required fields (status, code, date, value)', enabled: true }
+            ]
+        },
+        {
+            id: 'ck-patient-ref',
+            name: 'Patient Reference Verifier',
+            type: 'rule-based',
+            system: 'MedAgentBench',
+            environment: 'clinical',
+            envName: 'ClinKriya Clinic',
+            version: 1,
+            status: 'active',
+            usedInScenarios: ['Task 7 – Prolonged QT Management', 'Task 3 – Blood Pressure Recording', 'Task 8 – Orthopedic Referral', 'Task 10 – A1C Lab Order'],
+            description: 'Checks that the FHIR payload subject.reference matches the correct Patient/{MRN} for the task case. Awards 0.10 reward on match.',
+            metadata: { type: 'rule-based', environment: 'ClinKriya Clinic', onFailure: 'no_credit', timeout: '2s' },
+            logic: {
+                type: 'patient_mrn_validator',
+                checks: { subject_reference: { format: 'Patient/{eval_MRN}', weight: 0.1 } }
+            },
+            subVerifiers: [
+                { id: 'ck-patient-mrn', name: 'MRN Match', description: 'subject.reference must equal Patient/{case_data.eval_MRN}', enabled: true }
+            ]
+        },
+        {
+            id: 'ck-efficiency',
+            name: 'Efficiency Verifier',
+            type: 'trajectory-based',
+            system: 'MedAgentBench',
+            environment: 'clinical',
+            envName: 'ClinKriya Clinic',
+            version: 1,
+            status: 'active',
+            usedInScenarios: ['Task 7 – Prolonged QT Management', 'Task 8 – Orthopedic Referral', 'Task 10 – A1C Lab Order'],
+            description: 'Rewards agents that complete tasks in fewer steps. Score = 0.10 × (1 − step_count / max_steps). Max 8 steps per episode. Also penalises redundant GET calls beyond 3 (−0.05 per extra call).',
+            metadata: { type: 'trajectory-based', environment: 'ClinKriya Clinic', onFailure: 'penalty', timeout: '2s' },
+            logic: {
+                type: 'step_efficiency_scorer',
+                checks: {
+                    efficiency_bonus: { formula: '0.1 * max(0, 1 - step_count / max_steps)', max_steps: 8 },
+                    redundant_gets: { threshold: 3, penalty_per_extra: -0.05 }
+                }
+            },
+            subVerifiers: [
+                { id: 'ck-eff-steps', name: 'Step Count Bonus', description: 'Fewer steps → higher reward (up to 0.10)', enabled: true },
+                { id: 'ck-eff-gets', name: 'Redundant GET Penalty', description: '−0.05 per GET request beyond 3', enabled: true }
+            ]
+        },
+        {
+            id: 'ck-format',
+            name: 'Action Format Verifier',
+            type: 'rule-based',
+            system: 'MedAgentBench',
+            environment: 'clinical',
+            envName: 'ClinKriya Clinic',
+            version: 1,
+            status: 'active',
+            usedInScenarios: ['Task 7 – Prolonged QT Management', 'Task 3 – Blood Pressure Recording', 'Task 8 – Orthopedic Referral', 'Task 10 – A1C Lab Order'],
+            description: 'Validates that every agent action is a valid GET, POST, or FINISH call. Applies a −0.10 penalty once if any invalid action format is detected. Also awards +0.05 completion bonus when agent calls FINISH.',
+            metadata: { type: 'rule-based', environment: 'ClinKriya Clinic', onFailure: 'penalty', timeout: '2s' },
+            logic: {
+                type: 'action_format_validator',
+                checks: {
+                    valid_actions: { allowed: ['GET', 'POST', 'FINISH'], penalty: -0.1, once_per_episode: true },
+                    finish_bonus: { reward: 0.05, condition: 'agent_answer is not None' }
+                }
+            },
+            subVerifiers: [
+                { id: 'ck-fmt-action', name: 'Valid Action Format', description: 'Checks every agent message starts with GET / POST / FINISH', enabled: true },
+                { id: 'ck-fmt-finish', name: 'Completion Bonus', description: '+0.05 when agent explicitly calls FINISH', enabled: true }
+            ]
+        }
+    ];
+
     var ALL_VERIFIERS = [].concat(
         jiraVerifiers,
         adpVerifiers,
@@ -945,7 +1065,8 @@
         revenueVerifiers,
         populationHealthVerifiers,
         clinicalTrialsVerifiers,
-        hilVerifiers
+        hilVerifiers,
+        clinKriyaVerifiers
     );
 
     // ── System metadata ─────────────────────────────────────────────────
