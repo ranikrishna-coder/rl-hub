@@ -381,6 +381,238 @@
                         { check: 'Issue resolved', passed: true, detail: 'Issue moved to Done status' }
                     ]
                 }
+            },
+            {
+                id: 'run_grpo_sre_001',
+                job_id: 'run_grpo_sre_001',
+                name: 'train_sre_03_12',
+                description: 'GRPO + LoRA on OOMKilled scenario \u2014 K8s memory-limit remediation with Qwen3-0.6B',
+                status: 'completed',
+                environment: 'sre 24*7',
+                environmentDisplay: 'SRE 24*7',
+                category: 'dev-sim',
+                model: 'Qwen/Qwen3-0.6B',
+                algorithm: 'GRPO',
+                progress: 100,
+                started: 'Mar 12, 2026',
+                completed: 'Mar 12, 2026',
+                episodes: 20,
+                successRate: 100,
+                avgReward: 3.10,
+                baselineReward: 3.05,
+                results: {
+                    mean_reward: 3.10,
+                    max_reward: 3.05,
+                    min_reward: 1.25,
+                    total_episodes: 6,
+                    episodes_completed: 6,
+                    eval_episodes: 1,
+                    eval_resolve_rate: 1.0,
+                    training_mean_reward: 2.475,
+                    training_resolve_rate: 1.0
+                },
+                baseline_results: {
+                    mean_reward: 3.05,
+                    max_reward: 3.05,
+                    min_reward: 3.05,
+                    episodes: 3,
+                    resolve_rate: 0.667
+                },
+                model_saved: true,
+                model_url: 'outputs/k8s-sre-grpo-Qwen-Qwen3-0.6B-2026-03-11_00-35-44/checkpoint-10',
+                model_metadata: {
+                    job_id: 'run_grpo_sre_001',
+                    environment_name: 'sre 24*7',
+                    algorithm: 'GRPO',
+                    lora: true,
+                    lora_r: 16,
+                    num_epochs: 20,
+                    total_steps: 10,
+                    total_tokens: 143159,
+                    training_duration_s: 2897.6,
+                    group_size: 2,
+                    mean_reward: 2.475,
+                    eval_pass_rate: 1.0,
+                    eval_mean_reward: 3.10,
+                    training_completed: true,
+                    timestamp: '2026-03-12T01:24:24Z'
+                },
+                hil_required: false,
+                human_evaluations: [],
+                _training_metrics: {
+                    per_step: [
+                        { step: 1, epoch: 0.1, loss: -0.1456, reward_mean: 1.75, kl: 0.0, entropy: 0.343, grad_norm: 0.441, lr: 0.0, completion_len: 115.5 },
+                        { step: 2, epoch: 0.2, loss: 0.0, reward_mean: -0.30, kl: 0.0, entropy: 0.215, grad_norm: 0.0, lr: 1e-6, completion_len: 143.0 },
+                        { step: 3, epoch: 0.3, loss: 0.0, reward_mean: -0.95, kl: 0.001, entropy: 0.158, grad_norm: 0.007, lr: 2e-6, completion_len: 90.0 },
+                        { step: 4, epoch: 0.4, loss: 0.0, reward_mean: -0.55, kl: 0.001, entropy: 0.152, grad_norm: 0.007, lr: 1.92e-6, completion_len: 139.0 },
+                        { step: 5, epoch: 0.5, loss: 0.0, reward_mean: -0.55, kl: 0.002, entropy: 0.361, grad_norm: 0.006, lr: 1.71e-6, completion_len: 156.5 },
+                        { step: 6, epoch: 0.6, loss: 0.0, reward_mean: 0.25, kl: 0.001, entropy: 0.132, grad_norm: 0.004, lr: 1.38e-6, completion_len: 153.5 },
+                        { step: 7, epoch: 0.7, loss: 0.0, reward_mean: -0.95, kl: 0.001, entropy: 0.058, grad_norm: 0.003, lr: 1e-6, completion_len: 140.5 },
+                        { step: 8, epoch: 0.8, loss: 0.0139, reward_mean: -1.10, kl: 0.002, entropy: 0.193, grad_norm: 0.033, lr: 6.17e-7, completion_len: 108.5 },
+                        { step: 9, epoch: 0.9, loss: 0.0, reward_mean: 0.10, kl: 0.001, entropy: 0.082, grad_norm: 0.003, lr: 2.93e-7, completion_len: 164.5 },
+                        { step: 10, epoch: 1.0, loss: 0.0, reward_mean: 0.10, kl: 0.001, entropy: 0.198, grad_norm: 0.005, lr: 7.61e-8, completion_len: 91.0 }
+                    ],
+                    per_episode: [
+                        { episode: 1, reward: 2.55, diagnosis: -0.5, fix: 3.05 },
+                        { episode: 2, reward: -1.60, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 3, reward: -0.30, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 4, reward: -0.30, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 5, reward: -0.60, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 6, reward: -1.30, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 7, reward: -0.30, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 8, reward: -0.80, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 9, reward: -0.80, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 10, reward: -0.30, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 11, reward: 0.30, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 12, reward: -0.30, diagnosis: 0.0, fix: 0.5 },
+                        { episode: 13, reward: -0.80, diagnosis: -0.5, fix: 0.0 },
+                        { episode: 14, reward: -0.60, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 15, reward: -0.80, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 16, reward: -1.40, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 17, reward: -0.30, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 18, reward: 0.00, diagnosis: 0.0, fix: 0.5 },
+                        { episode: 19, reward: -0.30, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 20, reward: 0.10, diagnosis: 0.4, fix: 0.0 }
+                    ]
+                },
+                _mock_baseline_rollout: {
+                    id: 'bl_sre_001',
+                    environment_name: 'sre 24*7',
+                    episode_number: 0,
+                    total_reward: 3.05,
+                    total_steps: 2,
+                    status: 'completed',
+                    source: 'eval',
+                    policy_name: 'Qwen/Qwen3-0.6B',
+                    checkpoint_label: 'base',
+                    scenario_name: 'OOMKilled \u2014 payment-api pods in hackathon namespace',
+                    steps: [
+                        {
+                            step: 1, action: 'diagnose', reward: 0.0,
+                            timeline_events: [
+                                { timestamp_ms: 0, event_type: 'SYSTEM', content: 'CRITICAL: payment-api pods OOMKilled in hackathon namespace' },
+                                { timestamp_ms: 450, event_type: 'TOOL_CALL', tool_name: 'diagnose', tool_args: { text: 'OOMKilled for payment-api pods in namespace "hackathon"' } },
+                                { timestamp_ms: 680, event_type: 'TOOL_RESULT', content: 'Diagnosis submitted' }
+                            ]
+                        },
+                        {
+                            step: 2, action: 'set_resources', reward: 3.05,
+                            timeline_events: [
+                                { timestamp_ms: 900, event_type: 'MODEL_THOUGHT', content: 'OOMKilled means memory limit exceeded. Need to increase memory limits for the deployment.' },
+                                { timestamp_ms: 1200, event_type: 'TOOL_CALL', tool_name: 'set_resources', tool_args: { namespace: 'hackathon', deploymentName: 'payment-api', containerName: 'payment-api', memoryLimit: '128Mi' } },
+                                { timestamp_ms: 1500, event_type: 'TOOL_RESULT', content: 'Resources updated. 3/3 pods healthy. Incident resolved.' }
+                            ]
+                        }
+                    ],
+                    final_outcome: { reward: 3.05, steps: 2, resolved: true },
+                    final_environment_state: { fault_type: 'oom_kill', namespace: 'hackathon', deployment: 'payment-api', pods_healthy: true, incident_resolved: true },
+                    verifier_results: [
+                        { check: 'Diagnostic flow', passed: true, detail: 'diagnose() called with correct fault identification' },
+                        { check: 'Namespace correctness', passed: false, detail: 'Used hackathon namespace (not payments)' },
+                        { check: 'Fix command correctness', passed: true, detail: 'set_resources with correct memory limit applied' },
+                        { check: 'Pod health', passed: true, detail: '3/3 pods Running after fix' },
+                        { check: 'Repetition penalty', passed: true, detail: 'No repeated commands' }
+                    ]
+                },
+                _mock_trained_rollout: {
+                    id: 'tr_sre_001',
+                    environment_name: 'sre 24*7',
+                    episode_number: 8,
+                    total_reward: 3.10,
+                    total_steps: 2,
+                    status: 'completed',
+                    source: 'eval',
+                    policy_name: 'Qwen/Qwen3-0.6B',
+                    checkpoint_label: 'sre_grpo_step_10',
+                    scenario_name: 'OOMKilled \u2014 payment-api pods in payments namespace',
+                    steps: [
+                        {
+                            step: 1, action: 'diagnose', reward: 0.0,
+                            timeline_events: [
+                                { timestamp_ms: 0, event_type: 'SYSTEM', content: 'CRITICAL: payment-api pods OOMKilled in payments namespace' },
+                                { timestamp_ms: 320, event_type: 'TOOL_CALL', tool_name: 'diagnose', tool_args: { text: 'OOMKilled for payment-api in payments namespace \u2014 memory limit exceeded' } },
+                                { timestamp_ms: 510, event_type: 'TOOL_RESULT', content: 'Diagnosis submitted' }
+                            ]
+                        },
+                        {
+                            step: 2, action: 'set_resources', reward: 3.10,
+                            timeline_events: [
+                                { timestamp_ms: 650, event_type: 'MODEL_THOUGHT', content: 'OOMKilled \u2192 increase memory limits. kubectl set resources deployment/payment-api --limits=memory=256Mi -n payments' },
+                                { timestamp_ms: 880, event_type: 'TOOL_CALL', tool_name: 'set_resources', tool_args: { namespace: 'payments', deploymentName: 'payment-api', containerName: 'payment-api', memoryLimit: '256Mi' } },
+                                { timestamp_ms: 1100, event_type: 'TOOL_RESULT', content: 'Resources updated. 3/3 pods healthy. Incident resolved in 2 turns. Optimal memory limit chosen.' }
+                            ]
+                        }
+                    ],
+                    final_outcome: { reward: 3.10, steps: 2, resolved: true },
+                    final_environment_state: { fault_type: 'oom_kill', namespace: 'payments', deployment: 'payment-api', pods_healthy: true, incident_resolved: true },
+                    verifier_results: [
+                        { check: 'Diagnostic flow', passed: true, detail: 'diagnose() called with correct OOMKilled identification' },
+                        { check: 'Namespace correctness', passed: true, detail: 'Correct namespace: payments' },
+                        { check: 'Fix command correctness', passed: true, detail: 'set_resources with correct deployment and memory limit' },
+                        { check: 'Pod health', passed: true, detail: '3/3 pods Running after fix' },
+                        { check: 'Repetition penalty', passed: true, detail: 'No repeated commands' }
+                    ]
+                },
+                _episodes: [
+                    {
+                        epoch: 1, task_id: 'ImagePullBackOff_frontend', mean_reward: -0.125, pass_rate: 0.0,
+                        rollouts: [
+                            {
+                                idx: 0, reward: -0.125, pass: false, turns: 16, tools: ['diagnose', 'set_image', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status'],
+                                episode_rewards: { diagnostic_flow: 0.0, repetition_penalty: 0.0, pod_health: 0.0, namespace_correctness: 1.0, fix_command_correctness: 0.3 }
+                            }
+                        ]
+                    },
+                    {
+                        epoch: 2, task_id: 'OOMKilled_payments', mean_reward: 1.525, pass_rate: 100.0,
+                        rollouts: [
+                            {
+                                idx: 0, reward: 1.525, pass: true, turns: 2, tools: ['diagnose', 'set_resources'],
+                                episode_rewards: { diagnostic_flow: 0.1, repetition_penalty: 1.0, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 1.0 }
+                            }
+                        ]
+                    },
+                    {
+                        epoch: 4, task_id: 'OOMKilled_payments_v2', mean_reward: 1.275, pass_rate: 100.0,
+                        rollouts: [
+                            {
+                                idx: 0, reward: 1.275, pass: true, turns: 2, tools: ['diagnose', 'set_resources'],
+                                episode_rewards: { diagnostic_flow: 0.1, repetition_penalty: 1.0, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 0.8 }
+                            },
+                            {
+                                idx: 1, reward: 1.525, pass: true, turns: 2, tools: ['diagnose', 'set_resources'],
+                                episode_rewards: { diagnostic_flow: 0.1, repetition_penalty: 1.0, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 1.0 }
+                            }
+                        ]
+                    },
+                    {
+                        epoch: 6, task_id: 'OOMKilled_hackathon', mean_reward: 1.525, pass_rate: 100.0,
+                        rollouts: [
+                            {
+                                idx: 0, reward: 1.525, pass: true, turns: 2, tools: ['diagnose', 'set_resources'],
+                                episode_rewards: { diagnostic_flow: 0.1, repetition_penalty: 1.0, pod_health: 1.0, namespace_correctness: 0.0, fix_command_correctness: 1.0 }
+                            }
+                        ]
+                    },
+                    {
+                        epoch: 7, task_id: 'ImagePullBackOff_frontend_v2', mean_reward: 0.475, pass_rate: 100.0,
+                        rollouts: [
+                            {
+                                idx: 0, reward: 0.475, pass: true, turns: 5, tools: ['diagnose', 'get_pod_status', 'set_image', 'get_pod_status', 'get_pod_status'],
+                                episode_rewards: { diagnostic_flow: 0.3, repetition_penalty: 0.5, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 0.8 }
+                            }
+                        ]
+                    },
+                    {
+                        epoch: 8, task_id: 'OOMKilled_payments_v3', mean_reward: 1.525, pass_rate: 100.0,
+                        rollouts: [
+                            {
+                                idx: 0, reward: 1.525, pass: true, turns: 2, tools: ['diagnose', 'set_resources'],
+                                episode_rewards: { diagnostic_flow: 0.1, repetition_penalty: 1.0, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 1.0 }
+                            }
+                        ]
+                    }
+                ]
             }
         ],
 

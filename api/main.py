@@ -3517,6 +3517,17 @@ async def analyze_environment(name: str):
         except Exception:
             pass
 
+    # Inject HF metadata from the environment record so the frontend can build the iframe
+    if env_record:
+        for key in ("hf_url", "hf_owner", "hf_repo", "sdk", "source", "system", "category", "domain", "workflow"):
+            if key not in result or not result.get(key):
+                val = env_record.get(key)
+                if val:
+                    result[key] = val
+        # Also expose front_matter as frontMatter for frontend compat
+        if "front_matter" in result and "frontMatter" not in result:
+            result["frontMatter"] = result["front_matter"]
+
     return result
 
 
