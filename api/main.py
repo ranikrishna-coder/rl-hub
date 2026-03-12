@@ -332,12 +332,9 @@ class RolloutRecord(BaseModel):
 
 @app.get("/")
 async def root():
-    """Root endpoint - serves the landing page"""
-    static_dir = os.path.join(os.path.dirname(__file__), "static")
-    landing_path = os.path.join(static_dir, "landing.html")
-    if os.path.exists(landing_path):
-        return FileResponse(landing_path)
-    return {"message": "RL Environment & Agent API", "version": "1.0.0"}
+    """Root endpoint - redirect to environments catalog"""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/environments", status_code=302)
 
 
 @app.get("/environments")

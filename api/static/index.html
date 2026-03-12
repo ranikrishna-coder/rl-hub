@@ -237,6 +237,10 @@
                                 <label for="add-env-import-desc">Description</label>
                                 <input type="text" id="add-env-import-desc" placeholder="Brief description" maxlength="200">
                             </div>
+                            <div class="add-env-field">
+                                <label for="add-env-import-workflow">Workflow</label>
+                                <input type="text" id="add-env-import-workflow" placeholder="e.g. HR & Payroll, Jira, AI Assistant" maxlength="100">
+                            </div>
                         </div>
                         <div class="add-env-import-action-row">
                             <button type="button" class="btn btn-outline btn-small" onclick="clearEnvImport()">Clear</button>
@@ -373,7 +377,7 @@
     <script src="/static/verifier-data.js"></script>
     <script src="/static/training-config-data.js?v=4"></script>
     <script src="/static/rollout-comparison.js"></script>
-    <script src="/static/app.js?v=37"></script>
+    <script src="/static/app.js?v=38"></script>
     <script>
         function toggleTheme() {
             var current = document.documentElement.getAttribute('data-theme');

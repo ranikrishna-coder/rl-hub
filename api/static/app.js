@@ -6197,6 +6197,8 @@ function clearEnvImport() {
     if (urlInput) urlInput.value = '';
     var domainInput = document.getElementById('add-env-import-domain');
     if (domainInput) domainInput.value = '';
+    var workflowInput = document.getElementById('add-env-import-workflow');
+    if (workflowInput) workflowInput.value = '';
     _hfImportedMeta = null;
     // Reset source selector to HuggingFace
     _importSource = 'huggingface';
@@ -6216,10 +6218,12 @@ function submitImportedEnvironment() {
     var descInput = document.getElementById('add-env-import-desc');
     var urlInput = document.getElementById('add-env-import-path');
     var domainInput = document.getElementById('add-env-import-domain');
+    var workflowInput = document.getElementById('add-env-import-workflow');
     var name = nameInput ? nameInput.value.trim() : '';
     var desc = descInput ? descInput.value.trim() : '';
     var url = urlInput ? urlInput.value.trim() : '';
     var selectedDomain = domainInput ? domainInput.value : '';
+    var selectedWorkflow = workflowInput ? workflowInput.value.trim() : '';
 
     if (!name) {
         if (window.showToast) showToast('Please enter an environment name.', 'error');
@@ -6233,12 +6237,14 @@ function submitImportedEnvironment() {
     // Branch by import source
     if (_importSource === 'github' || _importSource === 'url') {
         // Direct import — no clone, just persist as custom env with source_url
+        // Use domain as category tag when provided; workflow from user input
         var newEnv = {
             name: name,
             description: desc || 'Imported from ' + (_importSource === 'github' ? 'GitHub' : 'URL'),
-            category: 'custom',
+            category: selectedDomain || 'custom',
             system: 'Custom',
             domain: selectedDomain || 'custom',
+            workflow: selectedWorkflow || '',
             sdk: 'custom',
             actions: [],
             source: _importSource,
@@ -6247,7 +6253,7 @@ function submitImportedEnvironment() {
         };
         environmentDetails[name] = generateEnvironmentDetails(newEnv);
         _addEnvironmentToGrid(newEnv);
-        // Persist (auto-classifies) then update local state
+        // Persist then classify — user-provided domain/workflow take precedence
         fetch(API_BASE + '/api/custom-environments', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -6261,10 +6267,11 @@ function submitImportedEnvironment() {
         }).then(function(r) { return r && r.ok ? r.json() : null; })
         .then(function(cls) {
             if (cls && cls.category) {
-                newEnv.category = cls.category;
-                newEnv.system = cls.system;
+                // Only use classifier results for fields the user didn't provide
+                newEnv.category = selectedDomain || cls.category;
+                newEnv.system = cls.system || 'Custom';
                 newEnv.domain = selectedDomain || cls.domain;
-                newEnv.workflow = cls.workflow;
+                newEnv.workflow = selectedWorkflow || cls.workflow;
                 newEnv.tags = cls.tags;
                 environmentDetails[name] = generateEnvironmentDetails(newEnv);
                 if (typeof filterEnvironments === 'function') {
@@ -6314,9 +6321,10 @@ function submitImportedEnvironment() {
         var newEnv = {
             name: name,
             description: desc || (data.description || 'Imported from HuggingFace'),
-            category: 'custom',
+            category: selectedDomain || 'custom',
             system: 'Custom',
             domain: selectedDomain || 'custom',
+            workflow: selectedWorkflow || '',
             sdk: data.sdk || (_hfImportedMeta ? _hfImportedMeta.sdk : 'gradio'),
             actions: [],
             source: 'huggingface',
@@ -6364,10 +6372,11 @@ function submitImportedEnvironment() {
                 }).then(function(r) { return r.ok ? r.json() : null; })
                 .then(function(cls) {
                     if (cls && cls.category) {
-                        newEnv.category = cls.category;
-                        newEnv.system = cls.system;
+                        // User-provided domain/workflow take precedence over classifier
+                        newEnv.category = selectedDomain || cls.category;
+                        newEnv.system = cls.system || 'Custom';
                         newEnv.domain = selectedDomain || cls.domain;
-                        newEnv.workflow = cls.workflow;
+                        newEnv.workflow = selectedWorkflow || cls.workflow;
                         newEnv.tags = cls.tags;
                         // Re-persist with classified fields
                         fetch(API_BASE + '/api/custom-environments', {
