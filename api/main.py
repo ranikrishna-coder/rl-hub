@@ -2013,8 +2013,10 @@ async def validate_all_environments():
 # VERIFIER ARCHITECTURE ENDPOINTS (CRUD + lifecycle)
 # ============================================================================
 
-# In-memory verifier definitions store (seeded from frontend verifier-data.js schema)
-_verifier_store: Dict[str, dict] = {}
+# SQLite-backed verifier definitions store
+from api.persistence import VerifierStore as _VerifierStoreClass
+_verifier_db = _VerifierStoreClass()
+_verifier_store: Dict[str, dict] = {v["id"]: v for v in _verifier_db.list_all() if v.get("id")}
 
 
 class VerifierDefinition(BaseModel):
@@ -2022,7 +2024,7 @@ class VerifierDefinition(BaseModel):
     id: Optional[str] = None
     name: str
     type: str  # rule-based, trajectory-based, llm-judge
-    system: str
+    system: str = "Custom"
     environment: str
     version: int = 1
     status: str = "active"
@@ -2046,20 +2048,25 @@ class VerifierConfigRequest(BaseModel):
 
 
 @app.get("/api/verifiers")
-async def list_verifier_definitions(system: Optional[str] = None, type: Optional[str] = None):
-    """List all verifier definitions with optional system/type filters"""
-    verifiers = list(_verifier_store.values())
+async def list_verifier_definitions(system: Optional[str] = None, type: Optional[str] = None, environment: Optional[str] = None):
+    """List all verifier definitions with optional system/type/environment filters"""
+    # Merge in-memory cache with DB (DB is source of truth after restart)
+    db_verifiers = {v["id"]: v for v in _verifier_db.list_all() if v.get("id")}
+    merged = {**db_verifiers, **_verifier_store}
+    verifiers = list(merged.values())
     if system:
         verifiers = [v for v in verifiers if v.get("system", "").lower() == system.lower()]
     if type:
         verifiers = [v for v in verifiers if v.get("type", "").lower() == type.lower()]
+    if environment:
+        verifiers = [v for v in verifiers if v.get("environment", "").lower() == environment.lower()]
     return {"verifiers": verifiers, "count": len(verifiers)}
 
 
 @app.get("/api/verifiers/{verifier_id}")
 async def get_verifier_definition(verifier_id: str):
     """Get a single verifier by ID"""
-    v = _verifier_store.get(verifier_id)
+    v = _verifier_store.get(verifier_id) or _verifier_db.get(verifier_id)
     if not v:
         raise HTTPException(status_code=404, detail=f"Verifier {verifier_id} not found")
     return v
@@ -2075,19 +2082,21 @@ async def create_verifier_definition(request: VerifierDefinition):
     vdata["version"] = 1
     vdata["status"] = "active"
     _verifier_store[vid] = vdata
+    _verifier_db.upsert(vid, vdata)
     return {"success": True, "verifier": vdata}
 
 
 @app.put("/api/verifiers/{verifier_id}")
 async def edit_verifier_definition(verifier_id: str, request: VerifierDefinition):
     """Edit a verifier (creates new immutable version with verifier_version++)"""
-    existing = _verifier_store.get(verifier_id)
+    existing = _verifier_store.get(verifier_id) or _verifier_db.get(verifier_id)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Verifier {verifier_id} not found")
     vdata = request.dict()
     vdata["id"] = verifier_id
     vdata["version"] = existing.get("version", 1) + 1
     _verifier_store[verifier_id] = vdata
+    _verifier_db.upsert(verifier_id, vdata)
     return {"success": True, "verifier": vdata}
 
 
@@ -2095,7 +2104,7 @@ async def edit_verifier_definition(verifier_id: str, request: VerifierDefinition
 async def duplicate_verifier(verifier_id: str):
     """Duplicate a verifier (new verifier_id, seeded from existing config)"""
     import uuid
-    existing = _verifier_store.get(verifier_id)
+    existing = _verifier_store.get(verifier_id) or _verifier_db.get(verifier_id)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Verifier {verifier_id} not found")
     new_id = f"dup-{uuid.uuid4().hex[:12]}"
@@ -2104,18 +2113,21 @@ async def duplicate_verifier(verifier_id: str):
     new_v["name"] = existing.get("name", "") + " (Copy)"
     new_v["version"] = 1
     _verifier_store[new_id] = new_v
+    _verifier_db.upsert(new_id, new_v)
     return {"success": True, "verifier": new_v}
 
 
 @app.patch("/api/verifiers/{verifier_id}/disable")
 async def disable_verifier(verifier_id: str):
     """Disable a verifier (prevents selection in new runs, preserves history)"""
-    existing = _verifier_store.get(verifier_id)
+    existing = _verifier_store.get(verifier_id) or _verifier_db.get(verifier_id)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Verifier {verifier_id} not found")
     current_status = existing.get("status", "active")
     new_status = "disabled" if current_status == "active" else "active"
     existing["status"] = new_status
+    _verifier_store[verifier_id] = existing
+    _verifier_db.upsert(verifier_id, existing)
     return {"success": True, "verifier_id": verifier_id, "status": new_status}
 
 
@@ -2666,7 +2678,7 @@ _SYSTEM_KEYWORDS = {
     "Oracle": ["oracle", "oracle cloud", "peoplesoft"],
     "Stripe": ["stripe", "stripe api"],
     "QuickBooks": ["quickbooks", "qbo", "intuit"],
-    "Kubernetes": ["kubernetes", "k8s", "kubectl", "helm"],
+    "Kubernetes": ["kubernetes", "k8s", "kubectl", "helm", "kube", "pod", "namespace", "deployment"],
     "AWS": ["aws", "amazon web services", "ec2", "s3", "lambda"],
     "Azure": ["azure", "microsoft azure"],
     "GCP": ["gcp", "google cloud"],
@@ -2746,7 +2758,7 @@ _DEEP_SYSTEM_SIGNALS = {
     "HuggingFace":    {"tags": ["huggingface", "diffusers"], "readme": ["hugging face", "huggingface.co"], "deps": ["diffusers", "huggingface-hub"], "files": []},
     "Stable Diffusion": {"tags": ["stable-diffusion", "diffusion"], "readme": ["stable diffusion", "sdxl", "sd model"], "deps": ["diffusers", "stable-diffusion"], "files": []},
     "LlamaIndex":     {"tags": ["llamaindex", "llama-index"], "readme": ["llamaindex", "llama_index", "llama index"], "deps": ["llama-index", "llama_index"], "files": []},
-    "Kubernetes":     {"tags": ["kubernetes", "k8s"], "readme": ["kubernetes", "k8s", "kubectl"], "deps": [], "files": ["deployment.yaml"]},
+    "Kubernetes":     {"tags": ["kubernetes", "k8s"], "readme": ["kubernetes", "k8s", "kubectl"], "deps": ["kubernetes", "kubectl"], "files": ["deployment.yaml", "k8s.yaml", "kube"]},
     "React":          {"tags": ["react"], "readme": ["react"], "deps": ["react", "react-dom"], "files": ["package.json"]},
     "Next.js":        {"tags": ["nextjs", "next.js"], "readme": ["next.js", "nextjs"], "deps": ["next"], "files": ["next.config.js", "next.config.mjs"]},
     "MedAgentBench":  {"tags": ["openenv", "medagentbench"], "readme": ["medagentbench", "medical agent", "med agent", "openenv"], "deps": ["openenv-core", "openenv"], "files": ["openenv.yaml"]},

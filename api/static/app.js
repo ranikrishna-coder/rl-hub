@@ -184,9 +184,9 @@ const CATEGORY_CONFIG_REGISTRY = {
             scenario_id: { type: 'select', options: ['default', 'in_progress_to_blocked', 'in_progress_to_done', 'create_subtask'], label: 'Scenario', default: 'default' }
         },
         trainingDefaults: { algorithm: 'SLM', episodes: 320, maxSteps: 50 },
-        descriptionTemplate: function(name, system) { return 'Jira workflow environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
-        whatItDoesTemplate: function(name) { return '<p>Validates the ' + formatEnvironmentName(name) + ' workflow using Jira API tool calls. The agent learns the correct sequence of API calls and valid parameters.</p>'; },
-        howToUseTemplate: function() { return '<p>Use action 0 for the correct next step. Run simulation or training to learn the optimal workflow sequence.</p>'; }
+        descriptionTemplate: function (name, system) { return 'Jira workflow environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function (name) { return '<p>Validates the ' + formatEnvironmentName(name) + ' workflow using Jira API tool calls. The agent learns the correct sequence of API calls and valid parameters.</p>'; },
+        howToUseTemplate: function () { return '<p>Use action 0 for the correct next step. Run simulation or training to learn the optimal workflow sequence.</p>'; }
     },
     clinical: {
         kpis: ['Risk Score', 'Pathway Length', 'Cost Effectiveness', 'Treatment Efficiency'],
@@ -197,9 +197,9 @@ const CATEGORY_CONFIG_REGISTRY = {
             initial_risk: { type: 'range', min: 0, max: 100, label: 'Initial Risk Score', default: 50 }
         },
         trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 1000 },
-        descriptionTemplate: function(name, system) { return 'Clinical environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
-        whatItDoesTemplate: function(name) { return '<p>Optimizes clinical decision-making for ' + formatEnvironmentName(name).toLowerCase() + '. The agent learns to balance clinical outcomes, efficiency, and cost-effectiveness.</p>'; },
-        howToUseTemplate: function() { return '<p>Configure patient parameters, select a training strategy, and run the simulation to optimize clinical workflows.</p>'; }
+        descriptionTemplate: function (name, system) { return 'Clinical environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function (name) { return '<p>Optimizes clinical decision-making for ' + formatEnvironmentName(name).toLowerCase() + '. The agent learns to balance clinical outcomes, efficiency, and cost-effectiveness.</p>'; },
+        howToUseTemplate: function () { return '<p>Configure patient parameters, select a training strategy, and run the simulation to optimize clinical workflows.</p>'; }
     },
     imaging: {
         kpis: ['Queue Length', 'Equipment Utilization', 'Urgent Orders Waiting', 'Throughput'],
@@ -211,9 +211,9 @@ const CATEGORY_CONFIG_REGISTRY = {
             xray_availability: { type: 'range', min: 0, max: 100, label: 'X-Ray Availability (%)', default: 80 }
         },
         trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 1000 },
-        descriptionTemplate: function(name, system) { return 'Imaging environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
-        whatItDoesTemplate: function(name) { return '<p>Optimizes imaging operations for ' + formatEnvironmentName(name).toLowerCase() + ', including scheduling, prioritization, and resource allocation.</p>'; },
-        howToUseTemplate: function() { return '<p>Configure imaging parameters such as queue size and equipment availability, then run simulations to optimize workflows.</p>'; }
+        descriptionTemplate: function (name, system) { return 'Imaging environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function (name) { return '<p>Optimizes imaging operations for ' + formatEnvironmentName(name).toLowerCase() + ', including scheduling, prioritization, and resource allocation.</p>'; },
+        howToUseTemplate: function () { return '<p>Configure imaging parameters such as queue size and equipment availability, then run simulations to optimize workflows.</p>'; }
     },
     revenue_cycle: {
         kpis: ['Denial Rate', 'Collection Rate', 'Claims Processed', 'Revenue Leakage'],
@@ -224,9 +224,9 @@ const CATEGORY_CONFIG_REGISTRY = {
             avg_claim_value: { type: 'number', min: 50, max: 50000, label: 'Avg Claim Value ($)', default: 500 }
         },
         trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 1000 },
-        descriptionTemplate: function(name, system) { return 'Revenue cycle environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
-        whatItDoesTemplate: function(name) { return '<p>Optimizes revenue cycle operations for ' + formatEnvironmentName(name).toLowerCase() + ', including claims processing, denial management, and collections.</p>'; },
-        howToUseTemplate: function() { return '<p>Configure claim parameters, then run simulations to optimize revenue cycle performance.</p>'; }
+        descriptionTemplate: function (name, system) { return 'Revenue cycle environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function (name) { return '<p>Optimizes revenue cycle operations for ' + formatEnvironmentName(name).toLowerCase() + ', including claims processing, denial management, and collections.</p>'; },
+        howToUseTemplate: function () { return '<p>Configure claim parameters, then run simulations to optimize revenue cycle performance.</p>'; }
     },
     financial: {
         kpis: ['Sharpe Ratio', 'Total Return', 'Max Drawdown', 'Portfolio Value'],
@@ -237,9 +237,9 @@ const CATEGORY_CONFIG_REGISTRY = {
             max_position: { type: 'range', min: 0.1, max: 2.0, label: 'Max Position Size', default: 1.0 }
         },
         trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 1500 },
-        descriptionTemplate: function(name, system) { return 'Financial trading environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
-        whatItDoesTemplate: function(name) { return '<p>Optimizes financial trading strategies for ' + formatEnvironmentName(name).toLowerCase() + ', including risk-adjusted returns, portfolio optimization, and hedging.</p>'; },
-        howToUseTemplate: function() { return '<p>Configure trading parameters such as initial balance and transaction costs, then run simulations to optimize trading strategies.</p>'; }
+        descriptionTemplate: function (name, system) { return 'Financial trading environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function (name) { return '<p>Optimizes financial trading strategies for ' + formatEnvironmentName(name).toLowerCase() + ', including risk-adjusted returns, portfolio optimization, and hedging.</p>'; },
+        howToUseTemplate: function () { return '<p>Configure trading parameters such as initial balance and transaction costs, then run simulations to optimize trading strategies.</p>'; }
     },
     hr_payroll: {
         kpis: ['Processing Time', 'Compliance Rate', 'Error Rate', 'Employee Satisfaction'],
@@ -250,9 +250,9 @@ const CATEGORY_CONFIG_REGISTRY = {
             compliance_threshold: { type: 'range', min: 80, max: 100, label: 'Compliance Threshold (%)', default: 95 }
         },
         trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 500 },
-        descriptionTemplate: function(name, system) { return 'HR & Payroll environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
-        whatItDoesTemplate: function(name) { return '<p>Optimizes HR and payroll operations for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
-        howToUseTemplate: function() { return '<p>Configure employee and payroll parameters, then run simulations to optimize HR workflows.</p>'; }
+        descriptionTemplate: function (name, system) { return 'HR & Payroll environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function (name) { return '<p>Optimizes HR and payroll operations for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
+        howToUseTemplate: function () { return '<p>Configure employee and payroll parameters, then run simulations to optimize HR workflows.</p>'; }
     },
     telehealth: {
         kpis: ['Wait Time', 'Provider Utilization', 'Visit Completion Rate', 'Patient Satisfaction'],
@@ -263,9 +263,9 @@ const CATEGORY_CONFIG_REGISTRY = {
             max_queue: { type: 'number', min: 1, max: 200, label: 'Max Queue Size', default: 20 }
         },
         trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 500 },
-        descriptionTemplate: function(name, system) { return 'Telehealth environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
-        whatItDoesTemplate: function(name) { return '<p>Optimizes telehealth operations for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
-        howToUseTemplate: function() { return '<p>Configure telehealth parameters such as provider count and visit duration, then run simulations.</p>'; }
+        descriptionTemplate: function (name, system) { return 'Telehealth environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function (name) { return '<p>Optimizes telehealth operations for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
+        howToUseTemplate: function () { return '<p>Configure telehealth parameters such as provider count and visit duration, then run simulations.</p>'; }
     },
     population_health: {
         kpis: ['High Risk Identified', 'Patients Stratified', 'Intervention Coverage', 'Cost per Member'],
@@ -276,9 +276,9 @@ const CATEGORY_CONFIG_REGISTRY = {
             intervention_budget: { type: 'number', min: 1000, max: 10000000, label: 'Budget ($)', default: 50000 }
         },
         trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 1000 },
-        descriptionTemplate: function(name, system) { return 'Population health environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
-        whatItDoesTemplate: function(name) { return '<p>Optimizes population health management for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
-        howToUseTemplate: function() { return '<p>Configure population parameters and run simulations to optimize health strategies.</p>'; }
+        descriptionTemplate: function (name, system) { return 'Population health environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function (name) { return '<p>Optimizes population health management for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
+        howToUseTemplate: function () { return '<p>Configure population parameters and run simulations to optimize health strategies.</p>'; }
     },
     clinical_trials: {
         kpis: ['Enrollment Rate', 'Protocol Compliance', 'Trial Duration', 'Data Quality'],
@@ -289,9 +289,9 @@ const CATEGORY_CONFIG_REGISTRY = {
             trial_duration_months: { type: 'number', min: 1, max: 120, label: 'Duration (months)', default: 12 }
         },
         trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 1000 },
-        descriptionTemplate: function(name, system) { return 'Clinical trials environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
-        whatItDoesTemplate: function(name) { return '<p>Optimizes clinical trial operations for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
-        howToUseTemplate: function() { return '<p>Configure trial parameters such as enrollment targets and site count, then run simulations.</p>'; }
+        descriptionTemplate: function (name, system) { return 'Clinical trials environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function (name) { return '<p>Optimizes clinical trial operations for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
+        howToUseTemplate: function () { return '<p>Configure trial parameters such as enrollment targets and site count, then run simulations.</p>'; }
     },
     hospital_operations: {
         kpis: ['Staff Utilization', 'Occupancy Rate', 'Queue Length', 'Revenue'],
@@ -302,9 +302,9 @@ const CATEGORY_CONFIG_REGISTRY = {
             avg_los: { type: 'number', min: 1, max: 30, label: 'Avg Length of Stay (days)', default: 3 }
         },
         trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 1000 },
-        descriptionTemplate: function(name, system) { return 'Hospital operations environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
-        whatItDoesTemplate: function(name) { return '<p>Optimizes hospital operations for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
-        howToUseTemplate: function() { return '<p>Configure hospital parameters such as bed count and staffing, then run simulations.</p>'; }
+        descriptionTemplate: function (name, system) { return 'Hospital operations environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function (name) { return '<p>Optimizes hospital operations for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
+        howToUseTemplate: function () { return '<p>Configure hospital parameters such as bed count and staffing, then run simulations.</p>'; }
     },
     interoperability: {
         kpis: ['Data Quality', 'Records Reconciled', 'Reconciliation Cost', 'Exchange Efficiency'],
@@ -315,9 +315,9 @@ const CATEGORY_CONFIG_REGISTRY = {
             error_rate: { type: 'range', min: 0, max: 50, label: 'Error Rate (%)', default: 5 }
         },
         trainingDefaults: { algorithm: 'PPO', episodes: 100, maxSteps: 500 },
-        descriptionTemplate: function(name, system) { return 'Interoperability environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
-        whatItDoesTemplate: function(name) { return '<p>Optimizes data interoperability for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
-        howToUseTemplate: function() { return '<p>Configure data exchange parameters, then run simulations to optimize interoperability.</p>'; }
+        descriptionTemplate: function (name, system) { return 'Interoperability environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function (name) { return '<p>Optimizes data interoperability for ' + formatEnvironmentName(name).toLowerCase() + '.</p>'; },
+        howToUseTemplate: function () { return '<p>Configure data exchange parameters, then run simulations to optimize interoperability.</p>'; }
     },
     cross_workflow: {
         kpis: ['Journey Score', 'Risk Score', 'Journey Length', 'Journey Cost'],
@@ -328,9 +328,9 @@ const CATEGORY_CONFIG_REGISTRY = {
             optimization_target: { type: 'select', options: ['speed', 'quality', 'cost', 'balanced'], label: 'Optimization Target', default: 'balanced' }
         },
         trainingDefaults: { algorithm: 'PPO', episodes: 200, maxSteps: 2000 },
-        descriptionTemplate: function(name, system) { return 'Cross-workflow environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
-        whatItDoesTemplate: function(name) { return '<p>Multi-agent optimization for ' + formatEnvironmentName(name).toLowerCase() + ' across multiple workflows.</p>'; },
-        howToUseTemplate: function() { return '<p>Configure cross-workflow parameters and run simulations to optimize end-to-end processes.</p>'; }
+        descriptionTemplate: function (name, system) { return 'Cross-workflow environment for ' + formatEnvironmentName(name).toLowerCase() + ' using ' + system + '.'; },
+        whatItDoesTemplate: function (name) { return '<p>Multi-agent optimization for ' + formatEnvironmentName(name).toLowerCase() + ' across multiple workflows.</p>'; },
+        howToUseTemplate: function () { return '<p>Configure cross-workflow parameters and run simulations to optimize end-to-end processes.</p>'; }
     }
 };
 
@@ -343,96 +343,96 @@ const SDK_TRAINING_DEFAULTS = {
 
 const SDK_TEMPLATES = {
     gradio: [
-        { id: 'blank',          name: 'Blank',            logo: '',    color: '#9ca3af', blank: true },
-        { id: 'audio-class',    name: 'Audio Classification', logo: 'https://cdn.simpleicons.org/gradio/F97316', color: '#f97316' },
-        { id: 'chatbot',        name: 'Chatbot',          logo: 'https://cdn.simpleicons.org/gradio/F59E0B', color: '#f59e0b' },
-        { id: 'diffusion',      name: 'Diffusion',        logo: 'https://cdn.simpleicons.org/gradio/8B5CF6', color: '#8b5cf6' },
-        { id: 'image-class',    name: 'Image Classification', logo: 'https://cdn.simpleicons.org/gradio/06B6D4', color: '#06b6d4' },
-        { id: 'leaderboard',    name: 'Leaderboard',      logo: 'https://cdn.simpleicons.org/gradio/EAB308', color: '#eab308' },
-        { id: 'text-to-image',  name: 'Text to Image',    logo: 'https://cdn.simpleicons.org/gradio/A855F7', color: '#a855f7' },
-        { id: 'trackio',        name: 'Trackio',          logo: 'https://cdn.simpleicons.org/gradio/EC4899', color: '#ec4899' }
+        { id: 'blank', name: 'Blank', logo: '', color: '#9ca3af', blank: true },
+        { id: 'audio-class', name: 'Audio Classification', logo: 'https://cdn.simpleicons.org/gradio/F97316', color: '#f97316' },
+        { id: 'chatbot', name: 'Chatbot', logo: 'https://cdn.simpleicons.org/gradio/F59E0B', color: '#f59e0b' },
+        { id: 'diffusion', name: 'Diffusion', logo: 'https://cdn.simpleicons.org/gradio/8B5CF6', color: '#8b5cf6' },
+        { id: 'image-class', name: 'Image Classification', logo: 'https://cdn.simpleicons.org/gradio/06B6D4', color: '#06b6d4' },
+        { id: 'leaderboard', name: 'Leaderboard', logo: 'https://cdn.simpleicons.org/gradio/EAB308', color: '#eab308' },
+        { id: 'text-to-image', name: 'Text to Image', logo: 'https://cdn.simpleicons.org/gradio/A855F7', color: '#a855f7' },
+        { id: 'trackio', name: 'Trackio', logo: 'https://cdn.simpleicons.org/gradio/EC4899', color: '#ec4899' }
     ],
     docker: [
-        { id: 'blank',        name: 'Blank',            logo: '',    color: '#9ca3af', blank: true },
-        { id: 'aimstack',     name: 'AimStack',         logo: 'https://cdn.simpleicons.org/aim/7C3AED',        color: '#7c3aed' },
-        { id: 'argilla',      name: 'Argilla',          logo: 'https://cdn.simpleicons.org/argilla/00BCD4',    color: '#00bcd4' },
-        { id: 'chatui',       name: 'ChatUI',           logo: 'https://cdn.simpleicons.org/huggingface/FFD21E', color: '#ffd21e' },
-        { id: 'comfyui',      name: 'ComfyUI',          logo: 'https://cdn.simpleicons.org/comfyui/228B22',    color: '#228b22' },
-        { id: 'evidence',     name: 'Evidence',          logo: 'https://cdn.simpleicons.org/evidence/43A047',  color: '#43a047' },
-        { id: 'giskard',      name: 'Giskard',           logo: 'https://cdn.simpleicons.org/giskard/5C6BC0',  color: '#5c6bc0' },
-        { id: 'jupyterlab',   name: 'JupyterLab',        logo: 'https://cdn.simpleicons.org/jupyter/F57C00',  color: '#f57c00' },
-        { id: 'labelstudio',  name: 'Label Studio',      logo: 'https://cdn.simpleicons.org/labelstudio/FF6D00', color: '#ff6d00' },
-        { id: 'langfuse',     name: 'Langfuse',           logo: 'https://cdn.simpleicons.org/langfuse/EF5350', color: '#ef5350' },
-        { id: 'livebook',     name: 'Livebook',           logo: 'https://cdn.simpleicons.org/livebook/84CC16', color: '#84cc16' },
-        { id: 'marimo',       name: 'marimo',             logo: 'https://cdn.simpleicons.org/marimo/00ACC1',   color: '#00acc1' },
-        { id: 'mlflow',       name: 'MLflow',             logo: 'https://cdn.simpleicons.org/mlflow/0194E2',   color: '#0194e2' },
-        { id: 'panel',        name: 'Panel',              logo: 'https://cdn.simpleicons.org/holoviz/66BB6A',  color: '#66bb6a' },
-        { id: 'plotly',       name: 'Plotly Dash',        logo: 'https://cdn.simpleicons.org/plotly/3F4F75',   color: '#3f4f75' },
-        { id: 'quarto',       name: 'Quarto',             logo: 'https://cdn.simpleicons.org/quarto/4A90D9',   color: '#4a90d9' },
-        { id: 'shiny-py',     name: 'Shiny (Python)',     logo: 'https://cdn.simpleicons.org/rstudio/75AADB',  color: '#75aadb' },
-        { id: 'shiny-r',      name: 'Shiny (R)',          logo: 'https://cdn.simpleicons.org/r/276DC3',        color: '#276dc3' },
-        { id: 'streamlit',    name: 'Streamlit',          logo: 'https://cdn.simpleicons.org/streamlit/FF4B4B', color: '#ff4b4b' },
-        { id: 'tensorboard',  name: 'TensorBoard',        logo: 'https://cdn.simpleicons.org/tensorflow/FF6F00', color: '#ff6f00' },
-        { id: 'wandb',        name: 'W&B',                logo: 'https://cdn.simpleicons.org/weightsandbiases/FFBE00', color: '#ffbe00' },
-        { id: 'zenml',        name: 'ZenML',              logo: 'https://cdn.simpleicons.org/zenml/7C3AED',    color: '#7c3aed' }
+        { id: 'blank', name: 'Blank', logo: '', color: '#9ca3af', blank: true },
+        { id: 'aimstack', name: 'AimStack', logo: 'https://cdn.simpleicons.org/aim/7C3AED', color: '#7c3aed' },
+        { id: 'argilla', name: 'Argilla', logo: 'https://cdn.simpleicons.org/argilla/00BCD4', color: '#00bcd4' },
+        { id: 'chatui', name: 'ChatUI', logo: 'https://cdn.simpleicons.org/huggingface/FFD21E', color: '#ffd21e' },
+        { id: 'comfyui', name: 'ComfyUI', logo: 'https://cdn.simpleicons.org/comfyui/228B22', color: '#228b22' },
+        { id: 'evidence', name: 'Evidence', logo: 'https://cdn.simpleicons.org/evidence/43A047', color: '#43a047' },
+        { id: 'giskard', name: 'Giskard', logo: 'https://cdn.simpleicons.org/giskard/5C6BC0', color: '#5c6bc0' },
+        { id: 'jupyterlab', name: 'JupyterLab', logo: 'https://cdn.simpleicons.org/jupyter/F57C00', color: '#f57c00' },
+        { id: 'labelstudio', name: 'Label Studio', logo: 'https://cdn.simpleicons.org/labelstudio/FF6D00', color: '#ff6d00' },
+        { id: 'langfuse', name: 'Langfuse', logo: 'https://cdn.simpleicons.org/langfuse/EF5350', color: '#ef5350' },
+        { id: 'livebook', name: 'Livebook', logo: 'https://cdn.simpleicons.org/livebook/84CC16', color: '#84cc16' },
+        { id: 'marimo', name: 'marimo', logo: 'https://cdn.simpleicons.org/marimo/00ACC1', color: '#00acc1' },
+        { id: 'mlflow', name: 'MLflow', logo: 'https://cdn.simpleicons.org/mlflow/0194E2', color: '#0194e2' },
+        { id: 'panel', name: 'Panel', logo: 'https://cdn.simpleicons.org/holoviz/66BB6A', color: '#66bb6a' },
+        { id: 'plotly', name: 'Plotly Dash', logo: 'https://cdn.simpleicons.org/plotly/3F4F75', color: '#3f4f75' },
+        { id: 'quarto', name: 'Quarto', logo: 'https://cdn.simpleicons.org/quarto/4A90D9', color: '#4a90d9' },
+        { id: 'shiny-py', name: 'Shiny (Python)', logo: 'https://cdn.simpleicons.org/rstudio/75AADB', color: '#75aadb' },
+        { id: 'shiny-r', name: 'Shiny (R)', logo: 'https://cdn.simpleicons.org/r/276DC3', color: '#276dc3' },
+        { id: 'streamlit', name: 'Streamlit', logo: 'https://cdn.simpleicons.org/streamlit/FF4B4B', color: '#ff4b4b' },
+        { id: 'tensorboard', name: 'TensorBoard', logo: 'https://cdn.simpleicons.org/tensorflow/FF6F00', color: '#ff6f00' },
+        { id: 'wandb', name: 'W&B', logo: 'https://cdn.simpleicons.org/weightsandbiases/FFBE00', color: '#ffbe00' },
+        { id: 'zenml', name: 'ZenML', logo: 'https://cdn.simpleicons.org/zenml/7C3AED', color: '#7c3aed' }
     ],
     static: [
-        { id: 'blank',           name: 'Blank',             logo: '',    color: '#9ca3af', blank: true },
-        { id: 'angular',         name: 'Angular',            logo: 'https://cdn.simpleicons.org/angular/DD0031',     color: '#dd0031' },
-        { id: 'gradio-lite',     name: 'Gradio-Lite',        logo: 'https://cdn.simpleicons.org/gradio/F59E0B',     color: '#f59e0b' },
-        { id: 'nextjs',          name: 'Next.js',            logo: 'https://cdn.simpleicons.org/nextdotjs/000000',   color: '#000000' },
-        { id: 'paper-project',   name: 'Paper Project',      logo: 'https://cdn.simpleicons.org/files/78909C',      color: '#78909c' },
-        { id: 'preact',          name: 'Preact',             logo: 'https://cdn.simpleicons.org/preact/673AB8',      color: '#673ab8' },
-        { id: 'react',           name: 'React',              logo: 'https://cdn.simpleicons.org/react/61DAFB',      color: '#61dafb' },
-        { id: 'solid',           name: 'SolidJS',            logo: 'https://cdn.simpleicons.org/solid/2C4F7C',      color: '#2c4f7c' },
-        { id: 'svelte',          name: 'Svelte',             logo: 'https://cdn.simpleicons.org/svelte/FF3E00',     color: '#ff3e00' },
-        { id: 'transformers-js', name: 'Transformers.js',    logo: 'https://cdn.simpleicons.org/huggingface/FFD21E', color: '#ffd21e' },
-        { id: 'vue',             name: 'Vue',                logo: 'https://cdn.simpleicons.org/vuedotjs/4FC08D',   color: '#4fc08d' }
+        { id: 'blank', name: 'Blank', logo: '', color: '#9ca3af', blank: true },
+        { id: 'angular', name: 'Angular', logo: 'https://cdn.simpleicons.org/angular/DD0031', color: '#dd0031' },
+        { id: 'gradio-lite', name: 'Gradio-Lite', logo: 'https://cdn.simpleicons.org/gradio/F59E0B', color: '#f59e0b' },
+        { id: 'nextjs', name: 'Next.js', logo: 'https://cdn.simpleicons.org/nextdotjs/000000', color: '#000000' },
+        { id: 'paper-project', name: 'Paper Project', logo: 'https://cdn.simpleicons.org/files/78909C', color: '#78909c' },
+        { id: 'preact', name: 'Preact', logo: 'https://cdn.simpleicons.org/preact/673AB8', color: '#673ab8' },
+        { id: 'react', name: 'React', logo: 'https://cdn.simpleicons.org/react/61DAFB', color: '#61dafb' },
+        { id: 'solid', name: 'SolidJS', logo: 'https://cdn.simpleicons.org/solid/2C4F7C', color: '#2c4f7c' },
+        { id: 'svelte', name: 'Svelte', logo: 'https://cdn.simpleicons.org/svelte/FF3E00', color: '#ff3e00' },
+        { id: 'transformers-js', name: 'Transformers.js', logo: 'https://cdn.simpleicons.org/huggingface/FFD21E', color: '#ffd21e' },
+        { id: 'vue', name: 'Vue', logo: 'https://cdn.simpleicons.org/vuedotjs/4FC08D', color: '#4fc08d' }
     ],
     custom: null
 };
 
 const DEFAULT_TERRAFORM_TEMPLATE = '# Welcome to Centific RL Environment & Agent - Terraform Template\n' +
-'# This template provisions a small web application for\n' +
-'# exploring reinforcement learning concepts.\n\n' +
-'terraform {\n' +
-'  required_providers {\n' +
-'    docker = {\n' +
-'      source  = "kreuzwerker/docker"\n' +
-'      version = "~> 3.0"\n' +
-'    }\n' +
-'  }\n' +
-'}\n\n' +
-'provider "docker" {}\n\n' +
-'resource "docker_image" "rl_app" {\n' +
-'  name = "rl-intro-app:latest"\n' +
-'  build {\n' +
-'    context    = "${path.module}/app"\n' +
-'    dockerfile = "Dockerfile"\n' +
-'  }\n' +
-'}\n\n' +
-'resource "docker_container" "rl_app" {\n' +
-'  name  = "rl-intro-app"\n' +
-'  image = docker_image.rl_app.image_id\n\n' +
-'  ports {\n' +
-'    internal = 7860\n' +
-'    external = 7860\n' +
-'  }\n\n' +
-'  env = [\n' +
-'    "APP_TITLE=Intro to Reinforcement Learning",\n' +
-'    "ENV_TYPE=custom",\n' +
-'    "GRID_SIZE=5",\n' +
-'    "MAX_STEPS=100"\n' +
-'  ]\n\n' +
-'  volumes {\n' +
-'    host_path      = "${path.cwd}/data"\n' +
-'    container_path = "/app/data"\n' +
-'  }\n' +
-'}\n\n' +
-'output "app_url" {\n' +
-'  value       = "http://localhost:7860"\n' +
-'  description = "URL for the Intro to RL web app"\n' +
-'}\n';
+    '# This template provisions a small web application for\n' +
+    '# exploring reinforcement learning concepts.\n\n' +
+    'terraform {\n' +
+    '  required_providers {\n' +
+    '    docker = {\n' +
+    '      source  = "kreuzwerker/docker"\n' +
+    '      version = "~> 3.0"\n' +
+    '    }\n' +
+    '  }\n' +
+    '}\n\n' +
+    'provider "docker" {}\n\n' +
+    'resource "docker_image" "rl_app" {\n' +
+    '  name = "rl-intro-app:latest"\n' +
+    '  build {\n' +
+    '    context    = "${path.module}/app"\n' +
+    '    dockerfile = "Dockerfile"\n' +
+    '  }\n' +
+    '}\n\n' +
+    'resource "docker_container" "rl_app" {\n' +
+    '  name  = "rl-intro-app"\n' +
+    '  image = docker_image.rl_app.image_id\n\n' +
+    '  ports {\n' +
+    '    internal = 7860\n' +
+    '    external = 7860\n' +
+    '  }\n\n' +
+    '  env = [\n' +
+    '    "APP_TITLE=Intro to Reinforcement Learning",\n' +
+    '    "ENV_TYPE=custom",\n' +
+    '    "GRID_SIZE=5",\n' +
+    '    "MAX_STEPS=100"\n' +
+    '  ]\n\n' +
+    '  volumes {\n' +
+    '    host_path      = "${path.cwd}/data"\n' +
+    '    container_path = "/app/data"\n' +
+    '  }\n' +
+    '}\n\n' +
+    'output "app_url" {\n' +
+    '  value       = "http://localhost:7860"\n' +
+    '  description = "URL for the Intro to RL web app"\n' +
+    '}\n';
 
 const HARDWARE_TRAINING_DEFAULTS = {
     'cpu-basic': { batchSize: 64, note: '2 vCPU / 16 GB' },
@@ -543,7 +543,7 @@ function applyJourneyFromUrl() {
         if (subtitle) subtitle.textContent = 'Select a workflow area for ' + (industry === 'enterprise' ? 'enterprise apps' : industry === 'human_resources' ? 'human resources' : industry) + '.';
         var container = document.getElementById('journey-persona-cards');
         if (container) {
-            var links = JOURNEY_PERSONAS[industry].map(function(p) {
+            var links = JOURNEY_PERSONAS[industry].map(function (p) {
                 var url = '/environments?industry=' + encodeURIComponent(industry) + '&persona=' + encodeURIComponent(p.id);
                 return '<a href="' + url + '" class="journey-card"><span class="journey-card-icon">' + (p.id === 'all' ? '📂' : '👤') + '</span><h2>' + p.label + '</h2><p>' + (p.desc || '') + '</p></a>';
             });
@@ -579,7 +579,7 @@ function applyIndustryPersonaFilter() {
 }
 
 // Initialize
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     applyJourneyFromUrl();
     setupEventListeners();
 });
@@ -588,7 +588,7 @@ async function loadEnvironments() {
     try {
         const response = await fetch(`${API_BASE}/api/environments`);
         if (!response.ok) throw new Error('Failed to load environments');
-        
+
         const data = await response.json();
         allEnvironments = data.environments || [];
 
@@ -598,7 +598,7 @@ async function loadEnvironments() {
             if (customRes.ok) {
                 const customData = await customRes.json();
                 const existingNames = new Set(allEnvironments.map(e => e.name));
-                (customData.environments || []).forEach(function(ce) {
+                (customData.environments || []).forEach(function (ce) {
                     if (!existingNames.has(ce.name)) {
                         var envEntry = {
                             name: ce.name,
@@ -641,10 +641,10 @@ async function loadEnvironments() {
                                 readme: ''
                             };
                             // Asynchronously enrich with analysis data
-                            (function(eName) {
+                            (function (eName) {
                                 fetch(API_BASE + '/api/environment/' + encodeURIComponent(eName) + '/analyze')
-                                    .then(function(r) { return r.ok ? r.json() : null; })
-                                    .then(function(analysis) {
+                                    .then(function (r) { return r.ok ? r.json() : null; })
+                                    .then(function (analysis) {
                                         if (analysis && environmentDetails[eName]) {
                                             environmentDetails[eName].readme = analysis.readme_raw || '';
                                             environmentDetails[eName].files = analysis.files || [];
@@ -652,7 +652,7 @@ async function loadEnvironments() {
                                             environmentDetails[eName].models = analysis.models || {};
                                             environmentDetails[eName].frontMatter = analysis.front_matter || {};
                                         }
-                                    }).catch(function() {});
+                                    }).catch(function () { });
                             })(ce.name);
                         } else {
                             var generated = generateEnvironmentDetails(envEntry);
@@ -721,17 +721,17 @@ async function loadEnvironments() {
             };
             console.log('Added ClinKriya Clinic to catalog (fallback)');
         }
-        
+
         // Enhance with details - generate unique descriptions for each environment
         allEnvironments = allEnvironments.map(env => {
             // Always generate description - ignore any from API
             const generatedDescription = environmentDetails[env.name]?.description || getEnvironmentDescription(env.name, env.category || 'other');
-            
+
             // Debug: Log if description is still generic (for troubleshooting)
             if (generatedDescription && generatedDescription.includes('RL environment for optimization')) {
                 console.warn(`⚠️ Generic description detected for ${env.name}, using generated description`);
             }
-            
+
             return {
                 ...env,
                 ...(environmentDetails[env.name] || {}),
@@ -744,7 +744,7 @@ async function loadEnvironments() {
         });
 
         // Apply domain/workflow overrides for specific environments
-        allEnvironments.forEach(function(env) {
+        allEnvironments.forEach(function (env) {
             var ovr = ENV_DOMAIN_OVERRIDES[env.name];
             if (ovr) {
                 if (ovr.domain) env.domain = ovr.domain;
@@ -758,7 +758,7 @@ async function loadEnvironments() {
         if (sampleEnv) {
             console.log(`📝 Sample: ${sampleEnv.name} - Description: ${sampleEnv.description?.substring(0, 60)}...`);
         }
-        
+
         // Calculate and update stats dynamically (exclude hidden environments)
         const totalEnvs = allEnvironments.filter(e => HIDDEN_ENV_NAMES.indexOf(e.name) === -1).length;
         const categories = new Set(allEnvironments.map(e => e.category || 'unknown'));
@@ -771,14 +771,14 @@ async function loadEnvironments() {
                 if (trimmed) systems.add(trimmed);
             });
         });
-        
+
         // Update stats in UI
         document.getElementById('total-envs').textContent = totalEnvs;
         document.getElementById('total-categories').textContent = categories.size;
         document.getElementById('total-systems').textContent = systems.size;
         const subtitleEl = document.getElementById('subtitle-env-count');
         if (subtitleEl) subtitleEl.textContent = `${totalEnvs} Reinforcement Learning Environments for Workflow Optimization`;
-        
+
         // Populate Domain filter and Software System filter dropdown
         const domainFilter = document.getElementById('domain-filter');
         if (domainFilter) {
@@ -799,10 +799,10 @@ async function loadEnvironments() {
         allEnvironments.forEach(env => {
             initializeSaveData(env.name);
         });
-        
+
         // Reset fake counts only once (first time after update)
         resetAllSaveCounts();
-        
+
         // Initial render goes through filterEnvironments to apply hidden env list
         filterEnvironments('');
         document.getElementById('loading').style.display = 'none';
@@ -818,10 +818,10 @@ async function loadEnvironments() {
             }
         }
         var envParam = urlParams.get('env');
-        if (envParam && allEnvironments.some(function(e) { return e.name === envParam; })) {
+        if (envParam && allEnvironments.some(function (e) { return e.name === envParam; })) {
             showEnvironmentDetails(envParam);
             if (window.location.hash === '#training') {
-                setTimeout(function() { openTrainingConfig(envParam); }, 100);
+                setTimeout(function () { openTrainingConfig(envParam); }, 100);
             }
         }
     } catch (error) {
@@ -835,12 +835,12 @@ function setupEventListeners() {
     // Back to catalog (full-page detail view)
     const btnBack = document.getElementById('btn-back-catalog');
     if (btnBack) btnBack.addEventListener('click', closeEnvDetailPage);
-    
+
     // Search
     document.getElementById('search-input').addEventListener('input', (e) => {
         filterEnvironments(e.target.value);
     });
-    
+
     // Modal close
     document.querySelectorAll('.close').forEach(closeBtn => {
         closeBtn.addEventListener('click', (e) => {
@@ -850,7 +850,7 @@ function setupEventListeners() {
             }
         });
     });
-    
+
     window.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal')) {
             e.target.style.display = 'none';
@@ -867,11 +867,11 @@ function closeModal(modalId) {
 
 function openHelpSection() {
     const helpBody = document.getElementById('help-body');
-    
+
     // Collect all systems and workflows from environments
     const systemsMap = {};
     const workflowsByCategory = {};
-    
+
     allEnvironments.forEach(env => {
         const systems = (env.system || 'Multiple').split(',').map(s => s.trim());
         systems.forEach(system => {
@@ -882,7 +882,7 @@ function openHelpSection() {
                 systemsMap[system].push(env.name);
             }
         });
-        
+
         const category = env.category || 'other';
         if (!workflowsByCategory[category]) {
             workflowsByCategory[category] = [];
@@ -894,7 +894,7 @@ function openHelpSection() {
             system: env.system || 'Multiple'
         });
     });
-    
+
     helpBody.innerHTML = `
         <h1 style="margin-bottom: 2rem;">📚 Help & Documentation</h1>
         
@@ -979,7 +979,7 @@ function openHelpSection() {
             </div>
         </div>
     `;
-    
+
     document.getElementById('help-modal').style.display = 'block';
 }
 
@@ -1016,7 +1016,7 @@ function filterEnvironments(searchTerm) {
         let matchesDomain = true;
         if (domain !== 'all') {
             const medCategories = ['clinical', 'imaging', 'population_health', 'hospital_operations',
-                                   'telehealth', 'interoperability', 'clinical_trials', 'cross_workflow', 'revenue_cycle'];
+                'telehealth', 'interoperability', 'clinical_trials', 'cross_workflow', 'revenue_cycle'];
             if (domain === 'dev-sim') matchesDomain = env.category === 'jira' || (env.system || '').toLowerCase().includes('jira') || env.domain === 'dev-sim';
             else if (domain === 'med-sim') matchesDomain = medCategories.includes(env.category) || env.domain === 'med-sim';
             else if (domain === 'fin-sim') matchesDomain = env.category === 'financial' || env.domain === 'fin-sim';
@@ -1050,7 +1050,7 @@ function renderEnvironments() {
     // Sort: pinned environments first (in order), then rest by most recent first
     var pinned = [];
     var rest = [];
-    filteredEnvironments.forEach(function(env) {
+    filteredEnvironments.forEach(function (env) {
         var pinIdx = PINNED_ENV_NAMES.indexOf(env.name);
         if (pinIdx !== -1) {
             pinned.push({ env: env, order: pinIdx });
@@ -1058,13 +1058,13 @@ function renderEnvironments() {
             rest.push(env);
         }
     });
-    pinned.sort(function(a, b) { return a.order - b.order; });
+    pinned.sort(function (a, b) { return a.order - b.order; });
     // Most recent first: reverse the rest so latest-added environments appear at top
     rest.reverse();
-    var sorted = pinned.map(function(p) { return p.env; }).concat(rest);
+    var sorted = pinned.map(function (p) { return p.env; }).concat(rest);
 
     grid.innerHTML = sorted.map(env => createEnvCard(env)).join('');
-    
+
     // Add click listener on entire card for view details
     document.querySelectorAll('.env-card').forEach(card => {
         card.addEventListener('click', (e) => {
@@ -1092,8 +1092,8 @@ var ENV_DISPLAY_NAME_OVERRIDES = {
 
 // Domain and workflow overrides for specific environments
 var ENV_DOMAIN_OVERRIDES = {
-    'eAmaze':   { domain: 'retail-sim', workflow: 'AI Assistant' },
-    'e-Amaze':  { domain: 'retail-sim', workflow: 'AI Assistant' }
+    'eAmaze': { domain: 'retail-sim', workflow: 'AI Assistant' },
+    'e-Amaze': { domain: 'retail-sim', workflow: 'AI Assistant' }
 };
 
 function formatEnvironmentName(name) {
@@ -1126,7 +1126,7 @@ function getEnvironmentDescription(envName, category) {
         'DiabetesMonitoringOptimization': 'Optimizes diabetes monitoring frequency and intervention timing to prevent complications and improve glycemic control.',
         'MentalHealthInterventionSequencing': 'Sequences mental health interventions including therapy, medication, and crisis interventions for optimal outcomes.',
         'PostOperativeFollowupOptimization': 'Optimizes post-operative follow-up schedules to detect complications early while minimizing unnecessary visits.',
-        
+
         // Imaging environments
         'ImagingOrderPrioritization': 'Prioritizes imaging orders based on clinical urgency, equipment availability, and patient needs to reduce wait times.',
         'RadiologyScheduling': 'Schedules radiology appointments to maximize scanner utilization while meeting patient and referring physician needs.',
@@ -1143,7 +1143,7 @@ function getEnvironmentDescription(envName, category) {
         'ImagingStudyBatchScheduling': 'Batches similar imaging studies to improve efficiency and reduce setup time between scans.',
         'OncologyImagingPathway': 'Optimizes imaging pathways for cancer patients including screening, staging, and treatment response monitoring.',
         'ImagingQualityControl': 'Monitors and optimizes imaging quality metrics to ensure diagnostic accuracy while maintaining efficiency.',
-        
+
         // Population Health environments
         'RiskStratification': 'Stratifies patient populations by risk level to enable targeted interventions and resource allocation.',
         'PreventiveOutreach': 'Identifies patients due for preventive care and optimizes outreach strategies to improve screening rates.',
@@ -1160,7 +1160,7 @@ function getEnvironmentDescription(envName, category) {
         'HealthLiteracyIntervention': 'Delivers health literacy interventions to improve patient understanding and self-management capabilities.',
         'LifestyleInterventionSequencing': 'Sequences lifestyle interventions including nutrition, exercise, and smoking cessation programs.',
         'VaccinationDrivePrioritization': 'Prioritizes vaccination drives across communities to maximize coverage and minimize disease spread.',
-        
+
         // Revenue Cycle environments
         'ClaimsRouting': 'Routes insurance claims to appropriate processors for optimal adjudication and payment speed.',
         'DenialIntervention': 'Identifies claim denials and applies targeted interventions to maximize recovery and reduce future denials.',
@@ -1199,28 +1199,28 @@ function getEnvironmentDescription(envName, category) {
         'TrialOutcomeForecasting': 'Forecasts trial outcomes based on interim data to inform go/no-go decisions.',
         'PatientRetentionSequencing': 'Optimizes patient retention strategies to minimize dropouts and maximize data quality.',
         'MultiTrialResourceCoordination': 'Coordinates resources across multiple concurrent trials to maximize efficiency.',
-        
+
         // Hospital Operations environments
         'StaffingAllocation': 'Allocates staff across departments to optimize patient care and operational efficiency.',
         'ORUtilization': 'Maximizes operating room utilization while balancing elective and emergency case needs.',
         'SupplyChainInventory': 'Manages medical supply inventory to prevent shortages while minimizing carrying costs.',
         'BedTurnoverOptimization': 'Optimizes bed turnover processes to maximize capacity and minimize patient wait times.',
         'EquipmentMaintenance': 'Schedules equipment maintenance to minimize downtime while ensuring patient safety.',
-        
+
         // Telehealth environments
         'VirtualVisitRouting': 'Routes virtual visits to appropriate providers based on patient needs and provider availability.',
         'EscalationPolicy': 'Determines when to escalate virtual visits to in-person care based on clinical indicators.',
         'ProviderLoadBalancing': 'Balances provider workloads across virtual and in-person care to maximize access.',
         'FollowUpOptimization': 'Optimizes follow-up visit scheduling for telehealth patients to ensure continuity of care.',
         'DigitalAdherenceCoaching': 'Delivers digital coaching interventions to improve medication and treatment adherence.',
-        
+
         // Interoperability environments
         'DataReconciliation': 'Reconciles data across multiple operational systems to ensure data integrity and consistency.',
         'CrossSystemAlertPrioritization': 'Prioritizes alerts from multiple systems to prevent alert fatigue and ensure critical notifications.',
         'DuplicateRecordResolution': 'Identifies and resolves duplicate patient records across systems to maintain data quality.',
         'InterFacilityTransfer': 'Optimizes patient transfers between facilities to ensure continuity of care and data exchange.',
         'HIERouting': 'Routes health information exchange messages to appropriate systems and workflows.',
-        
+
         // Cross-Workflow environments
         'PatientJourneyOptimization': 'Multi-agent optimization across the entire patient care continuum from admission to discharge.',
         'HospitalThroughput': 'Optimizes hospital-wide throughput to maximize capacity utilization and patient flow.',
@@ -1242,7 +1242,7 @@ function getEnvironmentDescription(envName, category) {
         'ADPBulkImport': 'ADP: Bulk worker import with position management and pay calendar validation.',
         'ADPTimeOffPayroll': 'ADP: Time-off request with accrual verification and supervisor approval workflow.'
     };
-    
+
     return descriptions[envName] || (category === 'jira' ? `Jira workflow environment for ${envName.replace(/([A-Z])/g, ' $1').trim().toLowerCase()} optimization.` : category === 'hr_payroll' ? `HR & Payroll workflow environment for ${envName.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}.` : `Reinforcement learning environment for ${category.replace('_', ' ')} optimization and decision support.`);
 }
 
@@ -1260,21 +1260,21 @@ function getUseCaseDescription(envName, category) {
         'CareCoordination': 'Care management programs, patient navigation, and multi-provider care coordination.',
         'ChronicDiseaseManagement': 'Primary care, disease management programs, and population health initiatives.',
         'EmergencyTriage': 'Emergency departments, urgent care centers, and triage systems.',
-        
+
         // Imaging
         'ImagingOrderPrioritization': 'Radiology departments, imaging centers, and emergency imaging services.',
         'RadiologyScheduling': 'Radiology scheduling departments and imaging center operations.',
         'ScanParameterOptimization': 'Radiology quality improvement and radiation safety programs.',
         'ImagingWorkflowRouting': 'PACS administrators and imaging workflow optimization teams.',
         'EquipmentUtilization': 'Imaging center operations and multi-site radiology departments.',
-        
+
         // Population Health
         'RiskStratification': 'Population health management, care coordination, and health plan operations.',
         'PreventiveOutreach': 'Primary care practices, health plans, and population health programs.',
         'VaccinationAllocation': 'Public health departments, health systems, and vaccination programs.',
         'HighRiskMonitoring': 'Care management programs, chronic disease management, and patient monitoring services.',
         'PopulationCostOptimization': 'Health plans, accountable care organizations, and population health management.',
-        
+
         // Revenue Cycle
         'ClaimsRouting': 'Revenue cycle management, billing departments, and claims processing centers.',
         'DenialIntervention': 'Revenue cycle management, denial management teams, and billing operations.',
@@ -1293,28 +1293,28 @@ function getUseCaseDescription(envName, category) {
         'EnrollmentAcceleration': 'Clinical trial sites, research coordinators, and patient recruitment teams.',
         'ProtocolDeviationMitigation': 'Clinical research quality assurance and regulatory compliance teams.',
         'DrugDosageTrialSequencing': 'Phase I clinical trial units and early development research teams.',
-        
+
         // Hospital Operations
         'StaffingAllocation': 'Hospital operations, workforce management, and staffing departments.',
         'ORUtilization': 'Operating room management, surgical services, and perioperative departments.',
         'SupplyChainInventory': 'Supply chain management, materials management, and procurement departments.',
         'BedTurnoverOptimization': 'Bed management, patient flow, and capacity management teams.',
         'EquipmentMaintenance': 'Biomedical engineering, facilities management, and equipment maintenance teams.',
-        
+
         // Telehealth
         'VirtualVisitRouting': 'Telehealth platforms, virtual care delivery, and remote patient services.',
         'EscalationPolicy': 'Telehealth triage, care coordination, and virtual care management.',
         'ProviderLoadBalancing': 'Telehealth platforms, provider scheduling, and virtual care operations.',
         'FollowUpOptimization': 'Telehealth care management and virtual care coordination.',
         'DigitalAdherenceCoaching': 'Digital health programs, medication adherence, and patient engagement platforms.',
-        
+
         // Interoperability
         'DataReconciliation': 'Health information exchanges, data integration teams, and interoperability programs.',
         'CrossSystemAlertPrioritization': 'Clinical informatics, alert management, and system integration teams.',
         'DuplicateRecordResolution': 'Health information management, master patient index, and data quality teams.',
         'InterFacilityTransfer': 'Care coordination, transfer centers, and health system operations.',
         'HIERouting': 'Health information exchange operations and interoperability teams.',
-        
+
         // Cross-Workflow
         'PatientJourneyOptimization': 'Care coordination, patient flow optimization, and health system operations.',
         'HospitalThroughput': 'Hospital operations, capacity management, and patient flow optimization.',
@@ -1336,7 +1336,7 @@ function getUseCaseDescription(envName, category) {
         'ADPBulkImport': 'Bulk worker import and ADP payroll integration.',
         'ADPTimeOffPayroll': 'Time-off requests and payroll-linked approval in ADP.'
     };
-    
+
     return useCases[envName] || (category === 'jira' ? `Jira workflow: ${envName.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}.` : category === 'hr_payroll' ? `HR & Payroll: ${envName.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}.` : `General ${category.replace('_', ' ')} optimization and decision support applications.`);
 }
 
@@ -1345,7 +1345,7 @@ function resetAllSaveCounts() {
     // Reset all save counts to 0 to remove fake random numbers (only run once)
     const savedData = JSON.parse(localStorage.getItem('agentwork_simulator_saves') || '{}');
     const resetFlag = localStorage.getItem('agentwork_simulator_counts_reset');
-    
+
     // Only reset if we haven't done it before
     if (!resetFlag) {
         Object.keys(savedData).forEach(envName => {
@@ -1361,12 +1361,12 @@ function resetAllSaveCounts() {
 
 function initializeSaveData(envName) {
     const savedData = JSON.parse(localStorage.getItem('agentwork_simulator_saves') || '{}');
-    
+
     if (!savedData[envName]) {
         // Initialize with 0 count for authentic, legitimate appearance
-        savedData[envName] = { 
-            saved: false, 
-            count: 0 
+        savedData[envName] = {
+            saved: false,
+            count: 0
         };
         localStorage.setItem('agentwork_simulator_saves', JSON.stringify(savedData));
     }
@@ -1385,14 +1385,14 @@ function isSaved(envName) {
 
 function toggleSave(envName) {
     const savedData = initializeSaveData(envName);
-    
+
     savedData[envName].saved = !savedData[envName].saved;
     if (savedData[envName].saved) {
         savedData[envName].count += 1;
     } else {
         savedData[envName].count = Math.max(0, savedData[envName].count - 1);
     }
-    
+
     localStorage.setItem('agentwork_simulator_saves', JSON.stringify(savedData));
     updateSaveButton(envName);
 }
@@ -1402,7 +1402,7 @@ function updateSaveButton(envName) {
     if (saveBtn) {
         const saved = isSaved(envName);
         const count = getSavedCount(envName);
-        saveBtn.innerHTML = saved 
+        saveBtn.innerHTML = saved
             ? `❤️ <span class="save-count">${count}</span>`
             : `🤍 <span class="save-count">${count}</span>`;
         saveBtn.classList.toggle('saved', saved);
@@ -1412,13 +1412,13 @@ function updateSaveButton(envName) {
 // Data-driven chip definitions for environment cards.
 // Each entry maps a data key to a display format. Order = display priority.
 var CARD_CHIP_FIELDS = [
-    { key: 'category',      label: null,             format: 'badge',  cssClass: function(e) { return 'category-' + e.category; } },
-    { key: 'system',        label: 'System',         format: 'chip',   filter: function(v) { return v && v !== 'Custom' && v !== ''; } },
-    { key: 'workflow',      label: 'Workflow',       format: 'chip',   filter: function(v) { return v && v !== 'Cross-Workflow' && v !== ''; } },
-    { key: 'actionSpace',   label: 'Actions',        format: 'chip',   filter: function(v) { return v && v !== 'N/A'; } },
-    { key: 'stateFeatures', label: 'Features',       format: 'chip',   filter: function(v) { return v && v !== 'N/A'; } },
-    { key: 'actionType',    label: 'Type',           format: 'chip',   filter: function(v) { return v && v !== 'Discrete'; } },
-    { key: 'multi_agent',   label: 'Multi-Agent',    format: 'flag',   filter: function(v) { return v === true; } }
+    { key: 'category', label: null, format: 'badge', cssClass: function (e) { return 'category-' + e.category; } },
+    { key: 'system', label: 'System', format: 'chip', filter: function (v) { return v && v !== 'Custom' && v !== ''; } },
+    { key: 'workflow', label: 'Workflow', format: 'chip', filter: function (v) { return v && v !== 'Cross-Workflow' && v !== ''; } },
+    { key: 'actionSpace', label: 'Actions', format: 'chip', filter: function (v) { return v && v !== 'N/A'; } },
+    { key: 'stateFeatures', label: 'Features', format: 'chip', filter: function (v) { return v && v !== 'N/A'; } },
+    { key: 'actionType', label: 'Type', format: 'chip', filter: function (v) { return v && v !== 'Discrete'; } },
+    { key: 'multi_agent', label: 'Multi-Agent', format: 'flag', filter: function (v) { return v === true; } }
 ];
 
 function createEnvCard(env) {
@@ -1445,13 +1445,13 @@ function createEnvCard(env) {
 
     return '<div class="env-card" data-env="' + env.name + '" style="cursor:pointer;">' +
         '<div class="env-card-header"><div>' +
-            '<div class="env-name">' + displayName + '</div>' +
+        '<div class="env-name">' + displayName + '</div>' +
         '</div></div>' +
         '<div class="env-description">' +
-            (env.description || getEnvironmentDescription(env.name, env.category || 'other') || 'Reinforcement learning environment for workflow optimization.') +
+        (env.description || getEnvironmentDescription(env.name, env.category || 'other') || 'Reinforcement learning environment for workflow optimization.') +
         '</div>' +
         '<div class="env-chip-row">' + chips + '</div>' +
-    '</div>';
+        '</div>';
 }
 
 function getDefaultWhatItDoes(category, envName) {
@@ -2040,12 +2040,12 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `
     };
-    
+
     // Return environment-specific description if available
     if (envSpecificDescriptions[envName]) {
         return envSpecificDescriptions[envName];
     }
-    
+
     // Fallback to category-based descriptions
     const categoryDescriptions = {
         'clinical': `
@@ -2195,7 +2195,7 @@ function getDefaultWhatItDoes(category, envName) {
             </ul>
         `
     };
-    
+
     return categoryDescriptions[category] || `
         <p>This RL environment uses reinforcement learning to optimize operational processes and decision-making. 
         The agent learns optimal strategies through trial and error, maximizing desired outcomes while 
@@ -2206,7 +2206,7 @@ function getDefaultWhatItDoes(category, envName) {
 function getActionDescription(envName, action) {
     // Provide descriptions for common action patterns
     const actionLower = action.toLowerCase();
-    
+
     // Generic descriptions based on action keywords
     if (actionLower.includes('schedule') || actionLower.includes('prioritize')) {
         if (actionLower.includes('urgent') || actionLower.includes('emergency')) {
@@ -2249,7 +2249,7 @@ function getActionDescription(envName, action) {
     } else if (actionLower.includes('deny') || actionLower.includes('reject')) {
         return 'Deny or reject this request or action.';
     }
-    
+
     // Environment-specific descriptions
     const envSpecific = {
         'ImagingOrderPrioritization': {
@@ -2272,11 +2272,11 @@ function getActionDescription(envName, action) {
             'no_action': 'Maintain current care level.'
         }
     };
-    
+
     if (envSpecific[envName] && envSpecific[envName][action]) {
         return envSpecific[envName][action];
     }
-    
+
     // Default: no description if we can't infer one
     return null;
 }
@@ -2305,22 +2305,88 @@ function closeEnvDetailPage() {
 }
 
 // ─── Build Scenarios Section for detail page ───
+// Load persisted scenarios from backend and merge into TRAINING_CONFIG
+var _persistedScenariosLoaded = {};
+function _loadPersistedScenarios(envName, envCategory) {
+    var cacheKey = envName + '|' + envCategory;
+    if (_persistedScenariosLoaded[cacheKey]) return;
+    _persistedScenariosLoaded[cacheKey] = true;
+
+    fetch(API_BASE + '/api/scenarios?product=' + encodeURIComponent(envName))
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+            if (!data || !data.scenarios || !data.scenarios.length) return;
+            var cfg = window.TRAINING_CONFIG;
+            if (!cfg || !cfg.scenarios) return;
+            var existingIds = new Set(cfg.scenarios.map(function (s) { return s.id; }));
+            var added = 0;
+            data.scenarios.forEach(function (s) {
+                if (!existingIds.has(s.id)) {
+                    cfg.scenarios.push(s);
+                    existingIds.add(s.id);
+                    added++;
+                }
+            });
+            if (added > 0) {
+                console.log('[Scenarios] Loaded ' + added + ' persisted scenario(s) for ' + envName);
+                var section = document.getElementById('section-scenarios');
+                if (section) {
+                    var allScenarios = cfg.scenarios;
+                    var filtered = allScenarios.filter(function (s) {
+                        return s.category === envCategory || s.product === envName;
+                    });
+                    var countSpan = section.querySelector('.detail-collapsible-header h2 span');
+                    if (countSpan) countSpan.textContent = '(' + filtered.length + ')';
+                    var body = document.getElementById('section-scenarios-body');
+                    if (body) {
+                        var contentDiv = body.querySelector('.detail-collapsible-content');
+                        if (contentDiv) {
+                            var listHtml = '';
+                            filtered.forEach(function (s, idx) {
+                                listHtml += '<div class="scenario-card clickable-card" id="scenario-card-' + idx + '" onclick="showScenarioDetail(\'' + envCategory + '\', ' + idx + ')" title="Click to view details">' +
+                                    '<div class="scenario-card-header">' +
+                                    '<span class="scenario-card-name">' + s.name + '</span>' +
+                                    '<span class="scenario-card-badge">' + s.category + '</span>' +
+                                    '<span class="scenario-card-tasks">' + (s.task_count || 0) + ' tasks</span>' +
+                                    '</div>' +
+                                    '<p class="scenario-card-desc">' + (s.description || '') + '</p>' +
+                                    '</div>';
+                            });
+                            var existingCards = contentDiv.querySelectorAll('.scenario-card');
+                            var noMsg = contentDiv.querySelector('p[style]');
+                            if (noMsg) noMsg.remove();
+                            existingCards.forEach(function (c) { c.remove(); });
+                            contentDiv.insertAdjacentHTML('afterbegin', listHtml);
+                        }
+                    }
+                }
+            }
+        })
+        .catch(function (e) { console.warn('[Scenarios] Failed to load persisted scenarios:', e); });
+}
+
 function buildScenariosSection(envName, envCategory) {
     var cfg = window.TRAINING_CONFIG;
     var allScenarios = (cfg && cfg.scenarios) ? cfg.scenarios : [];
-    var filtered = allScenarios.filter(function(s) { return s.category === envCategory; });
+    // Match scenarios by category OR by product (environment name)
+    var filtered = allScenarios.filter(function (s) {
+        return s.category === envCategory || s.product === envName;
+    });
+
+    // Also load persisted scenarios from backend (async, will re-render if new ones found)
+    _loadPersistedScenarios(envName, envCategory);
 
     var listHtml = '';
     if (filtered.length) {
-        filtered.forEach(function(s, idx) {
+        filtered.forEach(function (s, idx) {
             listHtml += '<div class="scenario-card clickable-card" id="scenario-card-' + idx + '" onclick="showScenarioDetail(\'' + envCategory + '\', ' + idx + ')" title="Click to view details">' +
                 '<div class="scenario-card-header">' +
-                    '<span class="scenario-card-name">' + s.name + '</span>' +
-                    '<span class="scenario-card-badge">' + s.category + '</span>' +
-                    '<span class="scenario-card-tasks">' + s.task_count + ' tasks</span>' +
+                '<span class="scenario-card-name">' + s.name + '</span>' +
+                '<span class="scenario-card-badge">' + s.category + '</span>' +
+                '<span class="scenario-card-tasks">' + s.task_count + ' tasks</span>' +
                 '</div>' +
                 '<p class="scenario-card-desc">' + s.description + '</p>' +
-            '</div>';
+                '</div>';
         });
     } else {
         listHtml = '<p style="color:var(--text-secondary);font-size:0.9rem;">No scenarios configured for this environment category.</p>';
@@ -2328,32 +2394,32 @@ function buildScenariosSection(envName, envCategory) {
 
     return '<div class="detail-collapsible" id="section-scenarios">' +
         '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-scenarios\')">' +
-            '<h2>' +
-                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>' +
-                ' Scenarios <span style="font-size:0.75rem;font-weight:400;color:var(--text-secondary);margin-left:6px;">(' + filtered.length + ')</span>' +
-            '</h2>' +
-            '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '<h2>' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>' +
+        ' Scenarios <span style="font-size:0.75rem;font-weight:400;color:var(--text-secondary);margin-left:6px;">(' + filtered.length + ')</span>' +
+        '</h2>' +
+        '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
         '</button>' +
         '<div class="detail-collapsible-body" id="section-scenarios-body">' +
-            '<div class="detail-collapsible-content">' +
-                '<div class="scenarios-list">' + listHtml + '</div>' +
-                '<div style="margin-top:1rem;">' +
-                    '<button class="btn btn-outline btn-small" onclick="toggleAddScenarioForm()" id="btn-add-scenario">' +
-                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
-                        ' Add Scenario' +
-                    '</button>' +
-                '</div>' +
-                '<div id="add-scenario-form" style="display:none;margin-top:1rem;padding:1rem;background:var(--bg-tertiary);border-radius:8px;border:1px solid var(--border-color);">' +
-                    '<h4 style="margin:0 0 0.75rem;font-size:0.9rem;color:var(--text-primary);">New Scenario (JSON)</h4>' +
-                    '<textarea id="add-scenario-json" class="add-env-terraform-editor" rows="8" spellcheck="false" placeholder=\'{\n  "name": "My Scenario",\n  "category": "' + envCategory + '",\n  "task_count": 5,\n  "description": "Describe the scenario..."\n}\'></textarea>' +
-                    '<div style="margin-top:0.75rem;display:flex;gap:8px;">' +
-                        '<button class="btn btn-primary btn-small" onclick="saveNewScenario(\'' + envName.replace(/'/g, "\\'") + '\', \'' + envCategory + '\')">Save Scenario</button>' +
-                        '<button class="btn btn-outline btn-small" onclick="toggleAddScenarioForm()">Cancel</button>' +
-                    '</div>' +
-                '</div>' +
-            '</div>' +
+        '<div class="detail-collapsible-content">' +
+        '<div class="scenarios-list">' + listHtml + '</div>' +
+        '<div style="margin-top:1rem;">' +
+        '<button class="btn btn-outline btn-small" onclick="toggleAddScenarioForm()" id="btn-add-scenario">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+        ' Add Scenario' +
+        '</button>' +
         '</div>' +
-    '</div>';
+        '<div id="add-scenario-form" style="display:none;margin-top:1rem;padding:1rem;background:var(--bg-tertiary);border-radius:8px;border:1px solid var(--border-color);">' +
+        '<h4 style="margin:0 0 0.75rem;font-size:0.9rem;color:var(--text-primary);">New Scenario (JSON)</h4>' +
+        '<textarea id="add-scenario-json" class="add-env-terraform-editor" rows="8" spellcheck="false" placeholder=\'{\n  "name": "My Scenario",\n  "category": "' + envCategory + '",\n  "task_count": 5,\n  "description": "Describe the scenario..."\n}\'></textarea>' +
+        '<div style="margin-top:0.75rem;display:flex;gap:8px;">' +
+        '<button class="btn btn-primary btn-small" onclick="saveNewScenario(\'' + envName.replace(/'/g, "\\'") + '\', \'' + envCategory + '\')">Save Scenario</button>' +
+        '<button class="btn btn-outline btn-small" onclick="toggleAddScenarioForm()">Cancel</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
 }
 
 function toggleAddScenarioForm() {
@@ -2370,15 +2436,27 @@ function saveNewScenario(envName, envCategory) {
         var data = JSON.parse(textarea.value);
         if (!data.name) { showToast('Scenario name is required.', 'error'); return; }
         var newScenario = {
-            id: 'sc_custom_' + Date.now(),
+            id: data.id || 'sc_custom_' + Date.now(),
             name: data.name,
             category: data.category || envCategory,
+            product: envName,
             task_count: data.task_count || 1,
             description: data.description || ''
         };
+        // Add to in-memory TRAINING_CONFIG for immediate display
         if (window.TRAINING_CONFIG && window.TRAINING_CONFIG.scenarios) {
             window.TRAINING_CONFIG.scenarios.push(newScenario);
         }
+        // Persist to backend SQLite store
+        fetch(API_BASE + '/api/scenarios', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newScenario)
+        }).then(function (res) {
+            if (!res.ok) console.warn('[Scenarios] Backend save failed:', res.status);
+            else console.log('[Scenarios] Persisted scenario to backend:', newScenario.id);
+        }).catch(function (e) { console.warn('[Scenarios] Backend save error:', e); });
+
         showToast('Scenario "' + newScenario.name + '" added.', 'success');
         textarea.value = '';
         toggleAddScenarioForm();
@@ -2390,21 +2468,79 @@ function saveNewScenario(envName, envCategory) {
 }
 window.saveNewScenario = saveNewScenario;
 
+// ─── Load persisted verifiers from backend and merge into VERIFIER_DATA ───
+var _persistedVerifiersLoaded = {};
+function _loadPersistedVerifiers(envName, envCategory) {
+    var cacheKey = envName + '|' + envCategory;
+    if (_persistedVerifiersLoaded[cacheKey]) return;
+    _persistedVerifiersLoaded[cacheKey] = true;
+
+    fetch(API_BASE + '/api/verifiers')
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+            if (!data || !data.verifiers || !data.verifiers.length) return;
+            var store = window.VERIFIER_DATA;
+            if (!store || !store.all) return;
+            var existingIds = new Set(store.all.map(function (v) { return v.id; }));
+            var added = 0;
+            data.verifiers.forEach(function (v) {
+                var normalized = {
+                    id: v.id,
+                    name: v.name,
+                    type: v.type,
+                    system: v.system || 'Custom',
+                    environment: v.environment,
+                    version: v.version || 1,
+                    status: v.status || 'active',
+                    usedInScenarios: v.used_in_scenarios || v.usedInScenarios || [],
+                    description: v.description || '',
+                    metadata: v.metadata || {},
+                    logic: v.logic || {},
+                    exampleInput: v.example_input || v.exampleInput || {},
+                    exampleOutput: v.example_output || v.exampleOutput || {},
+                    failurePolicy: v.failure_policy || v.failurePolicy || {},
+                    subVerifiers: v.subVerifiers || []
+                };
+                if (!existingIds.has(normalized.id)) {
+                    store.all.push(normalized);
+                    existingIds.add(normalized.id);
+                    added++;
+                }
+            });
+            if (added > 0) {
+                console.log('[Verifiers] Loaded ' + added + ' persisted verifier(s) from backend');
+                var section = document.getElementById('section-verifiers');
+                if (section) {
+                    var allVerifiers = store.all;
+                    var filtered = allVerifiers.filter(function (v) {
+                        return v.environment === envCategory;
+                    });
+                    var countSpan = section.querySelector('.detail-collapsible-header h2 span');
+                    if (countSpan) countSpan.textContent = '(' + filtered.length + ')';
+                }
+            }
+        })
+        .catch(function (e) { console.warn('[Verifiers] Failed to load persisted verifiers:', e); });
+}
+
 // ─── Build Verifiers Section for detail page ───
 function buildVerifiersSection(envName, envCategory) {
     var verifierData = window.VERIFIER_DATA;
     var allVerifiers = (verifierData && verifierData.all) ? verifierData.all : [];
-    var filtered = allVerifiers.filter(function(v) { return v.environment === envCategory; });
+    var filtered = allVerifiers.filter(function (v) { return v.environment === envCategory; });
+
+    // Also load persisted verifiers from backend (async, will re-render if new ones found)
+    _loadPersistedVerifiers(envName, envCategory);
 
     var listHtml = '';
     if (filtered.length) {
-        filtered.forEach(function(v, idx) {
+        filtered.forEach(function (v, idx) {
             var typeClass = (v.type || '').replace(/[^a-z0-9-]/gi, '-').toLowerCase();
             var scoringHtml = '';
             if (v.logic && v.logic.scoring && typeof v.logic.scoring === 'object' && !Array.isArray(v.logic.scoring)) {
                 var keys = Object.keys(v.logic.scoring);
                 scoringHtml = '<div class="verifier-scoring">';
-                keys.forEach(function(k) {
+                keys.forEach(function (k) {
                     scoringHtml += '<span class="verifier-score-badge">' + k.replace(/_/g, ' ') + ': ' + v.logic.scoring[k] + '</span>';
                 });
                 scoringHtml += '</div>';
@@ -2412,20 +2548,20 @@ function buildVerifiersSection(envName, envCategory) {
             var subHtml = '';
             if (v.subVerifiers && v.subVerifiers.length) {
                 subHtml = '<div class="verifier-subs"><span style="font-size:0.75rem;color:var(--text-secondary);font-weight:600;">Sub-verifiers:</span>';
-                v.subVerifiers.forEach(function(sv) {
+                v.subVerifiers.forEach(function (sv) {
                     subHtml += '<span class="verifier-sub-chip" title="' + (sv.description || '') + '">' + sv.name + '</span>';
                 });
                 subHtml += '</div>';
             }
             listHtml += '<div class="verifier-card clickable-card" id="verifier-card-' + idx + '" onclick="showVerifierDetail(\'' + envCategory + '\', ' + idx + ')" title="Click to view JSON config">' +
                 '<div class="verifier-card-header">' +
-                    '<span class="verifier-card-name">' + v.name + '</span>' +
-                    '<span class="verifier-card-type type-' + typeClass + '">' + v.type + '</span>' +
+                '<span class="verifier-card-name">' + v.name + '</span>' +
+                '<span class="verifier-card-type type-' + typeClass + '">' + v.type + '</span>' +
                 '</div>' +
                 '<p class="verifier-card-desc">' + v.description + '</p>' +
                 scoringHtml +
                 subHtml +
-            '</div>';
+                '</div>';
         });
     } else {
         listHtml = '<p style="color:var(--text-secondary);font-size:0.9rem;">No verifiers configured for this environment category.</p>';
@@ -2433,32 +2569,32 @@ function buildVerifiersSection(envName, envCategory) {
 
     return '<div class="detail-collapsible" id="section-verifiers">' +
         '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-verifiers\')">' +
-            '<h2>' +
-                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' +
-                ' Verifiers <span style="font-size:0.75rem;font-weight:400;color:var(--text-secondary);margin-left:6px;">(' + filtered.length + ')</span>' +
-            '</h2>' +
-            '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '<h2>' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' +
+        ' Verifiers <span style="font-size:0.75rem;font-weight:400;color:var(--text-secondary);margin-left:6px;">(' + filtered.length + ')</span>' +
+        '</h2>' +
+        '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
         '</button>' +
         '<div class="detail-collapsible-body" id="section-verifiers-body">' +
-            '<div class="detail-collapsible-content">' +
-                '<div class="verifiers-list">' + listHtml + '</div>' +
-                '<div style="margin-top:1rem;">' +
-                    '<button class="btn btn-outline btn-small" onclick="toggleAddVerifierForm()" id="btn-add-verifier">' +
-                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
-                        ' Add Verifier' +
-                    '</button>' +
-                '</div>' +
-                '<div id="add-verifier-form" style="display:none;margin-top:1rem;padding:1rem;background:var(--bg-tertiary);border-radius:8px;border:1px solid var(--border-color);">' +
-                    '<h4 style="margin:0 0 0.75rem;font-size:0.9rem;color:var(--text-primary);">New Verifier (JSON)</h4>' +
-                    '<textarea id="add-verifier-json" class="add-env-terraform-editor" rows="10" spellcheck="false" placeholder=\'{\n  "name": "My Verifier",\n  "type": "rule-based",\n  "description": "Describe the verifier...",\n  "logic": { "type": "custom_validator", "checks": {} },\n  "scoring": { "accuracy_weight": 0.5, "completeness_weight": 0.5 },\n  "failurePolicy": { "hard_fail": false, "penalty": -0.5 }\n}\'></textarea>' +
-                    '<div style="margin-top:0.75rem;display:flex;gap:8px;">' +
-                        '<button class="btn btn-primary btn-small" onclick="saveNewVerifier(\'' + envName.replace(/'/g, "\\'") + '\', \'' + envCategory + '\')">Save Verifier</button>' +
-                        '<button class="btn btn-outline btn-small" onclick="toggleAddVerifierForm()">Cancel</button>' +
-                    '</div>' +
-                '</div>' +
-            '</div>' +
+        '<div class="detail-collapsible-content">' +
+        '<div class="verifiers-list">' + listHtml + '</div>' +
+        '<div style="margin-top:1rem;">' +
+        '<button class="btn btn-outline btn-small" onclick="toggleAddVerifierForm()" id="btn-add-verifier">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+        ' Add Verifier' +
+        '</button>' +
         '</div>' +
-    '</div>';
+        '<div id="add-verifier-form" style="display:none;margin-top:1rem;padding:1rem;background:var(--bg-tertiary);border-radius:8px;border:1px solid var(--border-color);">' +
+        '<h4 style="margin:0 0 0.75rem;font-size:0.9rem;color:var(--text-primary);">New Verifier (JSON)</h4>' +
+        '<textarea id="add-verifier-json" class="add-env-terraform-editor" rows="10" spellcheck="false" placeholder=\'{\n  "name": "My Verifier",\n  "type": "rule-based",\n  "description": "Describe the verifier...",\n  "logic": { "type": "custom_validator", "checks": {} },\n  "scoring": { "accuracy_weight": 0.5, "completeness_weight": 0.5 },\n  "failurePolicy": { "hard_fail": false, "penalty": -0.5 }\n}\'></textarea>' +
+        '<div style="margin-top:0.75rem;display:flex;gap:8px;">' +
+        '<button class="btn btn-primary btn-small" onclick="saveNewVerifier(\'' + envName.replace(/'/g, "\\'") + '\', \'' + envCategory + '\')">Save Verifier</button>' +
+        '<button class="btn btn-outline btn-small" onclick="toggleAddVerifierForm()">Cancel</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
 }
 
 function toggleAddVerifierForm() {
@@ -2475,7 +2611,7 @@ function saveNewVerifier(envName, envCategory) {
         var data = JSON.parse(textarea.value);
         if (!data.name) { showToast('Verifier name is required.', 'error'); return; }
         var newVerifier = {
-            id: 'v_custom_' + Date.now(),
+            id: data.id || 'v_custom_' + Date.now(),
             name: data.name,
             type: data.type || 'rule-based',
             system: 'Custom',
@@ -2489,9 +2625,33 @@ function saveNewVerifier(envName, envCategory) {
             failurePolicy: data.failurePolicy || { hard_fail: false, penalty: -0.5, log_failure: true },
             subVerifiers: data.subVerifiers || []
         };
+        // Add to in-memory VERIFIER_DATA for immediate display
         if (window.VERIFIER_DATA && window.VERIFIER_DATA.all) {
             window.VERIFIER_DATA.all.push(newVerifier);
         }
+        // Persist to backend API
+        fetch(API_BASE + '/api/verifiers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: newVerifier.id,
+                name: newVerifier.name,
+                type: newVerifier.type,
+                system: newVerifier.system,
+                environment: newVerifier.environment,
+                version: newVerifier.version,
+                status: newVerifier.status,
+                used_in_scenarios: newVerifier.usedInScenarios,
+                description: newVerifier.description,
+                metadata: newVerifier.metadata,
+                logic: newVerifier.logic,
+                failure_policy: newVerifier.failurePolicy
+            })
+        }).then(function (res) {
+            if (!res.ok) console.warn('[Verifiers] Backend save failed:', res.status);
+            else console.log('[Verifiers] Persisted verifier to backend:', newVerifier.id);
+        }).catch(function (e) { console.warn('[Verifiers] Backend save error:', e); });
+
         showToast('Verifier "' + newVerifier.name + '" added.', 'success');
         textarea.value = '';
         toggleAddVerifierForm();
@@ -2506,24 +2666,24 @@ window.saveNewVerifier = saveNewVerifier;
 function showScenarioDetail(envCategory, idx) {
     var cfg = window.TRAINING_CONFIG;
     var allScenarios = (cfg && cfg.scenarios) ? cfg.scenarios : [];
-    var filtered = allScenarios.filter(function(s) { return s.category === envCategory; });
+    var filtered = allScenarios.filter(function (s) { return s.category === envCategory; });
     var scenario = filtered[idx];
     if (!scenario) return;
 
     // Find matching verifiers for cross-referencing tool workflows
     var verifierData = window.VERIFIER_DATA;
     var allVerifiers = (verifierData && verifierData.all) ? verifierData.all : [];
-    var matchingVerifiers = allVerifiers.filter(function(v) {
+    var matchingVerifiers = allVerifiers.filter(function (v) {
         return v.environment === envCategory &&
-            v.usedInScenarios && v.usedInScenarios.some(function(sn) {
+            v.usedInScenarios && v.usedInScenarios.some(function (sn) {
                 return sn.toLowerCase() === scenario.name.toLowerCase() ||
-                       scenario.name.toLowerCase().indexOf(sn.toLowerCase()) !== -1 ||
-                       sn.toLowerCase().indexOf(scenario.name.toLowerCase()) !== -1;
+                    scenario.name.toLowerCase().indexOf(sn.toLowerCase()) !== -1 ||
+                    sn.toLowerCase().indexOf(scenario.name.toLowerCase()) !== -1;
             });
     });
     // If no direct match, use all verifiers from this category
     if (!matchingVerifiers.length) {
-        matchingVerifiers = allVerifiers.filter(function(v) { return v.environment === envCategory; });
+        matchingVerifiers = allVerifiers.filter(function (v) { return v.environment === envCategory; });
     }
 
     // Build "What This Scenario Tests" from description and verifier info
@@ -2534,7 +2694,7 @@ function showScenarioDetail(envCategory, idx) {
         testPoints.push(desc);
     }
     // Add points from verifier checks
-    matchingVerifiers.forEach(function(v) {
+    matchingVerifiers.forEach(function (v) {
         if (v.logic && v.logic.checks) {
             if (v.logic.checks.tool_sequence) testPoints.push('Validating correct tool call sequence');
             if (v.logic.checks.argument_validity) testPoints.push('Checking argument validity against available options');
@@ -2552,9 +2712,9 @@ function showScenarioDetail(envCategory, idx) {
     });
     // Deduplicate
     var uniqueTests = [];
-    testPoints.forEach(function(t) { if (uniqueTests.indexOf(t) === -1) uniqueTests.push(t); });
+    testPoints.forEach(function (t) { if (uniqueTests.indexOf(t) === -1) uniqueTests.push(t); });
 
-    var testsHtml = uniqueTests.map(function(t) {
+    var testsHtml = uniqueTests.map(function (t) {
         return '<li style="margin-bottom:0.4rem;color:var(--text-primary);font-size:0.9rem;">' + t + '</li>';
     }).join('');
 
@@ -2562,47 +2722,47 @@ function showScenarioDetail(envCategory, idx) {
     var typicalTasks = [];
     typicalTasks.push(scenario.name);
     // Generate related task names from verifier scenario references
-    matchingVerifiers.forEach(function(v) {
+    matchingVerifiers.forEach(function (v) {
         if (v.usedInScenarios) {
-            v.usedInScenarios.forEach(function(sn) {
+            v.usedInScenarios.forEach(function (sn) {
                 if (typicalTasks.indexOf(sn) === -1) typicalTasks.push(sn);
             });
         }
     });
-    var tasksHtml = typicalTasks.map(function(t) {
+    var tasksHtml = typicalTasks.map(function (t) {
         return '<li style="margin-bottom:0.4rem;color:var(--text-primary);font-size:0.9rem;">' + t + '</li>';
     }).join('');
 
     // Build "Expected Tool Workflow" from verifier tool sequences
     var toolWorkflow = [];
-    matchingVerifiers.forEach(function(v) {
+    matchingVerifiers.forEach(function (v) {
         if (v.logic && v.logic.checks && v.logic.checks.tool_sequence && v.logic.checks.tool_sequence.expected_order) {
-            v.logic.checks.tool_sequence.expected_order.forEach(function(tool) {
+            v.logic.checks.tool_sequence.expected_order.forEach(function (tool) {
                 if (toolWorkflow.indexOf(tool) === -1) toolWorkflow.push(tool);
             });
         }
         if (v.logic && v.logic.trajectory_checks && v.logic.trajectory_checks.required_steps) {
-            v.logic.trajectory_checks.required_steps.forEach(function(step) {
+            v.logic.trajectory_checks.required_steps.forEach(function (step) {
                 if (toolWorkflow.indexOf(step) === -1) toolWorkflow.push(step);
             });
         }
     });
     var workflowHtml = '';
     if (toolWorkflow.length) {
-        workflowHtml = toolWorkflow.map(function(tool, i) {
+        workflowHtml = toolWorkflow.map(function (tool, i) {
             return '<div class="sd-workflow-step">' +
                 '<span class="sd-workflow-num">' + (i + 1) + '</span>' +
                 '<span class="sd-workflow-tool">' + tool + '</span>' +
-            '</div>';
+                '</div>';
         }).join('');
     } else {
         workflowHtml = '<p style="color:var(--text-secondary);font-size:0.85rem;">No tool workflow defined for this scenario.</p>';
     }
 
     // Connected verifiers
-    var connectedVerifiers = matchingVerifiers.map(function(v) { return v.name; });
+    var connectedVerifiers = matchingVerifiers.map(function (v) { return v.name; });
     var connectedHtml = connectedVerifiers.length
-        ? connectedVerifiers.map(function(n) { return '<span class="sd-connected-badge">' + n + '</span>'; }).join('')
+        ? connectedVerifiers.map(function (n) { return '<span class="sd-connected-badge">' + n + '</span>'; }).join('')
         : '<span style="color:var(--text-secondary);font-size:0.85rem;">None</span>';
 
     // Inline expand below the clicked card
@@ -2614,7 +2774,7 @@ function showScenarioDetail(envCategory, idx) {
     if (existing) {
         existing.classList.remove('sv-expand-active');
         card.classList.remove('sv-card-active');
-        setTimeout(function() { if (existing.parentNode) existing.parentNode.removeChild(existing); }, 250);
+        setTimeout(function () { if (existing.parentNode) existing.parentNode.removeChild(existing); }, 250);
         return;
     }
 
@@ -2625,7 +2785,7 @@ function showScenarioDetail(envCategory, idx) {
         var prevCard = document.getElementById('scenario-card-' + prevIdx);
         if (prevCard) prevCard.classList.remove('sv-card-active');
         prevExpand.classList.remove('sv-expand-active');
-        setTimeout(function() { if (prevExpand.parentNode) prevExpand.parentNode.removeChild(prevExpand); }, 250);
+        setTimeout(function () { if (prevExpand.parentNode) prevExpand.parentNode.removeChild(prevExpand); }, 250);
     }
 
     // Build inline detail panel
@@ -2635,30 +2795,30 @@ function showScenarioDetail(envCategory, idx) {
     panel.dataset.idx = idx;
     panel.innerHTML =
         '<div class="sv-expand-inner">' +
-            '<button class="sv-expand-close" onclick="closeScenarioDetail(' + idx + ')" title="Collapse">&times;</button>' +
-            '<div class="sd-header-card">' +
-                '<h2 class="sd-title">' + scenario.name + '</h2>' +
-                '<p class="sd-subtitle">' + scenario.description + '</p>' +
-                '<div class="sd-meta-row">' +
-                    '<span class="sd-meta-item"><strong>Environment:</strong> <span class="sd-env-badge">' + scenario.category + '</span></span>' +
-                    '<span class="sd-meta-item"><strong>Tasks covered:</strong> ' + scenario.task_count + '</span>' +
-                    '<span class="sd-meta-item"><strong>Connected verifiers:</strong> ' + connectedHtml + '</span>' +
-                '</div>' +
-            '</div>' +
-            '<div class="sd-section-card">' +
-                '<h3 class="sd-section-title">What This Scenario Tests</h3>' +
-                '<ul class="sd-bullet-list">' + testsHtml + '</ul>' +
-            '</div>' +
-            '<div class="sd-section-card">' +
-                '<h3 class="sd-section-title">Typical Tasks in This Scenario</h3>' +
-                '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.5rem;">Representative tasks:</p>' +
-                '<ul class="sd-bullet-list">' + tasksHtml + '</ul>' +
-            '</div>' +
-            '<div class="sd-section-card">' +
-                '<h3 class="sd-section-title">Expected Tool Workflow</h3>' +
-                '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.75rem;">Expected workflow:</p>' +
-                '<div class="sd-workflow-list">' + workflowHtml + '</div>' +
-            '</div>' +
+        '<button class="sv-expand-close" onclick="closeScenarioDetail(' + idx + ')" title="Collapse">&times;</button>' +
+        '<div class="sd-header-card">' +
+        '<h2 class="sd-title">' + scenario.name + '</h2>' +
+        '<p class="sd-subtitle">' + scenario.description + '</p>' +
+        '<div class="sd-meta-row">' +
+        '<span class="sd-meta-item"><strong>Environment:</strong> <span class="sd-env-badge">' + scenario.category + '</span></span>' +
+        '<span class="sd-meta-item"><strong>Tasks covered:</strong> ' + scenario.task_count + '</span>' +
+        '<span class="sd-meta-item"><strong>Connected verifiers:</strong> ' + connectedHtml + '</span>' +
+        '</div>' +
+        '</div>' +
+        '<div class="sd-section-card">' +
+        '<h3 class="sd-section-title">What This Scenario Tests</h3>' +
+        '<ul class="sd-bullet-list">' + testsHtml + '</ul>' +
+        '</div>' +
+        '<div class="sd-section-card">' +
+        '<h3 class="sd-section-title">Typical Tasks in This Scenario</h3>' +
+        '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.5rem;">Representative tasks:</p>' +
+        '<ul class="sd-bullet-list">' + tasksHtml + '</ul>' +
+        '</div>' +
+        '<div class="sd-section-card">' +
+        '<h3 class="sd-section-title">Expected Tool Workflow</h3>' +
+        '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.75rem;">Expected workflow:</p>' +
+        '<div class="sd-workflow-list">' + workflowHtml + '</div>' +
+        '</div>' +
         '</div>';
 
     // Insert after the card
@@ -2666,7 +2826,7 @@ function showScenarioDetail(envCategory, idx) {
     card.classList.add('sv-card-active');
 
     // Trigger expand animation on next frame
-    requestAnimationFrame(function() {
+    requestAnimationFrame(function () {
         panel.classList.add('sv-expand-active');
         // Scroll into view smoothly
         panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -2683,7 +2843,7 @@ function closeScenarioDetail(idx) {
         var card = document.getElementById('scenario-card-' + cardIdx);
         if (card) card.classList.remove('sv-card-active');
         expand.classList.remove('sv-expand-active');
-        setTimeout(function() { if (expand.parentNode) expand.parentNode.removeChild(expand); }, 250);
+        setTimeout(function () { if (expand.parentNode) expand.parentNode.removeChild(expand); }, 250);
     }
 }
 window.closeScenarioDetail = closeScenarioDetail;
@@ -2692,7 +2852,7 @@ window.closeScenarioDetail = closeScenarioDetail;
 function showVerifierDetail(envCategory, idx) {
     var verifierData = window.VERIFIER_DATA;
     var allVerifiers = (verifierData && verifierData.all) ? verifierData.all : [];
-    var filtered = allVerifiers.filter(function(v) { return v.environment === envCategory; });
+    var filtered = allVerifiers.filter(function (v) { return v.environment === envCategory; });
     var verifier = filtered[idx];
     if (!verifier) return;
 
@@ -2701,12 +2861,12 @@ function showVerifierDetail(envCategory, idx) {
     // Build structured sections from verifier data
     var metaHtml =
         '<div class="vd-meta-grid">' +
-            '<div class="vd-meta-item"><span class="vd-meta-label">Type</span><span class="verifier-card-type type-' + typeClass + '">' + verifier.type + '</span></div>' +
-            '<div class="vd-meta-item"><span class="vd-meta-label">System</span><span class="vd-meta-value">' + (verifier.system || '—') + '</span></div>' +
-            '<div class="vd-meta-item"><span class="vd-meta-label">Environment</span><span class="vd-meta-value">' + (verifier.environment || '—') + '</span></div>' +
-            '<div class="vd-meta-item"><span class="vd-meta-label">Version</span><span class="vd-meta-value">v' + (verifier.version || 1) + '</span></div>' +
-            '<div class="vd-meta-item"><span class="vd-meta-label">Status</span><span class="vd-meta-value vd-status-' + (verifier.status || 'active') + '">' + (verifier.status || 'active') + '</span></div>' +
-            '<div class="vd-meta-item"><span class="vd-meta-label">Timeout</span><span class="vd-meta-value">' + ((verifier.metadata && verifier.metadata.timeout) || '—') + '</span></div>' +
+        '<div class="vd-meta-item"><span class="vd-meta-label">Type</span><span class="verifier-card-type type-' + typeClass + '">' + verifier.type + '</span></div>' +
+        '<div class="vd-meta-item"><span class="vd-meta-label">System</span><span class="vd-meta-value">' + (verifier.system || '—') + '</span></div>' +
+        '<div class="vd-meta-item"><span class="vd-meta-label">Environment</span><span class="vd-meta-value">' + (verifier.environment || '—') + '</span></div>' +
+        '<div class="vd-meta-item"><span class="vd-meta-label">Version</span><span class="vd-meta-value">v' + (verifier.version || 1) + '</span></div>' +
+        '<div class="vd-meta-item"><span class="vd-meta-label">Status</span><span class="vd-meta-value vd-status-' + (verifier.status || 'active') + '">' + (verifier.status || 'active') + '</span></div>' +
+        '<div class="vd-meta-item"><span class="vd-meta-label">Timeout</span><span class="vd-meta-value">' + ((verifier.metadata && verifier.metadata.timeout) || '—') + '</span></div>' +
         '</div>';
 
     // Failure policy section
@@ -2716,11 +2876,11 @@ function showVerifierDetail(envCategory, idx) {
         fpHtml = '<div class="vd-section">' +
             '<h4 class="vd-section-label">Failure Policy</h4>' +
             '<div class="vd-meta-grid">' +
-                '<div class="vd-meta-item"><span class="vd-meta-label">Hard Fail</span><span class="vd-meta-value">' + (fp.hard_fail ? 'Yes' : 'No') + '</span></div>' +
-                '<div class="vd-meta-item"><span class="vd-meta-label">Penalty</span><span class="vd-meta-value">' + fp.penalty + '</span></div>' +
-                '<div class="vd-meta-item"><span class="vd-meta-label">Log Failure</span><span class="vd-meta-value">' + (fp.log_failure ? 'Yes' : 'No') + '</span></div>' +
+            '<div class="vd-meta-item"><span class="vd-meta-label">Hard Fail</span><span class="vd-meta-value">' + (fp.hard_fail ? 'Yes' : 'No') + '</span></div>' +
+            '<div class="vd-meta-item"><span class="vd-meta-label">Penalty</span><span class="vd-meta-value">' + fp.penalty + '</span></div>' +
+            '<div class="vd-meta-item"><span class="vd-meta-label">Log Failure</span><span class="vd-meta-value">' + (fp.log_failure ? 'Yes' : 'No') + '</span></div>' +
             '</div>' +
-        '</div>';
+            '</div>';
     }
 
     // Used in scenarios
@@ -2729,9 +2889,9 @@ function showVerifierDetail(envCategory, idx) {
         scenariosHtml = '<div class="vd-section">' +
             '<h4 class="vd-section-label">Used in Scenarios</h4>' +
             '<div class="vd-chips">' +
-                verifier.usedInScenarios.map(function(s) { return '<span class="sd-connected-badge">' + s + '</span>'; }).join('') +
+            verifier.usedInScenarios.map(function (s) { return '<span class="sd-connected-badge">' + s + '</span>'; }).join('') +
             '</div>' +
-        '</div>';
+            '</div>';
     }
 
     // Sub-verifiers
@@ -2739,14 +2899,14 @@ function showVerifierDetail(envCategory, idx) {
     if (verifier.subVerifiers && verifier.subVerifiers.length) {
         subVHtml = '<div class="vd-section">' +
             '<h4 class="vd-section-label">Sub-Verifiers</h4>' +
-            verifier.subVerifiers.map(function(sv) {
+            verifier.subVerifiers.map(function (sv) {
                 return '<div class="vd-sub-card">' +
                     '<span class="vd-sub-name">' + sv.name + '</span>' +
                     '<span class="vd-sub-status ' + (sv.enabled ? 'enabled' : 'disabled') + '">' + (sv.enabled ? 'Enabled' : 'Disabled') + '</span>' +
                     '<p class="vd-sub-desc">' + (sv.description || '') + '</p>' +
-                '</div>';
+                    '</div>';
             }).join('') +
-        '</div>';
+            '</div>';
     }
 
     // Full JSON config
@@ -2761,7 +2921,7 @@ function showVerifierDetail(envCategory, idx) {
     if (existing) {
         existing.classList.remove('sv-expand-active');
         card.classList.remove('sv-card-active');
-        setTimeout(function() { if (existing.parentNode) existing.parentNode.removeChild(existing); }, 250);
+        setTimeout(function () { if (existing.parentNode) existing.parentNode.removeChild(existing); }, 250);
         return;
     }
 
@@ -2772,7 +2932,7 @@ function showVerifierDetail(envCategory, idx) {
         var prevCard = document.getElementById('verifier-card-' + prevIdx);
         if (prevCard) prevCard.classList.remove('sv-card-active');
         prevExpand.classList.remove('sv-expand-active');
-        setTimeout(function() { if (prevExpand.parentNode) prevExpand.parentNode.removeChild(prevExpand); }, 250);
+        setTimeout(function () { if (prevExpand.parentNode) prevExpand.parentNode.removeChild(prevExpand); }, 250);
     }
 
     // Build inline detail panel
@@ -2782,25 +2942,25 @@ function showVerifierDetail(envCategory, idx) {
     panel.dataset.idx = idx;
     panel.innerHTML =
         '<div class="sv-expand-inner vd-box">' +
-            '<button class="sv-expand-close" onclick="closeVerifierDetail(' + idx + ')" title="Collapse">&times;</button>' +
-            '<div class="sd-header-card">' +
-                '<h2 class="sd-title">' + verifier.name + '</h2>' +
-                '<p class="sd-subtitle">' + verifier.description + '</p>' +
-            '</div>' +
-            metaHtml +
-            fpHtml +
-            scenariosHtml +
-            subVHtml +
-            '<div class="vd-section">' +
-                '<div class="vd-json-header">' +
-                    '<h4 class="vd-section-label">JSON Configuration</h4>' +
-                    '<button class="btn btn-outline btn-small" onclick="copyVerifierJson()" title="Copy to clipboard">' +
-                        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
-                        ' Copy' +
-                    '</button>' +
-                '</div>' +
-                '<pre class="vd-json-block" id="vd-json-content">' + escapeHtml(jsonStr) + '</pre>' +
-            '</div>' +
+        '<button class="sv-expand-close" onclick="closeVerifierDetail(' + idx + ')" title="Collapse">&times;</button>' +
+        '<div class="sd-header-card">' +
+        '<h2 class="sd-title">' + verifier.name + '</h2>' +
+        '<p class="sd-subtitle">' + verifier.description + '</p>' +
+        '</div>' +
+        metaHtml +
+        fpHtml +
+        scenariosHtml +
+        subVHtml +
+        '<div class="vd-section">' +
+        '<div class="vd-json-header">' +
+        '<h4 class="vd-section-label">JSON Configuration</h4>' +
+        '<button class="btn btn-outline btn-small" onclick="copyVerifierJson()" title="Copy to clipboard">' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+        ' Copy' +
+        '</button>' +
+        '</div>' +
+        '<pre class="vd-json-block" id="vd-json-content">' + escapeHtml(jsonStr) + '</pre>' +
+        '</div>' +
         '</div>';
 
     // Insert after the card
@@ -2808,7 +2968,7 @@ function showVerifierDetail(envCategory, idx) {
     card.classList.add('sv-card-active');
 
     // Trigger expand animation on next frame
-    requestAnimationFrame(function() {
+    requestAnimationFrame(function () {
         panel.classList.add('sv-expand-active');
         panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
@@ -2824,7 +2984,7 @@ function closeVerifierDetail(idx) {
         var card = document.getElementById('verifier-card-' + cardIdx);
         if (card) card.classList.remove('sv-card-active');
         expand.classList.remove('sv-expand-active');
-        setTimeout(function() { if (expand.parentNode) expand.parentNode.removeChild(expand); }, 250);
+        setTimeout(function () { if (expand.parentNode) expand.parentNode.removeChild(expand); }, 250);
     }
 }
 window.closeVerifierDetail = closeVerifierDetail;
@@ -2832,9 +2992,9 @@ window.closeVerifierDetail = closeVerifierDetail;
 function copyVerifierJson() {
     var el = document.getElementById('vd-json-content');
     if (!el) return;
-    navigator.clipboard.writeText(el.textContent).then(function() {
+    navigator.clipboard.writeText(el.textContent).then(function () {
         showToast('JSON copied to clipboard', 'success');
-    }).catch(function() {
+    }).catch(function () {
         showToast('Failed to copy', 'error');
     });
 }
@@ -2848,7 +3008,7 @@ function escapeHtml(str) {
 function getTrainingRunsForEnv(envCategory, envName) {
     var cfg = window.TRAINING_CONFIG;
     if (!cfg || !cfg.trainingRuns) return [];
-    return cfg.trainingRuns.filter(function(r) {
+    return cfg.trainingRuns.filter(function (r) {
         if (envName && r.environment) return r.environment === envName;
         return r.category === envCategory;
     });
@@ -2862,28 +3022,28 @@ function buildTrainingSection(envName, envCategory) {
         // No runs → show collapsible with inline "New Training" button that opens config modal directly
         return '<div class="detail-collapsible" id="section-training">' +
             '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-training\')">' +
-                '<h2>' +
-                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg>' +
-                    ' Training' +
-                '</h2>' +
-                '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+            '<h2>' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg>' +
+            ' Training' +
+            '</h2>' +
+            '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
             '</button>' +
             '<div class="detail-collapsible-body" id="section-training-body">' +
-                '<div class="detail-collapsible-content">' +
-                    '<div class="training-empty-state">' +
-                        '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5" style="opacity:0.4;margin-bottom:0.75rem;"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg>' +
-                        '<p style="color:var(--text-secondary);margin-bottom:1rem;font-size:0.9rem;">No training runs yet. Configure and start your first training run.</p>' +
-                        '<button class="btn btn-primary" onclick="toggleTrainingInline(\'' + envName + '\')">' +
-                            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
-                            ' New Training' +
-                        '</button>' +
-                    '</div>' +
-                    '<div id="training-inline-iframe-wrap" style="display:none;margin-top:1rem;">' +
-                        '<iframe id="training-inline-iframe" style="width:100%;height:700px;border:none;border-radius:8px;" loading="lazy"></iframe>' +
-                    '</div>' +
-                '</div>' +
+            '<div class="detail-collapsible-content">' +
+            '<div class="training-empty-state">' +
+            '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5" style="opacity:0.4;margin-bottom:0.75rem;"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg>' +
+            '<p style="color:var(--text-secondary);margin-bottom:1rem;font-size:0.9rem;">No training runs yet. Configure and start your first training run.</p>' +
+            '<button class="btn btn-primary" onclick="toggleTrainingInline(\'' + envName + '\')">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+            ' New Training' +
+            '</button>' +
             '</div>' +
-        '</div>';
+            '<div id="training-inline-iframe-wrap" style="display:none;margin-top:1rem;">' +
+            '<iframe id="training-inline-iframe" style="width:100%;height:700px;border:none;border-radius:8px;" loading="lazy"></iframe>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '</div>';
     }
 
     // Has runs → build collapsible section with tabular run list
@@ -2891,7 +3051,7 @@ function buildTrainingSection(envName, envCategory) {
         '<th>Name</th><th>Status</th><th>Environment</th><th>Model</th><th>Progress</th><th>Started</th>' +
         '</tr></thead><tbody>';
 
-    runs.forEach(function(r, idx) {
+    runs.forEach(function (r, idx) {
         var statusClass = r.status || 'pending';
         var statusLabel = statusClass.charAt(0).toUpperCase() + statusClass.slice(1);
         var runId = 'training-run-' + (r.id || idx);
@@ -2911,40 +3071,40 @@ function buildTrainingSection(envName, envCategory) {
             '<td>' + model + '</td>' +
             '<td><div class="trt-progress"><div class="trt-bar"><div class="trt-bar-fill ' + statusClass + '" style="width:' + pct + '%"></div></div><span class="trt-pct">' + pct + '%</span></div></td>' +
             '<td>' + (r.started || '\u2014') + '</td>' +
-        '</tr>' +
-        '<tr class="trt-detail-row" id="' + runId + '-detail" style="display:none;">' +
+            '</tr>' +
+            '<tr class="trt-detail-row" id="' + runId + '-detail" style="display:none;">' +
             '<td colspan="6" style="padding:0;">' +
-                '<div class="trt-detail-body" id="' + runId + '-detail-body"></div>' +
+            '<div class="trt-detail-body" id="' + runId + '-detail-body"></div>' +
             '</td>' +
-        '</tr>';
+            '</tr>';
     });
 
     tableHtml += '</tbody></table>';
 
     return '<div class="detail-collapsible" id="section-training">' +
         '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-training\')">' +
-            '<h2>' +
-                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg>' +
-                ' Training' +
-            '</h2>' +
-            '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '<h2>' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg>' +
+        ' Training' +
+        '</h2>' +
+        '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
         '</button>' +
         '<div class="detail-collapsible-body" id="section-training-body">' +
-            '<div class="detail-collapsible-content">' +
-                '<div class="training-inline-header">' +
-                    '<span class="training-inline-count">' + runs.length + ' run' + (runs.length !== 1 ? 's' : '') + '</span>' +
-                    '<button class="btn btn-primary btn-small train-new-btn" onclick="toggleTrainingInline(\'' + envName + '\')">' +
-                        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
-                        ' New' +
-                    '</button>' +
-                '</div>' +
-                tableHtml +
-                '<div id="training-inline-iframe-wrap" style="display:none;margin-top:1rem;">' +
-                    '<iframe id="training-inline-iframe" style="width:100%;height:700px;border:none;border-radius:8px;" loading="lazy"></iframe>' +
-                '</div>' +
-            '</div>' +
+        '<div class="detail-collapsible-content">' +
+        '<div class="training-inline-header">' +
+        '<span class="training-inline-count">' + runs.length + ' run' + (runs.length !== 1 ? 's' : '') + '</span>' +
+        '<button class="btn btn-primary btn-small train-new-btn" onclick="toggleTrainingInline(\'' + envName + '\')">' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+        ' New' +
+        '</button>' +
         '</div>' +
-    '</div>';
+        tableHtml +
+        '<div id="training-inline-iframe-wrap" style="display:none;margin-top:1rem;">' +
+        '<iframe id="training-inline-iframe" style="width:100%;height:700px;border:none;border-radius:8px;" loading="lazy"></iframe>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
 }
 
 // ─── Refresh the Training section in the env detail page after a new run is started ───
@@ -2988,7 +3148,7 @@ function toggleTrainingRun(runId) {
     if (detailBody && !detailBody._rendered) {
         detailBody.innerHTML = _buildInlineReport(run);
         detailBody._rendered = true;
-        requestAnimationFrame(function() {
+        requestAnimationFrame(function () {
             var pc = detailBody.querySelector('.ir-chart-progress');
             var fc = detailBody.querySelector('.ir-chart-failures');
             if (pc) _renderPopupProgressChart(pc, run);
@@ -3006,16 +3166,16 @@ function _openTrainingReportPopup(run) {
         _trainingReportOverlay = document.createElement('div');
         _trainingReportOverlay.className = 'detail-popup-overlay training-report-popup';
         _trainingReportOverlay.id = 'training-report-popup-overlay';
-        _trainingReportOverlay.onclick = function(e) {
+        _trainingReportOverlay.onclick = function (e) {
             if (e.target === _trainingReportOverlay) _closeTrainingReportPopup();
         };
         _trainingReportOverlay.innerHTML =
             '<div class="detail-popup-box" onclick="event.stopPropagation()">' +
-                '<div class="detail-popup-header">' +
-                    '<h3 id="training-report-popup-title"></h3>' +
-                    '<button class="detail-popup-close" onclick="_closeTrainingReportPopup()" aria-label="Close">&times;</button>' +
-                '</div>' +
-                '<div class="detail-popup-body training-report-popup-body" id="training-report-popup-body"></div>' +
+            '<div class="detail-popup-header">' +
+            '<h3 id="training-report-popup-title"></h3>' +
+            '<button class="detail-popup-close" onclick="_closeTrainingReportPopup()" aria-label="Close">&times;</button>' +
+            '</div>' +
+            '<div class="detail-popup-body training-report-popup-body" id="training-report-popup-body"></div>' +
             '</div>';
         document.body.appendChild(_trainingReportOverlay);
     }
@@ -3032,7 +3192,7 @@ function _openTrainingReportPopup(run) {
     document.body.style.overflow = 'hidden';
 
     // Render canvas charts after DOM insertion (deferred so canvas has dimensions)
-    requestAnimationFrame(function() {
+    requestAnimationFrame(function () {
         var progressCanvas = bodyEl.querySelector('.ir-chart-progress');
         var failureCanvas = bodyEl.querySelector('.ir-chart-failures');
         if (progressCanvas) _renderPopupProgressChart(progressCanvas, run);
@@ -3083,7 +3243,7 @@ function _buildInlineReport(run) {
         _metricCard('Success Rate', successRate) +
         _metricCard('Avg Reward', reward) +
         _metricCard('Improvement', improvementPct || '\u2014', true) +
-    '</div>';
+        '</div>';
 
     // ── 3. Info Panels — Training Info + Model Config side by side ──
     html += '<div class="ir-panels">';
@@ -3095,7 +3255,7 @@ function _buildInlineReport(run) {
         _infoRow('Started', started) +
         (completed !== '\u2014' ? _infoRow('Completed', completed) : '') +
         _infoRow('Progress', pct + '%') +
-    '</div>';
+        '</div>';
     html += '<div class="ir-panel">' +
         '<h4>Model &amp; Compute</h4>' +
         _infoRow('Base Model', model) +
@@ -3103,7 +3263,7 @@ function _buildInlineReport(run) {
         _infoRow('LoRA alpha', '16') +
         _infoRow('Dropout', '0.05') +
         _infoRow('Task Type', 'CAUSAL_LM') +
-    '</div>';
+        '</div>';
     html += '</div>';
 
     // ── 4. Results + Baseline side by side ──
@@ -3115,7 +3275,7 @@ function _buildInlineReport(run) {
                 _infoRow('Mean Reward', results.mean_reward.toFixed(4)) +
                 _infoRow('Max Reward', maxReward) +
                 _infoRow('Min Reward', minReward) +
-            '</div>';
+                '</div>';
         }
         if (baseline.mean_reward != null) {
             html += '<div class="ir-panel">' +
@@ -3123,7 +3283,7 @@ function _buildInlineReport(run) {
                 _infoRow('Mean Reward', baseline.mean_reward.toFixed(4)) +
                 (baseline.max_reward != null ? _infoRow('Max Reward', baseline.max_reward.toFixed(4)) : '') +
                 _infoRow('Episodes', baseline.episodes || '\u2014') +
-            '</div>';
+                '</div>';
         }
         html += '</div>';
     }
@@ -3145,7 +3305,7 @@ function _buildInlineReport(run) {
         html += '<div class="ir-panels">' +
             '<div class="ir-panel"><h4>Training Progress</h4><canvas class="ir-chart-progress" style="width:100%;height:220px;"></canvas></div>' +
             '<div class="ir-panel"><h4>Failure Modes</h4><canvas class="ir-chart-failures" style="width:100%;height:220px;"></canvas></div>' +
-        '</div>';
+            '</div>';
     }
 
     // ── 6. Performance + Efficiency ──
@@ -3156,13 +3316,13 @@ function _buildInlineReport(run) {
             _perfRow('Task Completion', '23%', successRate, run.successRate != null ? '+' + (run.successRate - 23).toFixed(0) + '%' : '') +
             _perfRow('Avg Steps', '12.4', run._mock_trained_rollout ? String(run._mock_trained_rollout.total_steps) : '7.1', run._mock_trained_rollout ? '-' + Math.round((1 - run._mock_trained_rollout.total_steps / 12.4) * 100) + '%' : '-43%') +
             _perfRow('Error Rate', '31%', '8.2%', '-74%') +
-        '</div>';
+            '</div>';
         html += '<div class="ir-panel">' +
             '<h4>Efficiency Gains</h4>' +
             _perfRow('Tokens per Episode', '1,240', '890', '-28%') +
             _perfRow('Avg Latency', '3.2s', '2.1s', '-34%') +
             _perfRow('Tool Calls per Task', '8.5', run._mock_trained_rollout ? String(run._mock_trained_rollout.total_steps) : '5.2', run._mock_trained_rollout ? '-' + Math.round((1 - run._mock_trained_rollout.total_steps / 8.5) * 100) + '%' : '-39%') +
-        '</div>';
+            '</div>';
         html += '</div>';
 
         // Trade-off note
@@ -3174,7 +3334,7 @@ function _buildInlineReport(run) {
         html += '<div class="ir-panel" style="margin-top:1rem;">' +
             '<h4 style="margin-bottom:0.75rem;">Training Episodes</h4>' +
             _buildEpisodesSection(run) +
-        '</div>';
+            '</div>';
     }
 
     // ── 8. Model Artifact + Download ──
@@ -3188,7 +3348,7 @@ function _buildInlineReport(run) {
             (run.model_url ? '<a class="train-run-download" href="' + run.model_url + '" style="margin-top:0.5rem;display:inline-flex">' +
                 '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
                 ' Download Model</a>' : '') +
-        '</div>';
+            '</div>';
     }
 
     return html;
@@ -3199,36 +3359,36 @@ function _buildEpisodesSection(run) {
     var runId = run.id || 'run';
     var html = '<div class="ir-episodes-wrap">' +
         '<div class="ir-episodes-header">' +
-            '<button class="btn btn-primary btn-small" onclick="_sendToHITL(\'' + runId + '\')">' +
-                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>' +
-                ' Send Selected to HITL' +
-            '</button>' +
+        '<button class="btn btn-primary btn-small" onclick="_sendToHITL(\'' + runId + '\')">' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>' +
+        ' Send Selected to HITL' +
+        '</button>' +
         '</div>';
 
-    run._episodes.forEach(function(ep, epIdx) {
+    run._episodes.forEach(function (ep, epIdx) {
         var epId = 'ep-' + runId + '-' + epIdx;
-        var sorted = ep.rollouts.slice().sort(function(a, b) { return b.reward - a.reward; });
-        var passCount = sorted.filter(function(r) { return r.pass; }).length;
+        var sorted = ep.rollouts.slice().sort(function (a, b) { return b.reward - a.reward; });
+        var passCount = sorted.filter(function (r) { return r.pass; }).length;
 
         html += '<div class="ir-episode" id="' + epId + '">' +
             '<div class="ir-episode-header" onclick="toggleEpisode(\'' + epId + '\')">' +
-                '<svg class="ir-ep-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>' +
-                '<span class="ir-ep-title">Episode ' + ep.epoch + '</span>' +
-                '<span class="ir-ep-tag">' + ep.task_id + '</span>' +
-                '<span class="ir-ep-pill">mean <strong>' + ep.mean_reward.toFixed(3) + '</strong></span>' +
-                '<span class="ir-ep-pill">' + passCount + '/' + sorted.length + ' pass</span>' +
-                '<label class="ir-ep-selall" onclick="event.stopPropagation()">' +
-                    '<input type="checkbox" onchange="toggleSelectAllRollouts(\'' + epId + '\', this.checked)"> all' +
-                '</label>' +
+            '<svg class="ir-ep-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>' +
+            '<span class="ir-ep-title">Episode ' + ep.epoch + '</span>' +
+            '<span class="ir-ep-tag">' + ep.task_id + '</span>' +
+            '<span class="ir-ep-pill">mean <strong>' + ep.mean_reward.toFixed(3) + '</strong></span>' +
+            '<span class="ir-ep-pill">' + passCount + '/' + sorted.length + ' pass</span>' +
+            '<label class="ir-ep-selall" onclick="event.stopPropagation()">' +
+            '<input type="checkbox" onchange="toggleSelectAllRollouts(\'' + epId + '\', this.checked)"> all' +
+            '</label>' +
             '</div>' +
             '<div class="ir-episode-body" id="' + epId + '-body" style="display:none;">' +
-                '<table class="ir-rollouts-table"><thead><tr>' +
-                    '<th></th><th>#</th><th>Reward</th><th>Pass</th><th>Turns</th><th>Tool Sequence</th>' +
-                '</tr></thead><tbody>';
+            '<table class="ir-rollouts-table"><thead><tr>' +
+            '<th></th><th>#</th><th>Reward</th><th>Pass</th><th>Turns</th><th>Tool Sequence</th>' +
+            '</tr></thead><tbody>';
 
-        sorted.forEach(function(r) {
+        sorted.forEach(function (r) {
             var rwCls = r.reward >= 1.4 ? 'rw-high' : r.reward >= 1.0 ? 'rw-mid' : r.reward >= 0 ? 'rw-low' : 'rw-neg';
-            var tools = (r.tools || []).filter(Boolean).map(function(t) {
+            var tools = (r.tools || []).filter(Boolean).map(function (t) {
                 return '<span class="ir-tool-chip">' + t.replace('fhir_', '') + '</span>';
             }).join('');
             html += '<tr class="ir-rollout-row">' +
@@ -3238,7 +3398,7 @@ function _buildEpisodesSection(run) {
                 '<td>' + (r.pass ? '<span class="rw-pass">✓</span>' : '<span class="rw-fail">✗</span>') + '</td>' +
                 '<td class="ir-rollout-turns">' + r.turns + '</td>' +
                 '<td><div class="ir-tool-chips">' + tools + '</div></td>' +
-            '</tr>';
+                '</tr>';
         });
 
         html += '</tbody></table></div></div>';
@@ -3259,18 +3419,18 @@ function toggleEpisode(epId) {
 window.toggleEpisode = toggleEpisode;
 
 function toggleSelectAllRollouts(epId, checked) {
-    document.querySelectorAll('[data-episode="' + epId + '"].ir-rollout-cb').forEach(function(cb) { cb.checked = checked; });
+    document.querySelectorAll('[data-episode="' + epId + '"].ir-rollout-cb').forEach(function (cb) { cb.checked = checked; });
 }
 window.toggleSelectAllRollouts = toggleSelectAllRollouts;
 
 function _sendToHITL(runId) {
     var selected = [];
-    document.querySelectorAll('.ir-rollout-cb:checked').forEach(function(cb) {
+    document.querySelectorAll('.ir-rollout-cb:checked').forEach(function (cb) {
         selected.push({ episode: cb.dataset.episode, rollout: cb.dataset.rollout });
     });
     if (!selected.length) { if (window.showToast) showToast('Select at least one rollout first.', 'error'); return; }
     if (window.showToast) showToast(selected.length + ' rollout' + (selected.length !== 1 ? 's' : '') + ' sent to HITL queue.', 'success');
-    document.querySelectorAll('.ir-rollout-cb:checked').forEach(function(cb) { cb.checked = false; });
+    document.querySelectorAll('.ir-rollout-cb:checked').forEach(function (cb) { cb.checked = false; });
 }
 window._sendToHITL = _sendToHITL;
 
@@ -3290,7 +3450,7 @@ function _buildInlineStepper(run) {
         html += '<div class="ir-stepper-step ' + cls + '">' +
             '<div class="ir-stepper-circle">' + (cls === 'done' ? '\u2713' : (i + 1)) + '</div>' +
             '<span>' + steps[i] + '</span>' +
-        '</div>';
+            '</div>';
         if (i < steps.length - 1) {
             html += '<div class="ir-stepper-line ' + (i < active ? 'done' : '') + '"></div>';
         }
@@ -3315,7 +3475,7 @@ function _perfRow(label, before, after, delta) {
         '<span class="ir-perf-arrow">\u2192</span>' +
         '<strong>' + after + '</strong>' +
         '<span class="ir-perf-delta ' + cls + '">' + delta + '</span>' +
-    '</div>';
+        '</div>';
 }
 
 function _buildInlineRolloutComparison(run) {
@@ -3326,7 +3486,7 @@ function _buildInlineRolloutComparison(run) {
     var html = '<div class="ir-rollout-section">' +
         '<h4>Rollout Comparison</h4>' +
         '<div class="ir-rollout-meta">' +
-            '<span>Scenario: <strong>' + ((bl || tr).scenario_name || '\u2014') + '</strong></span>' +
+        '<span>Scenario: <strong>' + ((bl || tr).scenario_name || '\u2014') + '</strong></span>' +
         '</div>' +
         '<div class="ir-rollout-panels">';
 
@@ -3341,15 +3501,15 @@ function _buildRolloutPanel(title, rollout) {
     var html = '<div class="ir-rollout-panel">' +
         '<h5>' + title + '</h5>' +
         '<div class="ir-rollout-header">' +
-            '<span>Policy: <strong>' + (rollout.policy_name || '\u2014') + '</strong></span>' +
-            '<span>Checkpoint: <code>' + (rollout.checkpoint_label || '\u2014') + '</code></span>' +
-            '<span>Reward: <strong>' + (rollout.total_reward != null ? rollout.total_reward.toFixed(2) : '\u2014') + '</strong></span>' +
+        '<span>Policy: <strong>' + (rollout.policy_name || '\u2014') + '</strong></span>' +
+        '<span>Checkpoint: <code>' + (rollout.checkpoint_label || '\u2014') + '</code></span>' +
+        '<span>Reward: <strong>' + (rollout.total_reward != null ? rollout.total_reward.toFixed(2) : '\u2014') + '</strong></span>' +
         '</div>';
 
     // Timeline events
     html += '<div class="ir-rollout-timeline">';
-    (rollout.steps || []).forEach(function(step) {
-        (step.timeline_events || []).forEach(function(ev) {
+    (rollout.steps || []).forEach(function (step) {
+        (step.timeline_events || []).forEach(function (ev) {
             var ts = (ev.timestamp_ms / 1000).toFixed(3) + 's';
             var evClass = (ev.event_type || '').toLowerCase().replace(/_/g, '-');
             var content = ev.content || '';
@@ -3360,7 +3520,7 @@ function _buildRolloutPanel(title, rollout) {
                 '<span class="ir-ts">[ ' + ts + ' ]</span>' +
                 '<span class="ir-ev-type">' + (ev.event_type || '') + '</span>' +
                 '<span class="ir-ev-content">' + content + '</span>' +
-            '</div>';
+                '</div>';
         });
     });
     html += '</div>';
@@ -3368,20 +3528,20 @@ function _buildRolloutPanel(title, rollout) {
     // Final state
     if (rollout.final_environment_state) {
         html += '<div class="ir-rollout-final"><h6>Final state</h6><pre>' +
-            Object.keys(rollout.final_environment_state).map(function(k) {
+            Object.keys(rollout.final_environment_state).map(function (k) {
                 return '  ' + k + ': ' + JSON.stringify(rollout.final_environment_state[k]);
             }).join('\n') +
-        '</pre></div>';
+            '</pre></div>';
     }
 
     // Verifier results
     if (rollout.verifier_results && rollout.verifier_results.length) {
         html += '<div class="ir-rollout-verifiers"><h6>Verifier results</h6>';
-        rollout.verifier_results.forEach(function(v) {
+        rollout.verifier_results.forEach(function (v) {
             html += '<div class="ir-verifier ' + (v.passed ? 'pass' : 'fail') + '">' +
                 '<span>' + (v.passed ? '\u2713' : '\u2717') + '</span> ' +
                 (v.check || v.name || '') +
-            '</div>';
+                '</div>';
         });
         html += '</div>';
     }
@@ -3397,118 +3557,118 @@ function _buildPopupStateDiagram(run) {
 
     var NW = 158, NH = 38, BR = 6, PAD = 30, HGAP = 62, VGAP = 52, STACK_GAP = 10;
     var CLR = {
-        user:{bg:'#eff6ff',bdr:'#93c5fd',tx:'#1e40af'}, agent:{bg:'#f0fdf4',bdr:'#86efac',tx:'#166534'},
-        tool:{bg:'#fefce8',bdr:'#fde68a',tx:'#92400e'}, final:{bg:'#f1f5f9',bdr:'#cbd5e1',tx:'#475569'},
-        vPass:{bg:'#f0fdf4',bdr:'#86efac',tx:'#166534'}, vFail:{bg:'#fdf2f8',bdr:'#f9a8d4',tx:'#9d174d'},
-        reward:{bg:'#faf5ff',bdr:'#e9d5ff',tx:'#7c3aed'}
+        user: { bg: '#eff6ff', bdr: '#93c5fd', tx: '#1e40af' }, agent: { bg: '#f0fdf4', bdr: '#86efac', tx: '#166534' },
+        tool: { bg: '#fefce8', bdr: '#fde68a', tx: '#92400e' }, final: { bg: '#f1f5f9', bdr: '#cbd5e1', tx: '#475569' },
+        vPass: { bg: '#f0fdf4', bdr: '#86efac', tx: '#166534' }, vFail: { bg: '#fdf2f8', bdr: '#f9a8d4', tx: '#9d174d' },
+        reward: { bg: '#faf5ff', bdr: '#e9d5ff', tx: '#7c3aed' }
     };
-    function trunc(s,m){return !s?'':s.length>m?s.slice(0,m-1)+'\u2026':s;}
-    function esvg(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    function trunc(s, m) { return !s ? '' : s.length > m ? s.slice(0, m - 1) + '\u2026' : s; }
+    function esvg(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
-    var gNodes=[], gEdges=[], nMap={};
-    function addN(id,kind,label,detail,x,y){var n={id:id,kind:kind,label:label,detail:detail||'',x:x,y:y,w:NW,h:NH};gNodes.push(n);nMap[id]=n;return n;}
-    var col=0;
-    var s0=rollout.steps[0], uDet='';
-    if(s0&&s0.timeline_events){for(var q=0;q<s0.timeline_events.length;q++){if(s0.timeline_events[q].event_type==='SYSTEM'){uDet=s0.timeline_events[q].content||'';break;}}}
-    addN('u0','user','User Request',trunc(uDet,26),PAD+col*(NW+HGAP),PAD); col++;
+    var gNodes = [], gEdges = [], nMap = {};
+    function addN(id, kind, label, detail, x, y) { var n = { id: id, kind: kind, label: label, detail: detail || '', x: x, y: y, w: NW, h: NH }; gNodes.push(n); nMap[id] = n; return n; }
+    var col = 0;
+    var s0 = rollout.steps[0], uDet = '';
+    if (s0 && s0.timeline_events) { for (var q = 0; q < s0.timeline_events.length; q++) { if (s0.timeline_events[q].event_type === 'SYSTEM') { uDet = s0.timeline_events[q].content || ''; break; } } }
+    addN('u0', 'user', 'User Request', trunc(uDet, 26), PAD + col * (NW + HGAP), PAD); col++;
 
-    for(var i=0;i<rollout.steps.length;i++){
-        var step=rollout.steps[i], cx=PAD+col*(NW+HGAP);
-        addN('a'+i,'agent','Agent (Trained)','Step '+step.step,cx,PAD);
-        gEdges.push({f:(i===0?'u0':'a'+(i-1)),t:'a'+i,ty:'solid'});
-        var evts=step.timeline_events||[], ti=0;
-        for(var j=0;j<evts.length;j++){
-            if(evts[j].event_type==='TOOL_CALL'){
-                var tName=evts[j].tool_name||'Tool', tArgs='';
-                if(evts[j].tool_args){try{tArgs=JSON.stringify(evts[j].tool_args);}catch(e){}}
-                var tid='t'+i+'_'+ti, ty=PAD+NH+VGAP+ti*(NH+STACK_GAP);
-                addN(tid,'tool',trunc(tName,22),trunc(tArgs,26),cx,ty);
-                gEdges.push({f:(ti===0?'a'+i:'t'+i+'_'+(ti-1)),t:tid,ty:'dashed-blue'}); ti++;
+    for (var i = 0; i < rollout.steps.length; i++) {
+        var step = rollout.steps[i], cx = PAD + col * (NW + HGAP);
+        addN('a' + i, 'agent', 'Agent (Trained)', 'Step ' + step.step, cx, PAD);
+        gEdges.push({ f: (i === 0 ? 'u0' : 'a' + (i - 1)), t: 'a' + i, ty: 'solid' });
+        var evts = step.timeline_events || [], ti = 0;
+        for (var j = 0; j < evts.length; j++) {
+            if (evts[j].event_type === 'TOOL_CALL') {
+                var tName = evts[j].tool_name || 'Tool', tArgs = '';
+                if (evts[j].tool_args) { try { tArgs = JSON.stringify(evts[j].tool_args); } catch (e) { } }
+                var tid = 't' + i + '_' + ti, ty = PAD + NH + VGAP + ti * (NH + STACK_GAP);
+                addN(tid, 'tool', trunc(tName, 22), trunc(tArgs, 26), cx, ty);
+                gEdges.push({ f: (ti === 0 ? 'a' + i : 't' + i + '_' + (ti - 1)), t: tid, ty: 'dashed-blue' }); ti++;
             }
         }
-        if(step.reward!=null){
-            var rid='r'+i, ry=PAD+NH+VGAP+ti*(NH+STACK_GAP);
-            addN(rid,'reward','Reward  +'+step.reward.toFixed(2),'',cx,ry);
-            gEdges.push({f:(ti>0?'t'+i+'_'+(ti-1):'a'+i),t:rid,ty:'dashed-blue'}); ti++;
+        if (step.reward != null) {
+            var rid = 'r' + i, ry = PAD + NH + VGAP + ti * (NH + STACK_GAP);
+            addN(rid, 'reward', 'Reward  +' + step.reward.toFixed(2), '', cx, ry);
+            gEdges.push({ f: (ti > 0 ? 't' + i + '_' + (ti - 1) : 'a' + i), t: rid, ty: 'dashed-blue' }); ti++;
         }
         col++;
     }
 
-    var fs=rollout.final_environment_state||{}, fsParts=[];
-    for(var fk in fs){if(fs.hasOwnProperty(fk))fsParts.push(fk.replace(/_/g,' ')+': '+fs[fk]);}
-    var fx=PAD+col*(NW+HGAP);
-    addN('fin','final','Final State',trunc(fsParts.join(', '),26),fx,PAD);
-    gEdges.push({f:'a'+(rollout.steps.length-1),t:'fin',ty:'solid'});
+    var fs = rollout.final_environment_state || {}, fsParts = [];
+    for (var fk in fs) { if (fs.hasOwnProperty(fk)) fsParts.push(fk.replace(/_/g, ' ') + ': ' + fs[fk]); }
+    var fx = PAD + col * (NW + HGAP);
+    addN('fin', 'final', 'Final State', trunc(fsParts.join(', '), 26), fx, PAD);
+    gEdges.push({ f: 'a' + (rollout.steps.length - 1), t: 'fin', ty: 'solid' });
 
-    var vrs=rollout.verifier_results||[];
-    for(var v=0;v<vrs.length;v++){
-        var vr=vrs[v], vKind=vr.passed?'vPass':'vFail', vid='v'+v;
-        var vy=PAD+NH+VGAP+v*(NH+STACK_GAP);
-        addN(vid,vKind,(vr.passed?'\u2713 ':'\u2717 ')+trunc(vr.check,19),trunc(vr.detail,26),fx,vy);
-        gEdges.push({f:'fin',t:vid,ty:'dashed-red'});
+    var vrs = rollout.verifier_results || [];
+    for (var v = 0; v < vrs.length; v++) {
+        var vr = vrs[v], vKind = vr.passed ? 'vPass' : 'vFail', vid = 'v' + v;
+        var vy = PAD + NH + VGAP + v * (NH + STACK_GAP);
+        addN(vid, vKind, (vr.passed ? '\u2713 ' : '\u2717 ') + trunc(vr.check, 19), trunc(vr.detail, 26), fx, vy);
+        gEdges.push({ f: 'fin', t: vid, ty: 'dashed-red' });
     }
 
-    var maxX=0,maxY=0;
-    for(var ni=0;ni<gNodes.length;ni++){var nd=gNodes[ni];if(nd.x+nd.w>maxX)maxX=nd.x+nd.w;if(nd.y+nd.h>maxY)maxY=nd.y+nd.h;}
-    var svgW=maxX+PAD, svgH=maxY+PAD;
+    var maxX = 0, maxY = 0;
+    for (var ni = 0; ni < gNodes.length; ni++) { var nd = gNodes[ni]; if (nd.x + nd.w > maxX) maxX = nd.x + nd.w; if (nd.y + nd.h > maxY) maxY = nd.y + nd.h; }
+    var svgW = maxX + PAD, svgH = maxY + PAD;
 
-    var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+svgW+'" height="'+svgH+'" viewBox="0 0 '+svgW+' '+svgH+'" style="font-family:Inter,system-ui,-apple-system,sans-serif;">';
-    svg+='<defs>';
-    svg+='<marker id="sd-a-s" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0L8,3L0,6Z" fill="#64748b"/></marker>';
-    svg+='<marker id="sd-a-b" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0L8,3L0,6Z" fill="#3b82f6"/></marker>';
-    svg+='<marker id="sd-a-r" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0L8,3L0,6Z" fill="#f43f5e"/></marker>';
-    svg+='<filter id="sd-sh" x="-4%" y="-8%" width="108%" height="120%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.06"/></filter>';
-    svg+='</defs>';
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + svgW + '" height="' + svgH + '" viewBox="0 0 ' + svgW + ' ' + svgH + '" style="font-family:Inter,system-ui,-apple-system,sans-serif;">';
+    svg += '<defs>';
+    svg += '<marker id="sd-a-s" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0L8,3L0,6Z" fill="#64748b"/></marker>';
+    svg += '<marker id="sd-a-b" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0L8,3L0,6Z" fill="#3b82f6"/></marker>';
+    svg += '<marker id="sd-a-r" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0L8,3L0,6Z" fill="#f43f5e"/></marker>';
+    svg += '<filter id="sd-sh" x="-4%" y="-8%" width="108%" height="120%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.06"/></filter>';
+    svg += '</defs>';
 
-    for(var ei=0;ei<gEdges.length;ei++){
-        var ge=gEdges[ei], fn=nMap[ge.f], tn=nMap[ge.t];
-        if(!fn||!tn)continue;
-        var marker=ge.ty==='dashed-red'?'sd-a-r':(ge.ty==='dashed-blue'?'sd-a-b':'sd-a-s');
-        var eCol=ge.ty==='dashed-red'?'#f43f5e':(ge.ty==='dashed-blue'?'#3b82f6':'#64748b');
-        var eW=ge.ty==='solid'?1.5:1.2;
-        var dash=ge.ty==='solid'?'':' stroke-dasharray="6,3"';
-        var horiz=Math.abs(fn.y-tn.y)<5, sameCol=Math.abs(fn.x-tn.x)<5, pth;
-        if(horiz){pth='M'+(fn.x+fn.w)+','+(fn.y+fn.h/2)+' L'+tn.x+','+(tn.y+tn.h/2);}
-        else if(sameCol){pth='M'+(fn.x+fn.w/2)+','+(fn.y+fn.h)+' L'+(tn.x+tn.w/2)+','+tn.y;}
-        else{var sx=fn.x+fn.w/2,sy=fn.y+fn.h,ex=tn.x+tn.w/2,ey=tn.y,my=(sy+ey)/2;pth='M'+sx+','+sy+' C'+sx+','+my+' '+ex+','+my+' '+ex+','+ey;}
-        svg+='<path d="'+pth+'" fill="none" stroke="'+eCol+'" stroke-width="'+eW+'"'+dash+' marker-end="url(#'+marker+')"/>';
+    for (var ei = 0; ei < gEdges.length; ei++) {
+        var ge = gEdges[ei], fn = nMap[ge.f], tn = nMap[ge.t];
+        if (!fn || !tn) continue;
+        var marker = ge.ty === 'dashed-red' ? 'sd-a-r' : (ge.ty === 'dashed-blue' ? 'sd-a-b' : 'sd-a-s');
+        var eCol = ge.ty === 'dashed-red' ? '#f43f5e' : (ge.ty === 'dashed-blue' ? '#3b82f6' : '#64748b');
+        var eW = ge.ty === 'solid' ? 1.5 : 1.2;
+        var dash = ge.ty === 'solid' ? '' : ' stroke-dasharray="6,3"';
+        var horiz = Math.abs(fn.y - tn.y) < 5, sameCol = Math.abs(fn.x - tn.x) < 5, pth;
+        if (horiz) { pth = 'M' + (fn.x + fn.w) + ',' + (fn.y + fn.h / 2) + ' L' + tn.x + ',' + (tn.y + tn.h / 2); }
+        else if (sameCol) { pth = 'M' + (fn.x + fn.w / 2) + ',' + (fn.y + fn.h) + ' L' + (tn.x + tn.w / 2) + ',' + tn.y; }
+        else { var sx = fn.x + fn.w / 2, sy = fn.y + fn.h, ex = tn.x + tn.w / 2, ey = tn.y, my = (sy + ey) / 2; pth = 'M' + sx + ',' + sy + ' C' + sx + ',' + my + ' ' + ex + ',' + my + ' ' + ex + ',' + ey; }
+        svg += '<path d="' + pth + '" fill="none" stroke="' + eCol + '" stroke-width="' + eW + '"' + dash + ' marker-end="url(#' + marker + ')"/>';
     }
 
-    for(var ni2=0;ni2<gNodes.length;ni2++){
-        var n=gNodes[ni2], c=CLR[n.kind]||CLR.agent;
-        svg+='<g filter="url(#sd-sh)">';
-        svg+='<rect x="'+n.x+'" y="'+n.y+'" width="'+n.w+'" height="'+n.h+'" rx="'+BR+'" fill="'+c.bg+'" stroke="'+c.bdr+'" stroke-width="1.5"/>';
-        if(n.detail){
-            svg+='<text x="'+(n.x+10)+'" y="'+(n.y+15)+'" font-size="11" font-weight="600" fill="'+c.tx+'">'+esvg(n.label)+'</text>';
-            svg+='<text x="'+(n.x+10)+'" y="'+(n.y+28)+'" font-size="9" fill="#64748b">'+esvg(n.detail)+'</text>';
-        }else{
-            svg+='<text x="'+(n.x+10)+'" y="'+(n.y+n.h/2+4)+'" font-size="11" font-weight="600" fill="'+c.tx+'">'+esvg(n.label)+'</text>';
+    for (var ni2 = 0; ni2 < gNodes.length; ni2++) {
+        var n = gNodes[ni2], c = CLR[n.kind] || CLR.agent;
+        svg += '<g filter="url(#sd-sh)">';
+        svg += '<rect x="' + n.x + '" y="' + n.y + '" width="' + n.w + '" height="' + n.h + '" rx="' + BR + '" fill="' + c.bg + '" stroke="' + c.bdr + '" stroke-width="1.5"/>';
+        if (n.detail) {
+            svg += '<text x="' + (n.x + 10) + '" y="' + (n.y + 15) + '" font-size="11" font-weight="600" fill="' + c.tx + '">' + esvg(n.label) + '</text>';
+            svg += '<text x="' + (n.x + 10) + '" y="' + (n.y + 28) + '" font-size="9" fill="#64748b">' + esvg(n.detail) + '</text>';
+        } else {
+            svg += '<text x="' + (n.x + 10) + '" y="' + (n.y + n.h / 2 + 4) + '" font-size="11" font-weight="600" fill="' + c.tx + '">' + esvg(n.label) + '</text>';
         }
-        svg+='<title>'+esvg(n.label+(n.detail?': '+n.detail:''))+'</title></g>';
+        svg += '<title>' + esvg(n.label + (n.detail ? ': ' + n.detail : '')) + '</title></g>';
     }
-    svg+='</svg>';
+    svg += '</svg>';
 
-    var out='<div class="sd-container" style="margin-top:0.75rem;">';
-    out+='<h4 class="sd-title" style="font-size:0.85rem;">Rollout State Diagram</h4>';
-    out+='<p class="sd-subtitle">'+((rollout.scenario_name||rollout.environment_name||'')+' \u00b7 Policy: '+(rollout.policy_name||'\u2014')+' \u00b7 '+rollout.total_steps+' steps \u00b7 Reward: '+(rollout.total_reward!=null?rollout.total_reward.toFixed(2):'\u2014'))+'</p>';
-    out+='<div class="sd-scroll">'+svg+'</div>';
-    out+='<div class="sd-legend">';
-    out+='<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#93c5fd"></span> User</span>';
-    out+='<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#86efac"></span> Agent</span>';
-    out+='<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#fde68a"></span> Tool Call</span>';
-    out+='<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#cbd5e1"></span> Final State</span>';
-    out+='<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#e9d5ff"></span> Reward</span>';
-    out+='<span class="sd-legend-item"><span class="sd-legend-line" style="color:#64748b"></span> Flow</span>';
-    out+='<span class="sd-legend-item"><span class="sd-legend-line dashed" style="color:#3b82f6"></span> Tool</span>';
-    out+='<span class="sd-legend-item"><span class="sd-legend-line dashed" style="color:#f43f5e"></span> Verify</span>';
-    out+='</div></div>';
+    var out = '<div class="sd-container" style="margin-top:0.75rem;">';
+    out += '<h4 class="sd-title" style="font-size:0.85rem;">Rollout State Diagram</h4>';
+    out += '<p class="sd-subtitle">' + ((rollout.scenario_name || rollout.environment_name || '') + ' \u00b7 Policy: ' + (rollout.policy_name || '\u2014') + ' \u00b7 ' + rollout.total_steps + ' steps \u00b7 Reward: ' + (rollout.total_reward != null ? rollout.total_reward.toFixed(2) : '\u2014')) + '</p>';
+    out += '<div class="sd-scroll">' + svg + '</div>';
+    out += '<div class="sd-legend">';
+    out += '<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#93c5fd"></span> User</span>';
+    out += '<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#86efac"></span> Agent</span>';
+    out += '<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#fde68a"></span> Tool Call</span>';
+    out += '<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#cbd5e1"></span> Final State</span>';
+    out += '<span class="sd-legend-item"><span class="sd-legend-dot" style="background:#e9d5ff"></span> Reward</span>';
+    out += '<span class="sd-legend-item"><span class="sd-legend-line" style="color:#64748b"></span> Flow</span>';
+    out += '<span class="sd-legend-item"><span class="sd-legend-line dashed" style="color:#3b82f6"></span> Tool</span>';
+    out += '<span class="sd-legend-item"><span class="sd-legend-line dashed" style="color:#f43f5e"></span> Verify</span>';
+    out += '</div></div>';
     return out;
 }
 
 // ─── Chart rendering for popup ───────────────────────────────────────────
 function _popupSeededRandom(seed) {
     var s = seed;
-    return function() { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646; };
+    return function () { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646; };
 }
 
 function _renderPopupProgressChart(canvas, run) {
@@ -3543,14 +3703,14 @@ function _renderPopupProgressChart(canvas, run) {
 
     var yMin = 0, yMax = 1.0, yRange = yMax - yMin;
     ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 1;
-    [0, 0.2, 0.4, 0.6, 0.8, 1.0].forEach(function(v) {
+    [0, 0.2, 0.4, 0.6, 0.8, 1.0].forEach(function (v) {
         var y = pad.top + plotH - ((v - yMin) / yRange) * plotH;
         ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + plotW, y); ctx.stroke();
     });
     ctx.strokeStyle = '#d1d5db'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + plotH); ctx.lineTo(pad.left + plotW, pad.top + plotH); ctx.stroke();
     ctx.fillStyle = '#6b7280'; ctx.font = '11px -apple-system,BlinkMacSystemFont,sans-serif'; ctx.textAlign = 'right';
-    [0, 0.2, 0.4, 0.6, 0.8, 1.0].forEach(function(v) { ctx.fillText(v.toFixed(1), pad.left - 6, pad.top + plotH - ((v - yMin) / yRange) * plotH + 4); });
+    [0, 0.2, 0.4, 0.6, 0.8, 1.0].forEach(function (v) { ctx.fillText(v.toFixed(1), pad.left - 6, pad.top + plotH - ((v - yMin) / yRange) * plotH + 4); });
     ctx.textAlign = 'center';
     for (var i = 0; i <= 5; i++) { ctx.fillText(Math.round((i / 5) * totalEpisodes), pad.left + (i / 5) * plotW, pad.top + plotH + 16); }
     ctx.fillStyle = '#9ca3af'; ctx.textAlign = 'center'; ctx.fillText('Episodes', pad.left + plotW / 2, h - 4);
@@ -3559,11 +3719,11 @@ function _renderPopupProgressChart(canvas, run) {
     var grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
     grad.addColorStop(0, 'rgba(192,38,211,0.15)'); grad.addColorStop(1, 'rgba(192,38,211,0.02)');
     ctx.fillStyle = grad; ctx.beginPath(); ctx.moveTo(pad.left, pad.top + plotH);
-    smoothed.forEach(function(v, idx) { ctx.lineTo(pad.left + (idx / numPoints) * plotW, pad.top + plotH - ((v - yMin) / yRange) * plotH); });
+    smoothed.forEach(function (v, idx) { ctx.lineTo(pad.left + (idx / numPoints) * plotW, pad.top + plotH - ((v - yMin) / yRange) * plotH); });
     ctx.lineTo(pad.left + plotW, pad.top + plotH); ctx.closePath(); ctx.fill();
 
     ctx.strokeStyle = '#c026d3'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.beginPath();
-    smoothed.forEach(function(v, idx) { var x = pad.left + (idx / numPoints) * plotW, y = pad.top + plotH - ((v - yMin) / yRange) * plotH; if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+    smoothed.forEach(function (v, idx) { var x = pad.left + (idx / numPoints) * plotW, y = pad.top + plotH - ((v - yMin) / yRange) * plotH; if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
     ctx.stroke();
 
     var baseY = pad.top + plotH - ((baselineReward - yMin) / yRange) * plotH;
@@ -3616,7 +3776,7 @@ function _renderPopupFailureChart(canvas, run) {
     var totalH = modes.length * barH + (modes.length - 1) * gap;
     var startY = mpad.top + (h - mpad.top - mpad.bottom - totalH) / 2;
 
-    modes.forEach(function(m, i) {
+    modes.forEach(function (m, i) {
         var y = startY + i * (barH + gap), bw = (m.pct / 100) * plotW, radius = 4;
         ctx.fillStyle = '#f3f4f6'; _popupRoundRect(ctx, mpad.left, y, plotW, barH, radius); ctx.fill();
         if (bw > 0) {
@@ -3648,19 +3808,19 @@ function buildConfigEditorSection(envName, details) {
         var fieldHtml = '';
 
         if (field.type === 'select') {
-            var optionsHtml = (field.options || []).map(function(opt) {
+            var optionsHtml = (field.options || []).map(function (opt) {
                 var sel = (String(value) === String(opt)) ? ' selected' : '';
-                var display = opt.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+                var display = opt.replace(/_/g, ' ').replace(/\b\w/g, function (l) { return l.toUpperCase(); });
                 return '<option value="' + opt + '"' + sel + '>' + display + '</option>';
             }).join('');
             fieldHtml = '<select class="config-editor-input" data-config-key="' + key + '" data-env="' + envName + '">' + optionsHtml + '</select>';
         } else if (field.type === 'range') {
             fieldHtml =
                 '<div class="config-range-wrap">' +
-                    '<input type="range" class="config-editor-input config-range-input" data-config-key="' + key + '" data-env="' + envName + '" ' +
-                        'min="' + (field.min || 0) + '" max="' + (field.max || 100) + '" value="' + value + '" ' +
-                        'oninput="this.nextElementSibling.textContent=this.value">' +
-                    '<span class="config-range-value">' + value + '</span>' +
+                '<input type="range" class="config-editor-input config-range-input" data-config-key="' + key + '" data-env="' + envName + '" ' +
+                'min="' + (field.min || 0) + '" max="' + (field.max || 100) + '" value="' + value + '" ' +
+                'oninput="this.nextElementSibling.textContent=this.value">' +
+                '<span class="config-range-value">' + value + '</span>' +
                 '</div>';
         } else {
             // number or text
@@ -3673,18 +3833,18 @@ function buildConfigEditorSection(envName, details) {
 
         fieldsHtml +=
             '<div class="config-editor-field">' +
-                '<label>' + (field.label || key) + '</label>' +
-                fieldHtml +
+            '<label>' + (field.label || key) + '</label>' +
+            fieldHtml +
             '</div>';
     }
 
     // Build KPI chips editor
     var kpis = details.kpis || [];
-    var kpiChipsHtml = kpis.map(function(kpi, idx) {
+    var kpiChipsHtml = kpis.map(function (kpi, idx) {
         return '<span class="kpi-chip-editable" data-idx="' + idx + '">' +
             kpi +
             '<button class="kpi-remove-btn" onclick="removeCustomKpi(\'' + envName + '\', ' + idx + ')" title="Remove KPI">&times;</button>' +
-        '</span>';
+            '</span>';
     }).join('');
 
     // Build infrastructure summary
@@ -3693,49 +3853,49 @@ function buildConfigEditorSection(envName, details) {
     var sdkDef = details.sdkDefaults || SDK_TRAINING_DEFAULTS[sdk] || {};
     var hwDef = details.hardwareDefaults || HARDWARE_TRAINING_DEFAULTS[hardware] || {};
     var sdkLabel = sdk.charAt(0).toUpperCase() + sdk.slice(1);
-    var hwLabel = hardware.replace(/-/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+    var hwLabel = hardware.replace(/-/g, ' ').replace(/\b\w/g, function (l) { return l.toUpperCase(); });
 
     return '<div class="detail-collapsible" id="section-configuration">' +
         '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-configuration\')">' +
-            '<h2>' +
-                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>' +
-                ' Configuration' +
-            '</h2>' +
-            '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '<h2>' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>' +
+        ' Configuration' +
+        '</h2>' +
+        '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
         '</button>' +
         '<div class="detail-collapsible-body" id="section-configuration-body">' +
-            '<div class="detail-collapsible-content">' +
-                // Config parameters grid
-                '<h3 style="margin-bottom:0.75rem;font-size:0.95rem;">Environment Parameters</h3>' +
-                '<div class="config-editor-grid">' + fieldsHtml + '</div>' +
+        '<div class="detail-collapsible-content">' +
+        // Config parameters grid
+        '<h3 style="margin-bottom:0.75rem;font-size:0.95rem;">Environment Parameters</h3>' +
+        '<div class="config-editor-grid">' + fieldsHtml + '</div>' +
 
-                // KPI editor
-                '<h3 style="margin-top:1.25rem;margin-bottom:0.75rem;font-size:0.95rem;">KPIs</h3>' +
-                '<div class="kpi-chips-editor" id="kpi-chips-editor-' + envName + '">' +
-                    kpiChipsHtml +
-                    '<div class="kpi-add-row">' +
-                        '<input type="text" class="config-editor-input kpi-add-input" id="kpi-add-input-' + envName + '" placeholder="Add KPI..." onkeydown="if(event.key===\'Enter\'){addCustomKpi(\'' + envName + '\');event.preventDefault();}">' +
-                        '<button class="btn btn-small kpi-add-btn" onclick="addCustomKpi(\'' + envName + '\')">+</button>' +
-                    '</div>' +
-                '</div>' +
-
-                // Infrastructure summary
-                '<h3 style="margin-top:1.25rem;margin-bottom:0.75rem;font-size:0.95rem;">Infrastructure</h3>' +
-                '<div class="config-infra-row">' +
-                    '<div class="config-infra-item"><label>SDK</label><span>' + sdkLabel + '</span></div>' +
-                    '<div class="config-infra-item"><label>Framework</label><span>' + (sdkDef.framework || 'N/A') + '</span></div>' +
-                    '<div class="config-infra-item"><label>Hardware</label><span>' + hwLabel + '</span></div>' +
-                    '<div class="config-infra-item"><label>Batch Size</label><span>' + (hwDef.batchSize || 64) + '</span></div>' +
-                '</div>' +
-
-                // Save / Reset buttons
-                '<div class="config-editor-actions">' +
-                    '<button class="btn btn-primary btn-small" onclick="saveEnvConfig(\'' + envName + '\')">Save Configuration</button>' +
-                    '<button class="btn btn-small" onclick="resetEnvConfig(\'' + envName + '\')">Reset to Defaults</button>' +
-                '</div>' +
-            '</div>' +
+        // KPI editor
+        '<h3 style="margin-top:1.25rem;margin-bottom:0.75rem;font-size:0.95rem;">KPIs</h3>' +
+        '<div class="kpi-chips-editor" id="kpi-chips-editor-' + envName + '">' +
+        kpiChipsHtml +
+        '<div class="kpi-add-row">' +
+        '<input type="text" class="config-editor-input kpi-add-input" id="kpi-add-input-' + envName + '" placeholder="Add KPI..." onkeydown="if(event.key===\'Enter\'){addCustomKpi(\'' + envName + '\');event.preventDefault();}">' +
+        '<button class="btn btn-small kpi-add-btn" onclick="addCustomKpi(\'' + envName + '\')">+</button>' +
         '</div>' +
-    '</div>';
+        '</div>' +
+
+        // Infrastructure summary
+        '<h3 style="margin-top:1.25rem;margin-bottom:0.75rem;font-size:0.95rem;">Infrastructure</h3>' +
+        '<div class="config-infra-row">' +
+        '<div class="config-infra-item"><label>SDK</label><span>' + sdkLabel + '</span></div>' +
+        '<div class="config-infra-item"><label>Framework</label><span>' + (sdkDef.framework || 'N/A') + '</span></div>' +
+        '<div class="config-infra-item"><label>Hardware</label><span>' + hwLabel + '</span></div>' +
+        '<div class="config-infra-item"><label>Batch Size</label><span>' + (hwDef.batchSize || 64) + '</span></div>' +
+        '</div>' +
+
+        // Save / Reset buttons
+        '<div class="config-editor-actions">' +
+        '<button class="btn btn-primary btn-small" onclick="saveEnvConfig(\'' + envName + '\')">Save Configuration</button>' +
+        '<button class="btn btn-small" onclick="resetEnvConfig(\'' + envName + '\')">Reset to Defaults</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
 }
 
 // ─── Save config from the editor UI back to environmentDetails ───
@@ -3746,7 +3906,7 @@ function saveEnvConfig(envName) {
     // Read all config-editor-input fields for this env
     var inputs = document.querySelectorAll('[data-env="' + envName + '"][data-config-key]');
     var newConfig = {};
-    inputs.forEach(function(el) {
+    inputs.forEach(function (el) {
         var key = el.getAttribute('data-config-key');
         var val = el.value;
         // Try to convert to number if it looks like one
@@ -3831,17 +3991,17 @@ function _rerenderKpiChips(envName) {
     var details = environmentDetails[envName];
     var kpis = (details && details.kpis) || [];
 
-    var chipsHtml = kpis.map(function(kpi, idx) {
+    var chipsHtml = kpis.map(function (kpi, idx) {
         return '<span class="kpi-chip-editable" data-idx="' + idx + '">' +
             kpi +
             '<button class="kpi-remove-btn" onclick="removeCustomKpi(\'' + envName + '\', ' + idx + ')" title="Remove KPI">&times;</button>' +
-        '</span>';
+            '</span>';
     }).join('');
 
     container.innerHTML = chipsHtml +
         '<div class="kpi-add-row">' +
-            '<input type="text" class="config-editor-input kpi-add-input" id="kpi-add-input-' + envName + '" placeholder="Add KPI..." onkeydown="if(event.key===\'Enter\'){addCustomKpi(\'' + envName + '\');event.preventDefault();}">' +
-            '<button class="btn btn-small kpi-add-btn" onclick="addCustomKpi(\'' + envName + '\')">+</button>' +
+        '<input type="text" class="config-editor-input kpi-add-input" id="kpi-add-input-' + envName + '" placeholder="Add KPI..." onkeydown="if(event.key===\'Enter\'){addCustomKpi(\'' + envName + '\');event.preventDefault();}">' +
+        '<button class="btn btn-small kpi-add-btn" onclick="addCustomKpi(\'' + envName + '\')">+</button>' +
         '</div>';
 
     // Also update the KPI list in the Description section
@@ -3849,7 +4009,7 @@ function _rerenderKpiChips(envName) {
     // The Description section KPI list is separate, update it too
     var descKpiList = document.querySelector('#section-description-body .kpi-list');
     if (descKpiList) {
-        descKpiList.innerHTML = kpis.map(function(kpi) {
+        descKpiList.innerHTML = kpis.map(function (kpi) {
             return '<span class="kpi-item">' + kpi + '</span>';
         }).join('');
     }
@@ -3869,10 +4029,10 @@ function _persistCustomEnvConfig(envName, details) {
             sdk: details.sdk,
             hardware: details.hardware
         })
-    }).then(function(res) {
+    }).then(function (res) {
         if (!res.ok) console.warn('[ConfigEditor] Failed to persist config for', envName);
         else console.log('[ConfigEditor] Persisted config for', envName);
-    }).catch(function(err) {
+    }).catch(function (err) {
         console.warn('[ConfigEditor] Error persisting config:', err);
     });
 }
@@ -3899,7 +4059,7 @@ function _buildSimulationsContent(envName, env, details) {
         var pyproject = details.pyproject || {};
 
         // Tags HTML
-        var tagsHtml = tags.map(function(t) { return '<span class="hf-tag">' + t + '</span>'; }).join('');
+        var tagsHtml = tags.map(function (t) { return '<span class="hf-tag">' + t + '</span>'; }).join('');
 
         // Metadata grid
         var metaItems = [
@@ -3910,7 +4070,7 @@ function _buildSimulationsContent(envName, env, details) {
             { label: 'License', value: license || 'Not specified' },
             { label: 'Likes', value: (details.likes || 0) + '' }
         ];
-        var metaHtml = metaItems.map(function(m) {
+        var metaHtml = metaItems.map(function (m) {
             return '<div class="hf-meta-item"><span class="hf-meta-label">' + m.label + '</span><span class="hf-meta-value">' + m.value + '</span></div>';
         }).join('');
 
@@ -3918,7 +4078,7 @@ function _buildSimulationsContent(envName, env, details) {
         var endpointsHtml = '';
         if (endpoints.length > 0) {
             endpointsHtml = '<div class="hf-endpoints"><h3>API Endpoints</h3><div class="hf-endpoint-list">' +
-                endpoints.map(function(ep) {
+                endpoints.map(function (ep) {
                     return '<div class="hf-endpoint"><span class="hf-method hf-method-' + ep.method.toLowerCase() + '">' + ep.method + '</span><code>' + ep.path + '</code></div>';
                 }).join('') + '</div></div>';
         }
@@ -3928,9 +4088,9 @@ function _buildSimulationsContent(envName, env, details) {
         var modelKeys = Object.keys(models);
         if (modelKeys.length > 0) {
             modelsHtml = '<div class="hf-models"><h3>Data Models</h3>' +
-                modelKeys.map(function(mk) {
+                modelKeys.map(function (mk) {
                     var m = models[mk];
-                    var fieldsHtml = m.fields.map(function(f) {
+                    var fieldsHtml = m.fields.map(function (f) {
                         if (f.value) return '<div class="hf-model-field"><code>' + f.name + '</code> = <code>"' + f.value + '"</code></div>';
                         return '<div class="hf-model-field"><code>' + f.name + '</code><span class="hf-model-type">' + (f.type || '') + '</span>' +
                             (f.description ? '<span class="hf-model-desc">' + f.description + '</span>' : '') + '</div>';
@@ -3942,7 +4102,7 @@ function _buildSimulationsContent(envName, env, details) {
         // Files HTML
         var filesHtml = '';
         if (files.length > 0) {
-            filesHtml = files.map(function(f) {
+            filesHtml = files.map(function (f) {
                 var sizeStr = f.size < 1024 ? f.size + ' B' : (f.size < 1048576 ? (f.size / 1024).toFixed(1) + ' KB' : (f.size / 1048576).toFixed(1) + ' MB');
                 var ext = f.path.split('.').pop().toLowerCase();
                 var icon = ext === 'py' ? '🐍' : ext === 'md' ? '📄' : ext === 'yaml' || ext === 'yml' ? '⚙️' : ext === 'toml' ? '📦' : ext === 'json' ? '{}' : ext === 'html' ? '🌐' : '📁';
@@ -3957,7 +4117,7 @@ function _buildSimulationsContent(envName, env, details) {
         var depsHtml = '';
         if (pyproject.dependencies && pyproject.dependencies.length > 0) {
             depsHtml = '<div class="hf-deps"><h3>Dependencies</h3><div class="hf-dep-list">' +
-                pyproject.dependencies.map(function(d) { return '<span class="hf-dep">' + d + '</span>'; }).join('') +
+                pyproject.dependencies.map(function (d) { return '<span class="hf-dep">' + d + '</span>'; }).join('') +
                 '</div></div>';
         }
 
@@ -3970,30 +4130,33 @@ function _buildSimulationsContent(envName, env, details) {
         return (tagsHtml ? '<div class="hf-tags-row">' + tagsHtml + '</div>' : '') +
             '<div class="hf-meta-grid">' + metaHtml + '</div>' +
             '<div class="hf-tabs" id="hf-tabs">' +
-                '<button class="hf-tab active" data-tab="hf-tab-app" onclick="switchHFTab(this)">App</button>' +
-                '<button class="hf-tab" data-tab="hf-tab-files" onclick="switchHFTab(this)">Files <span class="hf-tab-count">' + files.length + '</span></button>' +
-                '<button class="hf-tab" data-tab="hf-tab-readme" onclick="switchHFTab(this)">README</button>' +
-                (endpoints.length > 0 ? '<button class="hf-tab" data-tab="hf-tab-api" onclick="switchHFTab(this)">API</button>' : '') +
+            '<button class="hf-tab active" data-tab="hf-tab-app" onclick="switchHFTab(this)">App</button>' +
+            '<button class="hf-tab" data-tab="hf-tab-files" onclick="switchHFTab(this)">Files <span class="hf-tab-count">' + files.length + '</span></button>' +
+            '<button class="hf-tab" data-tab="hf-tab-readme" onclick="switchHFTab(this)">README</button>' +
+            (endpoints.length > 0 ? '<button class="hf-tab" data-tab="hf-tab-api" onclick="switchHFTab(this)">API</button>' : '') +
             '</div>' +
             '<div class="hf-tab-panel active" id="hf-tab-app">' +
-                (hfUrl && hfOwner && hfRepo ?
-                    '<div class="hf-iframe-wrap"><iframe id="hf-app-iframe" class="hf-iframe" src="https://' + hfOwner + '-' + hfRepo + '.hf.space" allow="accelerometer; camera; encrypted-media; geolocation; gyroscope; microphone" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" loading="lazy"></iframe></div>' +
-                    '<p style="text-align:center;font-size:0.75rem;color:#888;margin-top:0.5rem;">Embedded from <a href="' + hfUrl + '" target="_blank" style="color:var(--primary-color);">' + hfUrl + '</a></p>' :
+            (hfUrl && hfOwner && hfRepo ? (function () {
+                var basePath = (details.frontMatter || {}).base_path || (openenv || {}).base_path || '';
+                var iframeSrc = 'https://' + hfOwner + '-' + hfRepo + '.hf.space' + basePath;
+                return '<div class="hf-iframe-wrap"><iframe id="hf-app-iframe" class="hf-iframe" src="' + iframeSrc + '" allow="accelerometer; camera; encrypted-media; geolocation; gyroscope; microphone" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" loading="lazy"></iframe></div>' +
+                    '<p style="text-align:center;font-size:0.75rem;color:#888;margin-top:0.5rem;">Embedded from <a href="' + hfUrl + '" target="_blank" style="color:var(--primary-color);">' + hfUrl + '</a></p>';
+            })() :
                 '<div class="hf-empty-state">No live preview available. The environment has been cloned locally.</div>') +
             '</div>' +
             '<div class="hf-tab-panel" id="hf-tab-files">' +
-                '<div class="hf-file-browser">' + filesHtml + '</div>' +
-                '<div class="hf-file-viewer" id="hf-file-viewer" style="display:none;">' +
-                    '<div class="hf-file-viewer-header"><span id="hf-file-viewer-title"></span>' +
-                        '<button class="hf-file-close-btn" onclick="closeFileViewer()" title="Close (Esc)"><kbd>Esc</kbd></button></div>' +
-                    '<pre class="hf-file-content" id="hf-file-content"></pre>' +
-                '</div>' +
+            '<div class="hf-file-browser">' + filesHtml + '</div>' +
+            '<div class="hf-file-viewer" id="hf-file-viewer" style="display:none;">' +
+            '<div class="hf-file-viewer-header"><span id="hf-file-viewer-title"></span>' +
+            '<button class="hf-file-close-btn" onclick="closeFileViewer()" title="Close (Esc)"><kbd>Esc</kbd></button></div>' +
+            '<pre class="hf-file-content" id="hf-file-content"></pre>' +
+            '</div>' +
             '</div>' +
             '<div class="hf-tab-panel" id="hf-tab-readme">' +
-                (readmeHtml ? '<div class="hf-readme">' + readmeHtml + '</div>' : '<div class="hf-empty-state">No README found.</div>') +
+            (readmeHtml ? '<div class="hf-readme">' + readmeHtml + '</div>' : '<div class="hf-empty-state">No README found.</div>') +
             '</div>' +
             '<div class="hf-tab-panel" id="hf-tab-api">' +
-                endpointsHtml + modelsHtml + depsHtml +
+            endpointsHtml + modelsHtml + depsHtml +
             '</div>';
     }
     // Standard: test-console iframe
@@ -4001,7 +4164,7 @@ function _buildSimulationsContent(envName, env, details) {
 }
 
 function showEnvironmentDetails(envName) {
-    var env = allEnvironments.find(function(e) { return e.name === envName; });
+    var env = allEnvironments.find(function (e) { return e.name === envName; });
     if (!env) return;
 
     var details = environmentDetails[envName] || {};
@@ -4030,11 +4193,11 @@ function showEnvironmentDetails(envName) {
     var description = details.description || env.description || getEnvironmentDescription(env.name, env.category || 'other');
     var shortDesc = description.length > 200 ? description.slice(0, 197) + '...' : description;
     var useCase = details.useCase || getUseCaseDescription(env.name, env.category || 'other');
-    var kpiHtml = kpis.map(function(kpi) { return '<span class="kpi-item">' + kpi + '</span>'; }).join('');
+    var kpiHtml = kpis.map(function (kpi) { return '<span class="kpi-item">' + kpi + '</span>'; }).join('');
     var actionsHtml;
     if (env.actions && env.actions.length > 0) {
-        actionsHtml = '<div class="action-chips">' + env.actions.map(function(action, i) {
-            var display = action.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+        actionsHtml = '<div class="action-chips">' + env.actions.map(function (action, i) {
+            var display = action.replace(/_/g, ' ').replace(/\b\w/g, function (l) { return l.toUpperCase(); });
             return '<span class="action-chip" title="' + (getActionDescription(env.name, action) || '') + '">' + (i + 1) + '. ' + display + '</span>';
         }).join('') + '</div>';
     } else {
@@ -4044,79 +4207,79 @@ function showEnvironmentDetails(envName) {
     var isCustomEnv = (details.isCustom || env.source === 'custom' || env.source === 'huggingface');
     var deleteBtn = isCustomEnv ?
         '<button class="btn btn-danger btn-small" onclick="deleteEnvironment(\'' + env.name.replace(/'/g, "\\'") + '\')">' +
-            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
-            ' Delete' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+        ' Delete' +
         '</button>' : '';
 
     var detailBody = document.getElementById('env-detail-body');
     detailBody.innerHTML =
         '<div class="detail-hero">' +
-            '<div class="detail-hero-left">' +
-                '<h1 class="detail-page-title">' + formatEnvironmentName(env.name) + '</h1>' +
-                '<span class="howto-popover-wrap">' +
-                    '<button class="howto-trigger" aria-label="How to use this environment" tabindex="0">?</button>' +
-                    '<div class="howto-popover">' +
-                        '<strong style="display:block;margin-bottom:0.5rem;font-size:0.95rem;">How to Use</strong>' +
-                        howToUse +
-                    '</div>' +
-                '</span>' +
-                '<span class="env-category category-' + env.category + '">' + env.category + '</span>' +
-                ((details.hf_url || env.hf_url) ? '<a href="' + (details.hf_url || env.hf_url) + '" target="_blank" class="hf-source-link" style="margin-left:0.5rem;font-size:0.82rem;">View on HuggingFace ↗</a>' : '') +
-            '</div>' +
+        '<div class="detail-hero-left">' +
+        '<h1 class="detail-page-title">' + formatEnvironmentName(env.name) + '</h1>' +
+        '<span class="howto-popover-wrap">' +
+        '<button class="howto-trigger" aria-label="How to use this environment" tabindex="0">?</button>' +
+        '<div class="howto-popover">' +
+        '<strong style="display:block;margin-bottom:0.5rem;font-size:0.95rem;">How to Use</strong>' +
+        howToUse +
+        '</div>' +
+        '</span>' +
+        '<span class="env-category category-' + env.category + '">' + env.category + '</span>' +
+        ((details.hf_url || env.hf_url) ? '<a href="' + (details.hf_url || env.hf_url) + '" target="_blank" class="hf-source-link" style="margin-left:0.5rem;font-size:0.82rem;">View on HuggingFace ↗</a>' : '') +
+        '</div>' +
         '</div>' +
         '<div class="detail-collapsible" id="section-description">' +
-            '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-description\')">' +
-                '<h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Description</h2>' +
-                '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
-            '</button>' +
-            '<div class="detail-collapsible-body" id="section-description-body">' +
-                '<div class="detail-collapsible-content">' +
-                    '<div class="detail-grid">' +
-                        '<div class="detail-card"><h3>Overview</h3><p>' + shortDesc + '</p>' +
-                            '<p style="margin-top:0.75rem;font-size:0.85rem;"><strong>System:</strong> ' + (env.system || details.system || 'Multiple') + '</p>' +
-                            '<p style="margin-top:0.25rem;font-size:0.85rem;"><strong>Use case:</strong> ' + useCase + '</p></div>' +
-                        '<div class="detail-card"><h3>Specifications</h3><div class="spec-grid">' +
-                            '<div class="spec-item"><label>State features</label><span>' + (details.stateFeatures || env.stateFeatures || 'N/A') + '</span></div>' +
-                            '<div class="spec-item"><label>Action type</label><span>' + (details.actionType || env.actionType || 'Discrete') + '</span></div>' +
-                            '<div class="spec-item"><label>Actions</label><span>' + (details.actionSpace || env.actionSpace || 'N/A') + '</span></div>' +
-                            '<div class="spec-item"><label>Multi-agent</label><span>' + (env.multi_agent ? 'Yes' : 'No') + '</span></div>' +
-                        '</div></div>' +
-                        '<div class="detail-card"><h3>KPIs</h3><div class="kpi-list">' + kpiHtml + '</div></div>' +
-                        '<div class="detail-card"><h3>Action choices</h3>' + actionsHtml + '</div>' +
-                    '</div>' +
-                    '<div class="detail-section" style="margin-top:1.25rem;"><h3>What it does</h3><div class="info-box">' + whatItDoes + '</div></div>' +
-                '</div>' +
-            '</div>' +
+        '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-description\')">' +
+        '<h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Description</h2>' +
+        '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '</button>' +
+        '<div class="detail-collapsible-body" id="section-description-body">' +
+        '<div class="detail-collapsible-content">' +
+        '<div class="detail-grid">' +
+        '<div class="detail-card"><h3>Overview</h3><p>' + shortDesc + '</p>' +
+        '<p style="margin-top:0.75rem;font-size:0.85rem;"><strong>System:</strong> ' + (env.system || details.system || 'Multiple') + '</p>' +
+        '<p style="margin-top:0.25rem;font-size:0.85rem;"><strong>Use case:</strong> ' + useCase + '</p></div>' +
+        '<div class="detail-card"><h3>Specifications</h3><div class="spec-grid">' +
+        '<div class="spec-item"><label>State features</label><span>' + (details.stateFeatures || env.stateFeatures || 'N/A') + '</span></div>' +
+        '<div class="spec-item"><label>Action type</label><span>' + (details.actionType || env.actionType || 'Discrete') + '</span></div>' +
+        '<div class="spec-item"><label>Actions</label><span>' + (details.actionSpace || env.actionSpace || 'N/A') + '</span></div>' +
+        '<div class="spec-item"><label>Multi-agent</label><span>' + (env.multi_agent ? 'Yes' : 'No') + '</span></div>' +
+        '</div></div>' +
+        '<div class="detail-card"><h3>KPIs</h3><div class="kpi-list">' + kpiHtml + '</div></div>' +
+        '<div class="detail-card"><h3>Action choices</h3>' + actionsHtml + '</div>' +
+        '</div>' +
+        '<div class="detail-section" style="margin-top:1.25rem;"><h3>What it does</h3><div class="info-box">' + whatItDoes + '</div></div>' +
+        '</div>' +
+        '</div>' +
         '</div>' +
         buildScenariosSection(envName, env.category) +
         buildVerifiersSection(envName, env.category) +
         buildConfigEditorSection(envName, details) +
         '<div class="detail-collapsible" id="section-environment">' +
-            '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-environment\')">' +
-                '<h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Simulations</h2>' +
-                '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
-            '</button>' +
-            '<div class="detail-collapsible-body" id="section-environment-body">' +
-                '<div class="detail-collapsible-content"' + ((details.source !== 'huggingface' && env.source !== 'huggingface') ? ' style="padding:0;"' : '') + '>' +
-                    _buildSimulationsContent(envName, env, details) +
-                '</div>' +
-            '</div>' +
+        '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-environment\')">' +
+        '<h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Simulations</h2>' +
+        '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '</button>' +
+        '<div class="detail-collapsible-body" id="section-environment-body">' +
+        '<div class="detail-collapsible-content"' + ((details.source !== 'huggingface' && env.source !== 'huggingface') ? ' style="padding:0;"' : '') + '>' +
+        _buildSimulationsContent(envName, env, details) +
+        '</div>' +
+        '</div>' +
         '</div>' +
         buildTrainingSection(envName, env.category) +
         '<div class="detail-popup-overlay" id="detail-popup-overlay" onclick="closeDetailPopup(event)">' +
-            '<div class="detail-popup-box" onclick="event.stopPropagation()">' +
-                '<div class="detail-popup-header"><h3 id="detail-popup-title">Console</h3>' +
-                    '<button class="detail-popup-close" onclick="closeDetailPopup()" aria-label="Close">&times;</button></div>' +
-                '<div class="detail-popup-body" id="detail-popup-body"><div class="detail-popup-loading">Loading\u2026</div></div>' +
-            '</div>' +
+        '<div class="detail-popup-box" onclick="event.stopPropagation()">' +
+        '<div class="detail-popup-header"><h3 id="detail-popup-title">Console</h3>' +
+        '<button class="detail-popup-close" onclick="closeDetailPopup()" aria-label="Close">&times;</button></div>' +
+        '<div class="detail-popup-body" id="detail-popup-body"><div class="detail-popup-loading">Loading\u2026</div></div>' +
+        '</div>' +
         '</div>' +
         (deleteBtn ? '<div class="env-delete-bottom">' + deleteBtn + '</div>' : '');
 
-    requestAnimationFrame(function() {
+    requestAnimationFrame(function () {
         var envBody = document.getElementById('section-environment-body');
         if (envBody) {
             envBody.style.maxHeight = envBody.scrollHeight + 'px';
-            setTimeout(function() { envBody.style.maxHeight = 'none'; }, 500);
+            setTimeout(function () { envBody.style.maxHeight = 'none'; }, 500);
         }
     });
 
@@ -4126,8 +4289,8 @@ function showEnvironmentDetails(envName) {
 
 function switchHFTab(btn) {
     var tabId = btn.getAttribute('data-tab');
-    document.querySelectorAll('.hf-tab').forEach(function(t) { t.classList.remove('active'); });
-    document.querySelectorAll('.hf-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelectorAll('.hf-tab').forEach(function (t) { t.classList.remove('active'); });
+    document.querySelectorAll('.hf-tab-panel').forEach(function (p) { p.classList.remove('active'); });
     btn.classList.add('active');
     var panel = document.getElementById(tabId);
     if (panel) panel.classList.add('active');
@@ -4143,12 +4306,12 @@ function viewEnvFile(envName, filePath) {
     titleEl.textContent = filePath;
     contentEl.textContent = 'Loading...';
     fetch(API_BASE + '/api/environment/' + encodeURIComponent(envName) + '/file?path=' + encodeURIComponent(filePath))
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
             if (data.content) contentEl.textContent = data.content;
             else contentEl.textContent = '(File too large or binary)';
         })
-        .catch(function() { contentEl.textContent = '(Error loading file)'; });
+        .catch(function () { contentEl.textContent = '(Error loading file)'; });
 }
 window.viewEnvFile = viewEnvFile;
 
@@ -4159,7 +4322,7 @@ function closeFileViewer() {
 window.closeFileViewer = closeFileViewer;
 
 // Close file viewer on Escape key
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         var v = document.getElementById('hf-file-viewer');
         if (v && v.style.display !== 'none') {
@@ -4212,50 +4375,50 @@ function _showTerraformDetailView(env, details) {
 
     detailBody.innerHTML =
         '<div class="detail-hero">' +
-            '<div class="detail-hero-left">' +
-                '<h1 class="detail-page-title">' + formatEnvironmentName(name) + '</h1>' +
-                '<span class="hf-badge hf-badge-sdk">Terraform</span>' +
-                '<span class="hf-badge" style="background:#444;color:#fff;">' + hardware + '</span>' +
-            '</div>' +
+        '<div class="detail-hero-left">' +
+        '<h1 class="detail-page-title">' + formatEnvironmentName(name) + '</h1>' +
+        '<span class="hf-badge hf-badge-sdk">Terraform</span>' +
+        '<span class="hf-badge" style="background:#444;color:#fff;">' + hardware + '</span>' +
+        '</div>' +
         '</div>' +
         (desc ? '<p class="hf-description" style="color:#333;">' + desc + '</p>' : '') +
 
         // Tabs: Infrastructure / Container / Configuration
         '<div class="hf-tabs" id="tf-tabs">' +
-            '<button class="hf-tab active" data-tab="tf-tab-infra" onclick="switchHFTab(this)">Infrastructure</button>' +
-            '<button class="hf-tab" data-tab="tf-tab-container" onclick="switchHFTab(this)">Container</button>' +
-            '<button class="hf-tab" data-tab="tf-tab-config" onclick="switchHFTab(this)">Configuration</button>' +
+        '<button class="hf-tab active" data-tab="tf-tab-infra" onclick="switchHFTab(this)">Infrastructure</button>' +
+        '<button class="hf-tab" data-tab="tf-tab-container" onclick="switchHFTab(this)">Container</button>' +
+        '<button class="hf-tab" data-tab="tf-tab-config" onclick="switchHFTab(this)">Configuration</button>' +
         '</div>' +
 
         '<div class="hf-tab-panel active" id="tf-tab-infra">' +
-            '<div class="tf-code-wrap">' +
-                '<div class="tf-code-header"><span>main.tf</span></div>' +
-                '<pre class="hf-code-block"><code>' + tf.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code></pre>' +
-            '</div>' +
+        '<div class="tf-code-wrap">' +
+        '<div class="tf-code-header"><span>main.tf</span></div>' +
+        '<pre class="hf-code-block"><code>' + tf.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code></pre>' +
+        '</div>' +
         '</div>' +
 
         // Simulated mini-container
         '<div class="hf-tab-panel" id="tf-tab-container">' +
-            '<div class="sim-container">' +
-                '<div class="sim-container-header">' +
-                    '<div class="sim-container-status"><span class="sim-status-dot"></span> Running</div>' +
-                    '<span class="sim-container-id">' + name.toLowerCase().replace(/[^a-z0-9]/g, '') + '-' + Math.random().toString(36).slice(2, 8) + '</span>' +
-                '</div>' +
-                '<div class="sim-terminal" id="sim-terminal">' +
-                    '<div class="sim-terminal-line sim-line-system">RL Environment Container Runtime v0.1.0</div>' +
-                    '<div class="sim-terminal-line sim-line-system">Initializing environment: <span style="color:#7dd3fc;">' + formatEnvironmentName(name) + '</span></div>' +
-                    '<div class="sim-terminal-line sim-line-system">Hardware: ' + hardware + '</div>' +
-                    '<div class="sim-terminal-line sim-line-system">---</div>' +
-                '</div>' +
-                '<div class="sim-input-row">' +
-                    '<span class="sim-prompt">$</span>' +
-                    '<input type="text" class="sim-input" id="sim-cmd-input" placeholder="Type a command..." autocomplete="off">' +
-                '</div>' +
-            '</div>' +
+        '<div class="sim-container">' +
+        '<div class="sim-container-header">' +
+        '<div class="sim-container-status"><span class="sim-status-dot"></span> Running</div>' +
+        '<span class="sim-container-id">' + name.toLowerCase().replace(/[^a-z0-9]/g, '') + '-' + Math.random().toString(36).slice(2, 8) + '</span>' +
+        '</div>' +
+        '<div class="sim-terminal" id="sim-terminal">' +
+        '<div class="sim-terminal-line sim-line-system">RL Environment Container Runtime v0.1.0</div>' +
+        '<div class="sim-terminal-line sim-line-system">Initializing environment: <span style="color:#7dd3fc;">' + formatEnvironmentName(name) + '</span></div>' +
+        '<div class="sim-terminal-line sim-line-system">Hardware: ' + hardware + '</div>' +
+        '<div class="sim-terminal-line sim-line-system">---</div>' +
+        '</div>' +
+        '<div class="sim-input-row">' +
+        '<span class="sim-prompt">$</span>' +
+        '<input type="text" class="sim-input" id="sim-cmd-input" placeholder="Type a command..." autocomplete="off">' +
+        '</div>' +
+        '</div>' +
         '</div>' +
 
         '<div class="hf-tab-panel" id="tf-tab-config">' +
-            '<div class="hf-empty-state" style="color:#555;">Custom configuration will be defined by the environment workflow.<br>No RL parameters apply to this environment.</div>' +
+        '<div class="hf-empty-state" style="color:#555;">Custom configuration will be defined by the environment workflow.<br>No RL parameters apply to this environment.</div>' +
         '</div>' +
         '<div class="env-delete-bottom">' + tfDeleteBtn + '</div>';
 
@@ -4273,7 +4436,7 @@ function _initSimTerminal(envName, hardware) {
 
     var envState = { step: 0, reward: 0, done: false };
 
-    input.addEventListener('keydown', function(e) {
+    input.addEventListener('keydown', function (e) {
         if (e.key !== 'Enter') return;
         var cmd = input.value.trim();
         if (!cmd) return;
@@ -4287,7 +4450,7 @@ function _initSimTerminal(envName, hardware) {
 
         // Process command
         var output = _processSimCmd(cmd, envName, hardware, envState);
-        output.forEach(function(line) {
+        output.forEach(function (line) {
             var outLine = document.createElement('div');
             outLine.className = 'sim-terminal-line ' + (line.cls || '');
             outLine.innerHTML = line.text;
@@ -4403,7 +4566,7 @@ function toggleDetailSection(sectionId) {
         // Expand: set max-height to scrollHeight, then switch to none after transition
         section.classList.add('open');
         body.style.maxHeight = body.scrollHeight + 'px';
-        setTimeout(function() {
+        setTimeout(function () {
             if (section.classList.contains('open')) {
                 body.style.maxHeight = 'none';
             }
@@ -4415,7 +4578,7 @@ function toggleDetailSection(sectionId) {
 function openDetailPopup(id, src, title) {
     var overlay = document.getElementById('detail-popup-overlay');
     var titleEl = document.getElementById('detail-popup-title');
-    var bodyEl  = document.getElementById('detail-popup-body');
+    var bodyEl = document.getElementById('detail-popup-body');
     if (!overlay || !bodyEl) return;
 
     titleEl.textContent = title || 'Console';
@@ -4433,7 +4596,7 @@ function openDetailPopup(id, src, title) {
     var iframe = document.createElement('iframe');
     iframe.setAttribute('title', title || 'Console');
     iframe.style.opacity = '0';
-    iframe.onload = function() {
+    iframe.onload = function () {
         // Remove loading text, reveal iframe
         if (loadingDiv.parentNode) loadingDiv.remove();
         iframe.style.opacity = '1';
@@ -4458,7 +4621,7 @@ function closeDetailPopup(event) {
 }
 
 // Close popup on Escape key
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         if (_trainingReportOverlay && _trainingReportOverlay.classList.contains('active')) {
             _closeTrainingReportPopup();
@@ -4475,9 +4638,9 @@ async function testEnvironment(envName) {
     try {
         const response = await fetch(`${API_BASE}/kpis/${envName}`);
         if (!response.ok) throw new Error('Failed to test environment');
-        
+
         const data = await response.json();
-        
+
         showToast('Environment test completed successfully.', 'success');
     } catch (error) {
         showToast('Error testing environment: ' + error.message + '. Make sure the API server is running.', 'error');
@@ -4507,7 +4670,7 @@ function openTrainingConfigPopup(envName) {
     overlay.className = 'modal training-config-modal';
     overlay.id = 'training-config-modal';
     overlay.style.cssText = 'display:flex;align-items:center;justify-content:center;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.6);backdrop-filter:blur(2px);';
-    overlay.onclick = function(e) { if (e.target === overlay) closeTrainingConfig(); };
+    overlay.onclick = function (e) { if (e.target === overlay) closeTrainingConfig(); };
 
     var container = document.createElement('div');
     container.style.cssText = 'position:relative;width:92vw;max-width:1200px;height:88vh;border-radius:12px;overflow:hidden;background:var(--bg-primary,#fff);box-shadow:0 25px 60px rgba(0,0,0,0.3);';
@@ -4516,8 +4679,8 @@ function openTrainingConfigPopup(envName) {
     closeBtn.innerHTML = '&times;';
     closeBtn.style.cssText = 'position:absolute;top:8px;right:12px;z-index:10;background:none;border:none;font-size:1.6rem;cursor:pointer;color:var(--text-secondary,#666);line-height:1;padding:4px 8px;border-radius:4px;';
     closeBtn.onclick = closeTrainingConfig;
-    closeBtn.onmouseover = function() { this.style.background = 'var(--bg-hover,#f0f0f0)'; };
-    closeBtn.onmouseout = function() { this.style.background = 'none'; };
+    closeBtn.onmouseover = function () { this.style.background = 'var(--bg-hover,#f0f0f0)'; };
+    closeBtn.onmouseout = function () { this.style.background = 'none'; };
 
     var iframe = document.createElement('iframe');
     iframe.src = '/training-console?env=' + encodeURIComponent(envName) + '&embedded=1';
@@ -4571,7 +4734,7 @@ function _openTrainingConfigModal(envName) {
     const hasVerifierForWorkflow = JIRA_ENV_VERIFIERS.some(v => v.value === 'jira_workflow:' + defaultJiraWorkflow);
     const verifierOptionsHtml = isJiraEnv
         ? JIRA_ENV_VERIFIERS.map(v => `<option value="${v.value}"${v.value === 'jira_workflow:' + defaultJiraWorkflow ? ' selected' : ''}>${v.label}</option>`).join('') +
-            `<option value="default"${!hasVerifierForWorkflow ? ' selected' : ''}>Default (Environment Built-in)</option>`
+        `<option value="default"${!hasVerifierForWorkflow ? ' selected' : ''}>Default (Environment Built-in)</option>`
         : `<option value="ensemble" selected>Ensemble (Default)</option>
                             <option value="clinical">Clinical Verifier</option>
                             <option value="operational">Operational Verifier</option>
@@ -4592,8 +4755,8 @@ function _openTrainingConfigModal(envName) {
                 <label>Software system <span class="tooltip-icon" title="Select the software system this training is for. Verifier and weights will be suggested based on the selected system.">ℹ️</span></label>
                 <select id="training-software-system" class="system-filter-select" style="min-width: 200px;" onchange="updateTrainingVerifierForSystem(); var v=document.getElementById('training-system-header-value'); if(v) v.textContent=this.options[this.selectedIndex].text;">
                     ${envSystemsList.length === 1
-                        ? `<option value="${envSystemsList[0].replace(/"/g, '&quot;')}" selected>${envSystemsList[0]}</option>`
-                        : `<option value="all">All (${systemStr})</option>` + envSystemsList.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('')}
+            ? `<option value="${envSystemsList[0].replace(/"/g, '&quot;')}" selected>${envSystemsList[0]}</option>`
+            : `<option value="all">All (${systemStr})</option>` + envSystemsList.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('')}
                 </select>
                 <small>Training context for this run. Verifier suggestions update when you change the system.</small>
             </div>
@@ -4734,21 +4897,21 @@ function _openTrainingConfigModal(envName) {
                 <div class="form-group">
                     <label>Or Paste JSON Configuration:</label>
                     <textarea id="config-json-paste" rows="12" placeholder='Paste your JSON configuration here...'>${JSON.stringify({
-                        algorithm: 'PPO',
-                        num_episodes: 100,
-                        max_steps: 1000,
-                        dataset_url: null,
-                        config: exampleConfig,
-                        verifier_config: {
-                            type: 'ensemble',
-                            verifiers: {
-                                clinical: { weights: { risk_improvement: 0.5, vital_stability: 0.5 } },
-                                operational: { weights: { pathway_efficiency: 1.0 } },
-                                financial: { weights: { cost_effectiveness: 1.0 } },
-                                compliance: { weights: { rule_compliance: 1.0 } }
-                            }
-                        }
-                    }, null, 2)}</textarea>
+                algorithm: 'PPO',
+                num_episodes: 100,
+                max_steps: 1000,
+                dataset_url: null,
+                config: exampleConfig,
+                verifier_config: {
+                    type: 'ensemble',
+                    verifiers: {
+                        clinical: { weights: { risk_improvement: 0.5, vital_stability: 0.5 } },
+                        operational: { weights: { pathway_efficiency: 1.0 } },
+                        financial: { weights: { cost_effectiveness: 1.0 } },
+                        compliance: { weights: { rule_compliance: 1.0 } }
+                    }
+                }
+            }, null, 2)}</textarea>
                     <small>Include <code>"dataset_url"</code> field to provide training data URL, and <code>"verifier_config"</code> to configure reward verifiers</small>
                 </div>
                 <div id="json-validation" style="margin-top: 1rem;"></div>
@@ -4763,22 +4926,22 @@ function _openTrainingConfigModal(envName) {
                 
                 <h3>Request Body Example:</h3>
                 <pre style="background: #f1f5f9; padding: 1rem; border-radius: 6px; overflow-x: auto;"><code>${JSON.stringify({
-                    environment_name: envName,
-                    algorithm: 'PPO',
-                    num_episodes: 100,
-                    max_steps: 1000,
-                    dataset_url: 'https://example.com/training_data.csv',
-                    config: exampleConfig,
-                    verifier_config: {
-                        type: 'ensemble',
-                        verifiers: {
-                            clinical: { weights: { risk_improvement: 0.5, vital_stability: 0.5 } },
-                            operational: { weights: { pathway_efficiency: 1.0 } },
-                            financial: { weights: { cost_effectiveness: 1.0 } },
-                            compliance: { weights: { rule_compliance: 1.0 } }
-                        }
+                environment_name: envName,
+                algorithm: 'PPO',
+                num_episodes: 100,
+                max_steps: 1000,
+                dataset_url: 'https://example.com/training_data.csv',
+                config: exampleConfig,
+                verifier_config: {
+                    type: 'ensemble',
+                    verifiers: {
+                        clinical: { weights: { risk_improvement: 0.5, vital_stability: 0.5 } },
+                        operational: { weights: { pathway_efficiency: 1.0 } },
+                        financial: { weights: { cost_effectiveness: 1.0 } },
+                        compliance: { weights: { rule_compliance: 1.0 } }
                     }
-                }, null, 2)}</code></pre>
+                }
+            }, null, 2)}</code></pre>
                 
                 <h3>Model Information:</h3>
                 <div style="background: #f0f9ff; padding: 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem;">
@@ -4791,16 +4954,16 @@ function _openTrainingConfigModal(envName) {
                 <pre style="background: #f1f5f9; padding: 1rem; border-radius: 6px; overflow-x: auto;"><code>curl -X POST "${API_BASE}/train/${envName}" \\
   -H "Content-Type: application/json" \\
   -d '${JSON.stringify({
-                    environment_name: envName,
-                    algorithm: 'PPO',
-                    num_episodes: 100,
-                    max_steps: 1000,
-                    dataset_url: 'https://example.com/training_data.csv',
-                    config: exampleConfig,
-                    verifier_config: {
-                        type: 'ensemble'
-                    }
-                })}'</code></pre>
+                environment_name: envName,
+                algorithm: 'PPO',
+                num_episodes: 100,
+                max_steps: 1000,
+                dataset_url: 'https://example.com/training_data.csv',
+                config: exampleConfig,
+                verifier_config: {
+                    type: 'ensemble'
+                }
+            })}'</code></pre>
                 
                 <h3>Python Example:</h3>
                 <pre style="background: #f1f5f9; padding: 1rem; border-radius: 6px; overflow-x: auto;"><code>import requests
@@ -4914,7 +5077,7 @@ function switchConfigTab(tab) {
 function handleConfigFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
@@ -4922,7 +5085,7 @@ function handleConfigFileUpload(event) {
             document.getElementById('config-json-paste').value = JSON.stringify(config, null, 2);
             validateJSON(JSON.stringify(config, null, 2));
         } catch (error) {
-            document.getElementById('json-validation').innerHTML = 
+            document.getElementById('json-validation').innerHTML =
                 `<div style="color: var(--danger-color);">❌ Invalid JSON: ${error.message}</div>`;
         }
     };
@@ -4956,7 +5119,7 @@ var _tvSelectedVerifierId = null;
 
 function _initTrainingVerifier(envName) {
     if (!window.VERIFIER_DATA) return;
-    var env = allEnvironments.find(function(e) { return e.name === envName; });
+    var env = allEnvironments.find(function (e) { return e.name === envName; });
     var category = env ? (env.category || '') : '';
     var system = window.VERIFIER_DATA.getSystemForCategory(category);
     _tvActiveSystem = system || (window.VERIFIER_DATA.systems && window.VERIFIER_DATA.systems[0] ? window.VERIFIER_DATA.systems[0].system : null);
@@ -4972,7 +5135,7 @@ function _tvPopulateSystemDropdown(activeSystem) {
     var sel = document.getElementById('training-verifier-system-select');
     if (!sel || !window.VERIFIER_DATA) return;
     var groups = window.VERIFIER_DATA.getGroups();
-    sel.innerHTML = groups.map(function(g) {
+    sel.innerHTML = groups.map(function (g) {
         return '<option value="' + g.system.replace(/"/g, '&quot;') + '"' +
             (g.system === activeSystem ? ' selected' : '') + '>' +
             g.system + ' (' + g.count + ')</option>';
@@ -4984,10 +5147,10 @@ function _tvPopulateVerifierDropdown(system, typeFilter) {
     if (!sel || !window.VERIFIER_DATA) return;
     var verifiers = window.VERIFIER_DATA.getBySystem(system);
     if (typeFilter && typeFilter !== 'all') {
-        verifiers = verifiers.filter(function(v) { return v.type === typeFilter; });
+        verifiers = verifiers.filter(function (v) { return v.type === typeFilter; });
     }
     sel.innerHTML = '<option value="">-- Select verifier (' + verifiers.length + ') --</option>';
-    verifiers.forEach(function(v) {
+    verifiers.forEach(function (v) {
         var badge = v.type === 'human-eval' ? ' [HIL]' : '';
         var statusTag = v.status === 'disabled' ? ' (disabled)' : '';
         sel.innerHTML += '<option value="' + v.id.replace(/"/g, '&quot;') + '"' +
@@ -5002,17 +5165,17 @@ function _tvSetupListeners() {
     var verifierSel = document.getElementById('training-verifier-dropdown');
     var typeSel = document.getElementById('training-verifier-type-filter');
 
-    if (systemSel) systemSel.onchange = function() {
+    if (systemSel) systemSel.onchange = function () {
         _tvActiveSystem = systemSel.value;
         _tvSelectedVerifierId = null;
         _tvPopulateVerifierDropdown(_tvActiveSystem, typeSel ? typeSel.value : 'all');
         _tvUpdateInfoRow();
     };
-    if (typeSel) typeSel.onchange = function() {
+    if (typeSel) typeSel.onchange = function () {
         _tvActiveTypeFilter = typeSel.value;
         _tvPopulateVerifierDropdown(_tvActiveSystem, typeSel.value);
     };
-    if (verifierSel) verifierSel.onchange = function() {
+    if (verifierSel) verifierSel.onchange = function () {
         _tvSelectedVerifierId = verifierSel.value || null;
         _tvUpdateInfoRow();
         _tvUpdateSubFilter();
@@ -5039,14 +5202,14 @@ function _tvUpdateSubFilter() {
     var v = window.VERIFIER_DATA.getById(_tvSelectedVerifierId);
     if (!v || !v.subVerifiers || v.subVerifiers.length === 0) { container.style.display = 'none'; return; }
     container.style.display = '';
-    container.innerHTML = v.subVerifiers.map(function(sv) {
+    container.innerHTML = v.subVerifiers.map(function (sv) {
         return '<label class="sub-verifier-chip' + (sv.enabled ? ' active' : '') + '" title="' + (sv.description || '').replace(/"/g, '&quot;') + '">' +
             '<input type="checkbox"' + (sv.enabled ? ' checked' : '') + ' data-sv-id="' + sv.id + '"> ' + sv.name + '</label>';
     }).join('');
-    container.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
-        cb.addEventListener('change', function() {
+    container.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+        cb.addEventListener('change', function () {
             var svId = cb.getAttribute('data-sv-id');
-            var sv = v.subVerifiers.find(function(s) { return s.id === svId; });
+            var sv = v.subVerifiers.find(function (s) { return s.id === svId; });
             if (sv) sv.enabled = cb.checked;
             cb.parentElement.classList.toggle('active', cb.checked);
         });
@@ -5157,20 +5320,20 @@ async function submitTrainingConfig(envName) {
     let maxSteps = 1000;
     let datasetUrl = null;
     let verifierConfig = null;
-    
+
     if (activeTab === 'manual') {
         algorithm = document.getElementById('training-algorithm').value;
         numEpisodes = parseInt(document.getElementById('training-episodes').value);
         maxSteps = parseInt(document.getElementById('training-max-steps').value);
         datasetUrl = document.getElementById('training-dataset-url').value.trim() || null;
-        
+
         // Get verifier configuration from rich cascade dropdown
         if (window.VERIFIER_DATA && _tvSelectedVerifierId) {
             verifierConfig = _tvGetSelectedVerifierConfig();
             // Add weights if provided
             var wInput = document.getElementById('training-verifier-weights');
             if (wInput && wInput.value.trim() && verifierConfig) {
-                try { verifierConfig.weights = JSON.parse(wInput.value); } catch(e) {}
+                try { verifierConfig.weights = JSON.parse(wInput.value); } catch (e) { }
             }
         } else {
             // Fallback to old dropdown if VERIFIER_DATA not available
@@ -5217,7 +5380,7 @@ async function submitTrainingConfig(envName) {
         }
         const parsed = validateJSON(jsonPaste);
         if (!parsed) return;
-        
+
         algorithm = parsed.algorithm || 'PPO';
         numEpisodes = parsed.num_episodes || 100;
         maxSteps = parsed.max_steps || 1000;
@@ -5225,7 +5388,7 @@ async function submitTrainingConfig(envName) {
         verifierConfig = parsed.verifier_config || null;
         config = parsed.config || parsed;
     }
-    
+
     closeTrainingConfig();
     await startTraining(envName, algorithm, numEpisodes, maxSteps, config, datasetUrl, verifierConfig);
 }
@@ -5276,7 +5439,7 @@ async function startTraining(envName, algorithm = 'PPO', numEpisodes = 100, maxS
             },
             body: JSON.stringify(requestBody)
         });
-        
+
         if (!response.ok) {
             const errorText = await response.text();
             let errorMessage = 'Failed to start training';
@@ -5288,7 +5451,7 @@ async function startTraining(envName, algorithm = 'PPO', numEpisodes = 100, maxS
             }
             throw new Error(errorMessage);
         }
-        
+
         const data = await response.json();
 
         // Add the new run to TRAINING_CONFIG so it appears in training lists immediately
@@ -5335,18 +5498,18 @@ async function startTraining(envName, algorithm = 'PPO', numEpisodes = 100, maxS
         const hilReminder = isHilJob ? `\n⚠️ HIL REQUIRED: This job will pause for human evaluation after training episodes complete. Open /human-eval?job_id=${data.job_id} to review.\n` : '';
         const monitorMessage = `Would you like to open the Training Monitor to track this job's progress?`;
         const openMonitor = confirm(`✅ Training started successfully!\n\n` +
-              `Job ID: ${data.job_id}\n` +
-              `Status: ${data.status}\n` +
-              `Environment: ${formatEnvironmentName(envName)}\n` +
-              `Algorithm: ${algorithm}\n` +
-              `Episodes: ${numEpisodes}\n` +
-              `Max Steps: ${maxSteps}\n` +
-              (datasetUrl ? `Dataset: ${datasetUrl}\n` : ``) +
-              hilReminder +
-              `\n${modelInfo}\n\n` +
-              `Monitor progress at: ${API_BASE}/training/${data.job_id}\n\n` +
-              `Once training completes, check the job status to get the model download URL.\n\n` +
-              monitorMessage);
+            `Job ID: ${data.job_id}\n` +
+            `Status: ${data.status}\n` +
+            `Environment: ${formatEnvironmentName(envName)}\n` +
+            `Algorithm: ${algorithm}\n` +
+            `Episodes: ${numEpisodes}\n` +
+            `Max Steps: ${maxSteps}\n` +
+            (datasetUrl ? `Dataset: ${datasetUrl}\n` : ``) +
+            hilReminder +
+            `\n${modelInfo}\n\n` +
+            `Monitor progress at: ${API_BASE}/training/${data.job_id}\n\n` +
+            `Once training completes, check the job status to get the model download URL.\n\n` +
+            monitorMessage);
 
         if (openMonitor) {
             openTrainingMonitor(data.job_id);
@@ -5377,18 +5540,18 @@ function openTrainingMonitor(jobIdToFocus = null) {
             </div>
         </div>
     `;
-    
+
     document.getElementById('training-monitor-modal').style.display = 'block';
-    
+
     // Load all training jobs
     loadAllTrainingJobs();
-    
+
     // Auto-refresh every 3 seconds
     if (trainingMonitorInterval) {
         clearInterval(trainingMonitorInterval);
     }
     trainingMonitorInterval = setInterval(loadAllTrainingJobs, 3000);
-    
+
     // If jobIdToFocus is provided, load it immediately
     if (jobIdToFocus) {
         setTimeout(() => loadTrainingJob(jobIdToFocus), 500);
@@ -5398,18 +5561,18 @@ function openTrainingMonitor(jobIdToFocus = null) {
 async function loadTrainingJob(jobId = null) {
     const jobIdInput = document.getElementById('monitor-job-id');
     const targetJobId = jobId || jobIdInput.value.trim();
-    
+
     if (!targetJobId) {
         showToast('Please enter a Job ID', 'warning');
         return;
     }
-    
+
     try {
         const response = await fetch(`${API_BASE}/training/${targetJobId}`);
         if (!response.ok) {
             throw new Error('Job not found');
         }
-        
+
         const jobData = await response.json();
         displayTrainingJob(jobData);
     } catch (error) {
@@ -5422,7 +5585,7 @@ async function loadAllTrainingJobs() {
     // For now, we'll show a message that users need to enter a Job ID
     const jobsList = document.getElementById('training-jobs-list');
     if (!jobsList) return;
-    
+
     // If there's a job ID in the input, try to load it
     const jobIdInput = document.getElementById('monitor-job-id');
     if (jobIdInput && jobIdInput.value.trim()) {
@@ -5437,7 +5600,7 @@ async function loadAllTrainingJobs() {
             // Job not found, continue
         }
     }
-    
+
     // Show placeholder if no job is being monitored
     if (!jobsList.querySelector('.training-job-card')) {
         jobsList.innerHTML = `
@@ -5452,7 +5615,7 @@ async function loadAllTrainingJobs() {
 function displayTrainingJob(jobData) {
     const jobsList = document.getElementById('training-jobs-list');
     if (!jobsList) return;
-    
+
     const statusColors = {
         'running': '#3b82f6',
         'completed': '#10b981',
@@ -5460,7 +5623,7 @@ function displayTrainingJob(jobData) {
         'pending': '#f59e0b',
         'awaiting_human_eval': '#d97706'
     };
-    
+
     const statusIcons = {
         'running': '🔄',
         'completed': '✅',
@@ -5468,10 +5631,10 @@ function displayTrainingJob(jobData) {
         'pending': '⏳',
         'awaiting_human_eval': '👤'
     };
-    
+
     const statusColor = statusColors[jobData.status] || '#64748b';
     const statusIcon = statusIcons[jobData.status] || '📊';
-    
+
     const progressBar = jobData.status === 'running' ? `
         <div style="background: #e2e8f0; border-radius: 10px; height: 20px; margin: 0.5rem 0; overflow: hidden;">
             <div style="background: ${statusColor}; height: 100%; width: ${jobData.progress || 0}%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: 600;">
@@ -5479,7 +5642,7 @@ function displayTrainingJob(jobData) {
             </div>
         </div>
     ` : '';
-    
+
     const baseline = jobData.baseline_results;
     const results = jobData.results;
     const hasComparison = baseline && results && typeof baseline.mean_reward === 'number' && typeof results.mean_reward === 'number';
@@ -5524,7 +5687,7 @@ function displayTrainingJob(jobData) {
         const minR = results.min_reward;
         const eps = results.total_episodes || jobData.num_episodes || 0;
         const completed = results.episodes_completed ?? eps;
-        
+
         let summaryText = '';
         if (typeof meanR === 'number') {
             const spread = (typeof maxR === 'number' && typeof minR === 'number') ? (maxR - minR) : null;
@@ -5536,7 +5699,7 @@ function displayTrainingJob(jobData) {
         } else {
             summaryText = 'Run training to see reward metrics. Mean reward indicates average performance per episode; max/min show best and worst runs.';
         }
-        
+
         return `
         <div style="background: #f0f9ff; padding: 1rem; border-radius: 6px; margin-top: 1rem;">
             <h4 style="margin-bottom: 0.75rem; color: var(--primary-color);">📈 Training Results</h4>
@@ -5572,7 +5735,7 @@ function displayTrainingJob(jobData) {
         </div>
     `;
     })() : '';
-    
+
     const modelSection = ((jobData.status === 'completed' || jobData.status === 'awaiting_human_eval') && jobData.model_url) ? `
         <div style="background: #dcfce7; padding: 1rem; border-radius: 6px; margin-top: 1rem; border-left: 4px solid var(--secondary-color);">
             <h4 style="margin-bottom: 0.75rem; color: #166534;">📦 Trained Model Available</h4>
@@ -5614,7 +5777,7 @@ function displayTrainingJob(jobData) {
             </div>
         </div>
     ` : '';
-    
+
     const errorSection = (jobData.status === 'failed' && jobData.error) ? `
         <div style="background: #fee2e2; padding: 1rem; border-radius: 6px; margin-top: 1rem; border-left: 4px solid var(--danger-color);">
             <h4 style="margin-bottom: 0.75rem; color: var(--danger-color);">❌ Training Error</h4>
@@ -5736,7 +5899,7 @@ from stable_baselines3 import ${algorithm}
 model = ${algorithm}.load("path/to/downloaded/model.zip")
 action, _ = model.predict(observation)
     `.trim();
-    
+
     navigator.clipboard.writeText(modelInfo).then(() => {
         showToast('Model information copied to clipboard!', 'success');
     }).catch(() => {
@@ -5829,7 +5992,7 @@ window.closeAddEnvironmentPage = closeAddEnvironmentPage;
 
 function switchAddEnvTab(tab) {
     var tabs = document.querySelectorAll('.add-env-tab');
-    tabs.forEach(function(t) {
+    tabs.forEach(function (t) {
         t.classList.toggle('active', t.getAttribute('data-tab') === tab);
     });
     document.getElementById('add-env-panel-form').style.display = (tab === 'form') ? 'block' : 'none';
@@ -5840,7 +6003,7 @@ window.switchAddEnvTab = switchAddEnvTab;
 // ─── Segmented control selector ───
 function selectEnvSegment(btn, group) {
     var seg = btn.parentElement;
-    seg.querySelectorAll('.add-env-seg-btn').forEach(function(c) { c.classList.remove('selected'); });
+    seg.querySelectorAll('.add-env-seg-btn').forEach(function (c) { c.classList.remove('selected'); });
     btn.classList.add('selected');
     var hiddenId = (group === 'sdk') ? 'add-env-sdk' : 'add-env-hardware';
     var hidden = document.getElementById(hiddenId);
@@ -5882,13 +6045,13 @@ function renderSdkTemplateGrid(sdkValue) {
     defaultOpt.disabled = true;
     defaultOpt.selected = true;
     select.appendChild(defaultOpt);
-    templates.forEach(function(tmpl) {
+    templates.forEach(function (tmpl) {
         var opt = document.createElement('option');
         opt.value = tmpl.id;
         opt.textContent = tmpl.name;
         select.appendChild(opt);
     });
-    select.onchange = function() {
+    select.onchange = function () {
         if (hiddenTemplate) hiddenTemplate.value = select.value;
     };
 
@@ -5902,19 +6065,19 @@ function _renderTerraformImportArea() {
     return '' +
         '<label class="add-env-template-label">Terraform Template</label>' +
         '<div class="add-env-terraform-area">' +
-            '<div class="add-env-terraform-info">' +
-                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
-                '<span>Import your own Terraform template (.tf) or use the built-in default template below.</span>' +
-            '</div>' +
-            '<div class="add-env-terraform-actions">' +
-                '<label class="btn btn-outline btn-small add-env-terraform-upload-btn">' +
-                    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
-                    ' Import .tf file' +
-                    '<input type="file" id="add-env-terraform-file" accept=".tf,.tf.json" style="display:none;" onchange="handleTerraformFileImport(this)">' +
-                '</label>' +
-                '<button type="button" class="btn btn-outline btn-small" onclick="resetTerraformToDefault()">Reset to Default</button>' +
-            '</div>' +
-            '<textarea id="add-env-terraform-content" class="add-env-terraform-editor" rows="12" spellcheck="false" placeholder="Paste or import your Terraform template..."></textarea>' +
+        '<div class="add-env-terraform-info">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
+        '<span>Import your own Terraform template (.tf) or use the built-in default template below.</span>' +
+        '</div>' +
+        '<div class="add-env-terraform-actions">' +
+        '<label class="btn btn-outline btn-small add-env-terraform-upload-btn">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
+        ' Import .tf file' +
+        '<input type="file" id="add-env-terraform-file" accept=".tf,.tf.json" style="display:none;" onchange="handleTerraformFileImport(this)">' +
+        '</label>' +
+        '<button type="button" class="btn btn-outline btn-small" onclick="resetTerraformToDefault()">Reset to Default</button>' +
+        '</div>' +
+        '<textarea id="add-env-terraform-content" class="add-env-terraform-editor" rows="12" spellcheck="false" placeholder="Paste or import your Terraform template..."></textarea>' +
         '</div>';
 }
 
@@ -5922,7 +6085,7 @@ function handleTerraformFileImport(input) {
     if (!input.files || !input.files[0]) return;
     var file = input.files[0];
     var reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
         var tfTextarea = document.getElementById('add-env-terraform-content');
         if (tfTextarea) tfTextarea.value = e.target.result;
         if (window.showToast) showToast('Terraform template "' + file.name + '" loaded.', 'success');
@@ -6017,30 +6180,30 @@ function submitAddEnvironment(event) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newEnv)
-    }).then(function() {
+    }).then(function () {
         // Fetch classification to update local grid/details
         return fetch(API_BASE + '/api/classify-environment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: name, description: desc || '', sdk: sdk, template: template })
         });
-    }).then(function(r) { return r && r.ok ? r.json() : null; })
-    .then(function(cls) {
-        if (cls && cls.category) {
-            newEnv.category = cls.category;
-            newEnv.system = cls.system;
-            newEnv.domain = cls.domain;
-            newEnv.workflow = cls.workflow;
-            newEnv.tags = cls.tags;
-            environmentDetails[name] = generateEnvironmentDetails(newEnv);
-            // Refresh catalog grid to show updated tags
-            if (typeof filterEnvironments === 'function') {
-                var searchVal = document.getElementById('env-search') ? document.getElementById('env-search').value : '';
-                filterEnvironments(searchVal);
+    }).then(function (r) { return r && r.ok ? r.json() : null; })
+        .then(function (cls) {
+            if (cls && cls.category) {
+                newEnv.category = cls.category;
+                newEnv.system = cls.system;
+                newEnv.domain = cls.domain;
+                newEnv.workflow = cls.workflow;
+                newEnv.tags = cls.tags;
+                environmentDetails[name] = generateEnvironmentDetails(newEnv);
+                // Refresh catalog grid to show updated tags
+                if (typeof filterEnvironments === 'function') {
+                    var searchVal = document.getElementById('env-search') ? document.getElementById('env-search').value : '';
+                    filterEnvironments(searchVal);
+                }
+                console.log('[AddEnvironment] Classified:', name, cls);
             }
-            console.log('[AddEnvironment] Classified:', name, cls);
-        }
-    }).catch(function(err) { console.warn('[AddEnvironment] Backend persist/classify failed:', err); });
+        }).catch(function (err) { console.warn('[AddEnvironment] Backend persist/classify failed:', err); });
 
     if (window.showToast) showToast('Environment "' + owner + '/' + name + '" created successfully!', 'success');
 
@@ -6049,15 +6212,15 @@ function submitAddEnvironment(event) {
     document.getElementById('add-env-owner').value = 'centific';
     document.getElementById('add-env-sdk').value = 'gradio';
     document.getElementById('add-env-hardware').value = 'cpu-basic';
-    document.querySelectorAll('#add-env-sdk-seg .add-env-seg-btn').forEach(function(c, i) {
+    document.querySelectorAll('#add-env-sdk-seg .add-env-seg-btn').forEach(function (c, i) {
         c.classList.toggle('selected', i === 0);
     });
-    document.querySelectorAll('#add-env-hw-seg .add-env-seg-btn').forEach(function(c, i) {
+    document.querySelectorAll('#add-env-hw-seg .add-env-seg-btn').forEach(function (c, i) {
         c.classList.toggle('selected', i === 0);
     });
     renderSdkTemplateGrid('gradio');
 
-    setTimeout(function() { closeAddEnvironmentPage(); }, 800);
+    setTimeout(function () { closeAddEnvironmentPage(); }, 800);
 }
 window.submitAddEnvironment = submitAddEnvironment;
 
@@ -6092,11 +6255,11 @@ function previewHuggingFaceSpace() {
 
     // Call backend API to fetch space metadata
     fetch(API_BASE + '/api/huggingface/space-info?owner=' + encodeURIComponent(parsed.owner) + '&repo=' + encodeURIComponent(parsed.repo))
-        .then(function(res) {
+        .then(function (res) {
             if (!res.ok) throw new Error('Failed to fetch space info (HTTP ' + res.status + ')');
             return res.json();
         })
-        .then(function(data) {
+        .then(function (data) {
             _hfImportedMeta = data;
             if (statusEl) statusEl.style.display = 'none';
             _showHFPreview(data, url);
@@ -6110,7 +6273,7 @@ function previewHuggingFaceSpace() {
                 if (nameInput && !nameInput.value) nameInput.value = parsed2.repo;
             }
         })
-        .catch(function(err) {
+        .catch(function (err) {
             if (statusEl) statusEl.style.display = 'none';
             console.error('[HF Import] Error:', err);
             if (window.showToast) showToast('Error fetching space: ' + err.message, 'error');
@@ -6123,7 +6286,7 @@ function _showHFPreview(data, url) {
     var metaEl = document.getElementById('add-env-import-meta');
     if (!preview || !metaEl) return;
 
-    var tags = (data.tags || []).map(function(t) { return '<span class="add-env-import-tag">' + t + '</span>'; }).join('');
+    var tags = (data.tags || []).map(function (t) { return '<span class="add-env-import-tag">' + t + '</span>'; }).join('');
     var html = '' +
         '<div class="add-env-import-meta-row"><span class="add-env-import-meta-label">Environment</span><span class="add-env-import-meta-value"><a href="' + url + '" target="_blank">' + (data.id || data.owner + '/' + data.repo) + '</a></span></div>' +
         '<div class="add-env-import-meta-row"><span class="add-env-import-meta-label">Author</span><span class="add-env-import-meta-value">' + (data.author || data.owner || '—') + '</span></div>' +
@@ -6141,7 +6304,7 @@ var _importSource = 'huggingface';
 
 function selectImportSource(btn) {
     var seg = btn.parentElement;
-    seg.querySelectorAll('.add-env-seg-btn').forEach(function(c) { c.classList.remove('selected'); });
+    seg.querySelectorAll('.add-env-seg-btn').forEach(function (c) { c.classList.remove('selected'); });
     btn.classList.add('selected');
     _importSource = btn.getAttribute('data-value');
 
@@ -6203,7 +6366,7 @@ function clearEnvImport() {
     // Reset source selector to HuggingFace
     _importSource = 'huggingface';
     var srcBtns = document.querySelectorAll('#add-env-import-source-seg .add-env-seg-btn');
-    srcBtns.forEach(function(b, i) { b.classList.toggle('selected', i === 0); });
+    srcBtns.forEach(function (b, i) { b.classList.toggle('selected', i === 0); });
     var fetchBtn = document.getElementById('btn-preview-hf');
     if (fetchBtn) fetchBtn.style.display = '';
     var hint = document.getElementById('import-url-hint');
@@ -6258,33 +6421,33 @@ function submitImportedEnvironment() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newEnv)
-        }).then(function() {
+        }).then(function () {
             return fetch(API_BASE + '/api/classify-environment', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: name, description: desc || '' })
             });
-        }).then(function(r) { return r && r.ok ? r.json() : null; })
-        .then(function(cls) {
-            if (cls && cls.category) {
-                // Only use classifier results for fields the user didn't provide
-                newEnv.category = selectedDomain || cls.category;
-                newEnv.system = cls.system || 'Custom';
-                newEnv.domain = selectedDomain || cls.domain;
-                newEnv.workflow = selectedWorkflow || cls.workflow;
-                newEnv.tags = cls.tags;
-                environmentDetails[name] = generateEnvironmentDetails(newEnv);
-                if (typeof filterEnvironments === 'function') {
-                    var searchVal = document.getElementById('env-search') ? document.getElementById('env-search').value : '';
-                    var catVal = document.querySelector('.catalog-tab.active') ? document.querySelector('.catalog-tab.active').getAttribute('data-category') || 'all' : 'all';
-                    filterEnvironments(searchVal, catVal);
+        }).then(function (r) { return r && r.ok ? r.json() : null; })
+            .then(function (cls) {
+                if (cls && cls.category) {
+                    // Only use classifier results for fields the user didn't provide
+                    newEnv.category = selectedDomain || cls.category;
+                    newEnv.system = cls.system || 'Custom';
+                    newEnv.domain = selectedDomain || cls.domain;
+                    newEnv.workflow = selectedWorkflow || cls.workflow;
+                    newEnv.tags = cls.tags;
+                    environmentDetails[name] = generateEnvironmentDetails(newEnv);
+                    if (typeof filterEnvironments === 'function') {
+                        var searchVal = document.getElementById('env-search') ? document.getElementById('env-search').value : '';
+                        var catVal = document.querySelector('.catalog-tab.active') ? document.querySelector('.catalog-tab.active').getAttribute('data-category') || 'all' : 'all';
+                        filterEnvironments(searchVal, catVal);
+                    }
+                    console.log('[Import] Classified:', name, cls);
                 }
-                console.log('[Import] Classified:', name, cls);
-            }
-        }).catch(function(err) { console.warn('[Import] Backend persist/classify failed:', err); });
+            }).catch(function (err) { console.warn('[Import] Backend persist/classify failed:', err); });
         if (window.showToast) showToast('Environment "' + name + '" imported from ' + (_importSource === 'github' ? 'GitHub' : 'URL') + '!', 'success');
         clearEnvImport();
-        setTimeout(function() { closeAddEnvironmentPage(); }, 800);
+        setTimeout(function () { closeAddEnvironmentPage(); }, 800);
         return;
     }
 
@@ -6311,98 +6474,98 @@ function submitImportedEnvironment() {
             hf_repo: parsed.repo
         })
     })
-    .then(function(res) {
-        if (!res.ok) return res.json().then(function(d) { throw new Error(d.detail || 'Import failed'); });
-        return res.json();
-    })
-    .then(function(data) {
-        if (statusText) statusText.textContent = 'Analyzing environment structure...';
+        .then(function (res) {
+            if (!res.ok) return res.json().then(function (d) { throw new Error(d.detail || 'Import failed'); });
+            return res.json();
+        })
+        .then(function (data) {
+            if (statusText) statusText.textContent = 'Analyzing environment structure...';
 
-        var newEnv = {
-            name: name,
-            description: desc || (data.description || 'Imported from HuggingFace'),
-            category: selectedDomain || 'custom',
-            system: 'Custom',
-            domain: selectedDomain || 'custom',
-            workflow: selectedWorkflow || '',
-            sdk: data.sdk || (_hfImportedMeta ? _hfImportedMeta.sdk : 'gradio'),
-            actions: [],
-            source: 'huggingface',
-            hf_url: url,
-            isCustom: true
-        };
+            var newEnv = {
+                name: name,
+                description: desc || (data.description || 'Imported from HuggingFace'),
+                category: selectedDomain || 'custom',
+                system: 'Custom',
+                domain: selectedDomain || 'custom',
+                workflow: selectedWorkflow || '',
+                sdk: data.sdk || (_hfImportedMeta ? _hfImportedMeta.sdk : 'gradio'),
+                actions: [],
+                source: 'huggingface',
+                hf_url: url,
+                isCustom: true
+            };
 
-        return fetch(API_BASE + '/api/environment/' + encodeURIComponent(name) + '/analyze')
-            .then(function(r) { return r.ok ? r.json() : null; })
-            .then(function(analysis) {
-                if (statusEl) statusEl.style.display = 'none';
+            return fetch(API_BASE + '/api/environment/' + encodeURIComponent(name) + '/analyze')
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (analysis) {
+                    if (statusEl) statusEl.style.display = 'none';
 
-                var hfMeta = _hfImportedMeta || {};
-                var details = {
-                    source: 'huggingface',
-                    isCustom: true,
-                    hf_url: url,
-                    hf_owner: parsed.owner,
-                    hf_repo: parsed.repo,
-                    sdk: newEnv.sdk,
-                    description: newEnv.description,
-                    author: hfMeta.author || parsed.owner,
-                    license: hfMeta.license || 'Not specified',
-                    tags: hfMeta.tags || [],
-                    likes: hfMeta.likes || 0,
-                    lastModified: hfMeta.last_modified || '',
-                    readme: analysis ? analysis.readme_raw : '',
-                    frontMatter: analysis ? analysis.front_matter : {},
-                    openenv: analysis ? analysis.openenv : {},
-                    pyproject: analysis ? analysis.pyproject : {},
-                    files: analysis ? analysis.files : [],
-                    endpoints: analysis ? analysis.endpoints : [],
-                    models: analysis ? analysis.models : {},
-                    localPath: analysis ? analysis.local_path : ''
-                };
-                environmentDetails[name] = details;
+                    var hfMeta = _hfImportedMeta || {};
+                    var details = {
+                        source: 'huggingface',
+                        isCustom: true,
+                        hf_url: url,
+                        hf_owner: parsed.owner,
+                        hf_repo: parsed.repo,
+                        sdk: newEnv.sdk,
+                        description: newEnv.description,
+                        author: hfMeta.author || parsed.owner,
+                        license: hfMeta.license || 'Not specified',
+                        tags: hfMeta.tags || [],
+                        likes: hfMeta.likes || 0,
+                        lastModified: hfMeta.last_modified || '',
+                        readme: analysis ? analysis.readme_raw : '',
+                        frontMatter: analysis ? analysis.front_matter : {},
+                        openenv: analysis ? analysis.openenv : {},
+                        pyproject: analysis ? analysis.pyproject : {},
+                        files: analysis ? analysis.files : [],
+                        endpoints: analysis ? analysis.endpoints : [],
+                        models: analysis ? analysis.models : {},
+                        localPath: analysis ? analysis.local_path : ''
+                    };
+                    environmentDetails[name] = details;
 
-                _addEnvironmentToGrid(newEnv);
+                    _addEnvironmentToGrid(newEnv);
 
-                // Async classify the imported environment
-                fetch(API_BASE + '/api/classify-environment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name, description: newEnv.description })
-                }).then(function(r) { return r.ok ? r.json() : null; })
-                .then(function(cls) {
-                    if (cls && cls.category) {
-                        // User-provided domain/workflow take precedence over classifier
-                        newEnv.category = selectedDomain || cls.category;
-                        newEnv.system = cls.system || 'Custom';
-                        newEnv.domain = selectedDomain || cls.domain;
-                        newEnv.workflow = selectedWorkflow || cls.workflow;
-                        newEnv.tags = cls.tags;
-                        // Re-persist with classified fields
-                        fetch(API_BASE + '/api/custom-environments', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(newEnv)
-                        });
-                        if (typeof filterEnvironments === 'function') {
-                            var searchVal = document.getElementById('env-search') ? document.getElementById('env-search').value : '';
-                            var catVal = document.querySelector('.catalog-tab.active') ? document.querySelector('.catalog-tab.active').getAttribute('data-category') || 'all' : 'all';
-                            filterEnvironments(searchVal, catVal);
-                        }
-                        console.log('[HF Import] Classified:', name, cls);
-                    }
-                }).catch(function(err) { console.warn('[HF Import] Classify failed:', err); });
+                    // Async classify the imported environment
+                    fetch(API_BASE + '/api/classify-environment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: name, description: newEnv.description })
+                    }).then(function (r) { return r.ok ? r.json() : null; })
+                        .then(function (cls) {
+                            if (cls && cls.category) {
+                                // User-provided domain/workflow take precedence over classifier
+                                newEnv.category = selectedDomain || cls.category;
+                                newEnv.system = cls.system || 'Custom';
+                                newEnv.domain = selectedDomain || cls.domain;
+                                newEnv.workflow = selectedWorkflow || cls.workflow;
+                                newEnv.tags = cls.tags;
+                                // Re-persist with classified fields
+                                fetch(API_BASE + '/api/custom-environments', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(newEnv)
+                                });
+                                if (typeof filterEnvironments === 'function') {
+                                    var searchVal = document.getElementById('env-search') ? document.getElementById('env-search').value : '';
+                                    var catVal = document.querySelector('.catalog-tab.active') ? document.querySelector('.catalog-tab.active').getAttribute('data-category') || 'all' : 'all';
+                                    filterEnvironments(searchVal, catVal);
+                                }
+                                console.log('[HF Import] Classified:', name, cls);
+                            }
+                        }).catch(function (err) { console.warn('[HF Import] Classify failed:', err); });
 
-                if (window.showToast) showToast('Environment "' + name + '" imported from HuggingFace!', 'success');
-                clearEnvImport();
-                setTimeout(function() { closeAddEnvironmentPage(); }, 800);
-            });
-    })
-    .catch(function(err) {
-        if (statusEl) statusEl.style.display = 'none';
-        console.error('[HF Import] Error:', err);
-        if (window.showToast) showToast('Import failed: ' + err.message, 'error');
-    });
+                    if (window.showToast) showToast('Environment "' + name + '" imported from HuggingFace!', 'success');
+                    clearEnvImport();
+                    setTimeout(function () { closeAddEnvironmentPage(); }, 800);
+                });
+        })
+        .catch(function (err) {
+            if (statusEl) statusEl.style.display = 'none';
+            console.error('[HF Import] Error:', err);
+            if (window.showToast) showToast('Import failed: ' + err.message, 'error');
+        });
 }
 window.submitImportedEnvironment = submitImportedEnvironment;
 
@@ -6412,13 +6575,13 @@ function deleteEnvironment(envName) {
         return;
     }
     fetch(API_BASE + '/api/custom-environments/' + encodeURIComponent(envName), { method: 'DELETE' })
-        .then(function(res) {
-            if (!res.ok) return res.json().then(function(d) { throw new Error(d.detail || 'Delete failed'); });
+        .then(function (res) {
+            if (!res.ok) return res.json().then(function (d) { throw new Error(d.detail || 'Delete failed'); });
             return res.json();
         })
-        .then(function() {
+        .then(function () {
             // Remove from local arrays
-            allEnvironments = allEnvironments.filter(function(e) { return e.name !== envName; });
+            allEnvironments = allEnvironments.filter(function (e) { return e.name !== envName; });
             delete environmentDetails[envName];
             if (window.showToast) showToast('Environment "' + envName + '" deleted.', 'success');
             // Go back to catalog
@@ -6429,7 +6592,7 @@ function deleteEnvironment(envName) {
             var searchInput = document.getElementById('search-input');
             filterEnvironments(searchInput ? searchInput.value.trim() : '');
         })
-        .catch(function(err) {
+        .catch(function (err) {
             if (window.showToast) showToast('Delete failed: ' + err.message, 'error');
         });
 }

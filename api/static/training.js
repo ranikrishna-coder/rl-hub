@@ -38,7 +38,7 @@
         document.getElementById('tr-env').value = envId;
         onEnvironmentChange();
         // Make environment fields read-only when pre-populated from env detail page
-        setTimeout(function() {
+        setTimeout(function () {
             var envSel = document.getElementById('tr-env');
             var sysSel = document.getElementById('tr-env-system');
             if (envSel) envSel.disabled = true;
@@ -53,7 +53,7 @@
         if (agentSel) {
             // Ensure agent is in the dropdown (populate all first)
             agentSel.innerHTML = '<option value="">— Select agent —</option>';
-            (CFG.agents || []).forEach(function(a) {
+            (CFG.agents || []).forEach(function (a) {
                 if (!a.trainable) return;
                 var o = document.createElement('option');
                 o.value = a.id;
@@ -62,7 +62,7 @@
             });
             agentSel.value = agentId;
             // Make agent dropdown read-only when pre-populated from agent console
-            setTimeout(function() {
+            setTimeout(function () {
                 var sel = document.getElementById('tr-agent');
                 if (sel) sel.disabled = true;
             }, 100);
@@ -302,18 +302,18 @@
             if (countEl) countEl.textContent = '0 runs';
             body.innerHTML =
                 '<div class="training-empty-state">' +
-                    '<div class="training-empty-icon">' +
-                        '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' +
-                            '<path d="M22 10v6M2 10l10-5 10 5-10 5z"/>' +
-                            '<path d="M6 12v5c6 3 10 3 16 0v-5"/>' +
-                        '</svg>' +
-                    '</div>' +
-                    '<h3 class="training-empty-title">No training runs yet</h3>' +
-                    '<p class="training-empty-text">Run a training to see results here. Configure your environment, select an algorithm, and start your first training run.</p>' +
-                    '<button type="button" class="btn btn-primary training-empty-btn" id="btn-empty-new-run">' +
-                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
-                        ' New Training' +
-                    '</button>' +
+                '<div class="training-empty-icon">' +
+                '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' +
+                '<path d="M22 10v6M2 10l10-5 10 5-10 5z"/>' +
+                '<path d="M6 12v5c6 3 10 3 16 0v-5"/>' +
+                '</svg>' +
+                '</div>' +
+                '<h3 class="training-empty-title">No training runs yet</h3>' +
+                '<p class="training-empty-text">Run a training to see results here. Configure your environment, select an algorithm, and start your first training run.</p>' +
+                '<button type="button" class="btn btn-primary training-empty-btn" id="btn-empty-new-run">' +
+                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+                ' New Training' +
+                '</button>' +
                 '</div>';
             // Wire up the empty state button
             var emptyBtn = document.getElementById('btn-empty-new-run');
@@ -432,20 +432,12 @@
         });
     }
 
-    function populateVerifiers() {
+    function _renderVerifierOptions(matches) {
         var field = document.getElementById('verifier-field');
         var container = document.getElementById('verifier-options');
         var countHint = document.getElementById('verifier-count-hint');
         var selectAll = document.getElementById('verifier-select-all');
         if (!field || !container) return;
-
-        var env = findEnv(document.getElementById('tr-env').value);
-        var cat = env ? env.category : '';
-
-        var matches = VERIFIERS.filter(function (v) {
-            if (cat && v.environment && v.environment !== cat) return false;
-            return true;
-        });
 
         container.innerHTML = '';
         if (matches.length > 0) {
@@ -477,6 +469,41 @@
         // Reset HIL panel
         var hilPanel = document.getElementById('existing-hil-panel');
         if (hilPanel) hilPanel.style.display = 'none';
+    }
+
+    function populateVerifiers() {
+        var env = findEnv(document.getElementById('tr-env') ? document.getElementById('tr-env').value : '');
+        var cat = env ? env.category : '';
+        var envName = env ? env.name : '';
+
+        // Start with built-in verifiers from verifier-data.js
+        var builtInMatches = VERIFIERS.filter(function (v) {
+            if (cat && v.environment && v.environment !== cat) return false;
+            return true;
+        });
+
+        // Also fetch custom verifiers from backend API and merge
+        var apiBase = window.API_BASE || '';
+        fetch(apiBase + '/api/verifiers')
+            .then(function (res) { return res.ok ? res.json() : { verifiers: [] }; })
+            .then(function (data) {
+                var customVerifiers = (data.verifiers || []).filter(function (v) {
+                    if (cat && v.environment && v.environment !== cat) return false;
+                    return true;
+                });
+                // Merge: avoid duplicates by id
+                var seenIds = {};
+                var allMatches = [];
+                builtInMatches.forEach(function (v) { seenIds[v.id] = true; allMatches.push(v); });
+                customVerifiers.forEach(function (v) {
+                    if (!seenIds[v.id]) { seenIds[v.id] = true; allMatches.push(v); }
+                });
+                _renderVerifierOptions(allMatches);
+            })
+            .catch(function () {
+                // Fallback to built-in only
+                _renderVerifierOptions(builtInMatches);
+            });
     }
 
     function onVerifierCheckboxChange() {
@@ -541,10 +568,40 @@
     }
 
     // Populate scenario dropdown based on selected environment / system
-    // Task Scenario is hidden for now
     function filterScenarios() {
         var scenarioField = document.getElementById('scenario-field');
-        if (scenarioField) scenarioField.style.display = 'none';
+        var scenarioSel = document.getElementById('tr-scenario');
+        var countHint = document.getElementById('scenario-count-hint');
+        if (!scenarioField || !scenarioSel) return;
+
+        var envId = document.getElementById('tr-env') ? document.getElementById('tr-env').value : '';
+        var env = findEnv(envId);
+        var cat = env ? env.category : '';
+        var envName = env ? env.name : '';
+
+        // Merge built-in + custom scenarios, filter by category or product (env name)
+        var all = getAllScenarios();
+        var matches = all.filter(function (s) {
+            if (!cat && !envName) return true; // no env selected — show all
+            return (cat && s.category === cat) || (envName && s.product === envName);
+        });
+
+        // Rebuild dropdown
+        scenarioSel.innerHTML = '<option value="">— No task scenario —</option>';
+        matches.forEach(function (s) {
+            var opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.name + (s.task_count ? ' (' + s.task_count + ' tasks)' : '');
+            scenarioSel.appendChild(opt);
+        });
+
+        if (matches.length > 0) {
+            scenarioField.style.display = '';
+            if (countHint) countHint.textContent = '(' + matches.length + ')';
+        } else {
+            scenarioField.style.display = 'none';
+            if (countHint) countHint.textContent = '';
+        }
     }
 
     function updateEnvPreview() {
@@ -809,8 +866,8 @@
         };
 
         // ── Advanced optional configuration ──
-        var _advVal = function(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
-        var _advInt = function(id) { var v = _advVal(id); return v ? parseInt(v) : null; };
+        var _advVal = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+        var _advInt = function (id) { var v = _advVal(id); return v ? parseInt(v) : null; };
 
         var advMaxSteps = _advInt('adv-max-steps');
         var advBatchSize = _advInt('adv-batch-size');
@@ -961,246 +1018,246 @@
 
         // Header
         try {
-        document.getElementById('detail-title').textContent = run.name;
-        var badge = document.getElementById('detail-status');
-        badge.textContent = statusLabel;
-        badge.className = 'status-badge ' + run.status;
+            document.getElementById('detail-title').textContent = run.name;
+            var badge = document.getElementById('detail-status');
+            badge.textContent = statusLabel;
+            badge.className = 'status-badge ' + run.status;
         } catch (e) { console.warn('renderRunDetails: header error', e); }
 
         // Action buttons
         try {
-        var actionsEl = document.getElementById('detail-actions');
-        var actionsHtml = '';
-        if (run.status === 'completed' || run.status === 'awaiting_human_eval') {
-            var hilUrl = '/human-eval?job_id=' + encodeURIComponent(run.job_id || run.id);
-            actionsHtml += '<a href="' + esc(hilUrl) + '" class="btn btn-secondary btn-small" target="_blank">' +
-                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg> ' +
-                'Human Evaluation</a>';
-        }
-        if (run.model_saved && run.model_url) {
-            actionsHtml += '<button type="button" class="btn btn-primary btn-small" id="btn-view-model-artifact">' +
-                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ' +
-                'Export Model</button>';
-        }
-        actionsEl.innerHTML = actionsHtml;
-        var viewArtifactBtn = document.getElementById('btn-view-model-artifact');
-        if (viewArtifactBtn) {
-            viewArtifactBtn.addEventListener('click', function () {
-                var wrap = document.getElementById('detail-model-artifact-wrap');
-                if (wrap) {
-                    wrap.style.display = '';
-                    wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            });
-        }
+            var actionsEl = document.getElementById('detail-actions');
+            var actionsHtml = '';
+            if (run.status === 'completed' || run.status === 'awaiting_human_eval') {
+                var hilUrl = '/human-eval?job_id=' + encodeURIComponent(run.job_id || run.id);
+                actionsHtml += '<a href="' + esc(hilUrl) + '" class="btn btn-secondary btn-small" target="_blank">' +
+                    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg> ' +
+                    'Human Evaluation</a>';
+            }
+            if (run.model_saved && run.model_url) {
+                actionsHtml += '<button type="button" class="btn btn-primary btn-small" id="btn-view-model-artifact">' +
+                    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ' +
+                    'Export Model</button>';
+            }
+            actionsEl.innerHTML = actionsHtml;
+            var viewArtifactBtn = document.getElementById('btn-view-model-artifact');
+            if (viewArtifactBtn) {
+                viewArtifactBtn.addEventListener('click', function () {
+                    var wrap = document.getElementById('detail-model-artifact-wrap');
+                    if (wrap) {
+                        wrap.style.display = '';
+                        wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                });
+            }
         } catch (e) { console.warn('renderRunDetails: actions error', e); }
 
         // Training Progress Stepper
         try {
-        var stepperEl = document.getElementById('detail-stepper');
-        if (stepperEl) {
-            var steps = [
-                { label: 'Configuration' },
-                { label: 'Baseline Eval' },
-                { label: 'Training' },
-                { label: 'Evaluation' },
-                { label: 'Complete' }
-            ];
-            var currentStep = 0; // default: config done
-            if (run.status === 'running') {
-                var prog = run.progress || 0;
-                if (prog < 10) currentStep = 1;
-                else if (prog < 95) currentStep = 2;
-                else currentStep = 3;
-            } else if (run.status === 'completed' || run.status === 'awaiting_human_eval') {
-                currentStep = 5; // all steps completed
-            } else if (run.status === 'failed') {
-                currentStep = -1; // show all as pending except config
-            }
-            var stepperHtml = '';
-            for (var si = 0; si < steps.length; si++) {
-                var cls = 'stepper-step';
-                var circleContent = '' + (si + 1);
-                if (currentStep === -1) {
-                    // failed: only config completed
-                    cls += si === 0 ? ' completed' : '';
-                } else if (si < currentStep) {
-                    cls += ' completed';
-                    circleContent = '\u2713'; // checkmark
-                } else if (si === currentStep) {
-                    cls += ' active';
+            var stepperEl = document.getElementById('detail-stepper');
+            if (stepperEl) {
+                var steps = [
+                    { label: 'Configuration' },
+                    { label: 'Baseline Eval' },
+                    { label: 'Training' },
+                    { label: 'Evaluation' },
+                    { label: 'Complete' }
+                ];
+                var currentStep = 0; // default: config done
+                if (run.status === 'running') {
+                    var prog = run.progress || 0;
+                    if (prog < 10) currentStep = 1;
+                    else if (prog < 95) currentStep = 2;
+                    else currentStep = 3;
+                } else if (run.status === 'completed' || run.status === 'awaiting_human_eval') {
+                    currentStep = 5; // all steps completed
+                } else if (run.status === 'failed') {
+                    currentStep = -1; // show all as pending except config
                 }
-                stepperHtml += '<div class="' + cls + '">' +
-                    '<div class="stepper-circle">' + circleContent + '</div>' +
-                    '<div class="stepper-label">' + esc(steps[si].label) + '</div>';
-                if (si === currentStep && run.status === 'running' && si === 2) {
-                    stepperHtml += '<div class="stepper-progress">' + (run.progress || 0) + '%</div>';
+                var stepperHtml = '';
+                for (var si = 0; si < steps.length; si++) {
+                    var cls = 'stepper-step';
+                    var circleContent = '' + (si + 1);
+                    if (currentStep === -1) {
+                        // failed: only config completed
+                        cls += si === 0 ? ' completed' : '';
+                    } else if (si < currentStep) {
+                        cls += ' completed';
+                        circleContent = '\u2713'; // checkmark
+                    } else if (si === currentStep) {
+                        cls += ' active';
+                    }
+                    stepperHtml += '<div class="' + cls + '">' +
+                        '<div class="stepper-circle">' + circleContent + '</div>' +
+                        '<div class="stepper-label">' + esc(steps[si].label) + '</div>';
+                    if (si === currentStep && run.status === 'running' && si === 2) {
+                        stepperHtml += '<div class="stepper-progress">' + (run.progress || 0) + '%</div>';
+                    }
+                    stepperHtml += '</div>';
                 }
-                stepperHtml += '</div>';
+                stepperEl.innerHTML = stepperHtml;
             }
-            stepperEl.innerHTML = stepperHtml;
-        }
         } catch (e) { console.warn('renderRunDetails: stepper error', e); }
 
         // Failure reason panel
         try {
-        var failurePanel = document.getElementById('detail-failure-reason');
-        if (failurePanel) {
-            if (run.status === 'failed') {
-                var reason = run.error || run.fail_reason || 'An unexpected error occurred during training.';
-                failurePanel.style.display = '';
-                failurePanel.innerHTML = '<h4>' +
-                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' +
-                    ' Training Failed</h4>' +
-                    '<p class="failure-message">' + esc(reason) + '</p>';
-            } else {
-                failurePanel.style.display = 'none';
-                failurePanel.innerHTML = '';
+            var failurePanel = document.getElementById('detail-failure-reason');
+            if (failurePanel) {
+                if (run.status === 'failed') {
+                    var reason = run.error || run.fail_reason || 'An unexpected error occurred during training.';
+                    failurePanel.style.display = '';
+                    failurePanel.innerHTML = '<h4>' +
+                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' +
+                        ' Training Failed</h4>' +
+                        '<p class="failure-message">' + esc(reason) + '</p>';
+                } else {
+                    failurePanel.style.display = 'none';
+                    failurePanel.innerHTML = '';
+                }
             }
-        }
         } catch (e) { console.warn('renderRunDetails: failure panel error', e); }
 
         // Metric cards
         try {
-        var metrics = document.getElementById('detail-metrics');
-        var maxRewardLabel = (run.results && run.results.max_reward != null) ? run.results.max_reward.toFixed(2) : '—';
-        metrics.innerHTML = metricCard('Episodes', run.episodes || '—') +
-            metricCard('Success Rate', run.successRate != null ? run.successRate + '%' : '—') +
-            metricCard('Avg Reward', run.avgReward != null ? run.avgReward.toFixed(2) : '—') +
-            metricCard('Improvement', run.baselineReward != null && run.avgReward != null
-                ? '+' + ((run.avgReward - run.baselineReward) * 100).toFixed(0) + '%'
-                : '—', true);
+            var metrics = document.getElementById('detail-metrics');
+            var maxRewardLabel = (run.results && run.results.max_reward != null) ? run.results.max_reward.toFixed(2) : '—';
+            metrics.innerHTML = metricCard('Episodes', run.episodes || '—') +
+                metricCard('Success Rate', run.successRate != null ? run.successRate + '%' : '—') +
+                metricCard('Avg Reward', run.avgReward != null ? run.avgReward.toFixed(2) : '—') +
+                metricCard('Improvement', run.baselineReward != null && run.avgReward != null
+                    ? (function () { var diff = (run.avgReward - run.baselineReward) * 100; return (diff >= 0 ? '+' : '') + diff.toFixed(0) + '%'; })()
+                    : '—', true);
         } catch (e) { console.warn('renderRunDetails: metrics error', e); }
 
         // Training info panel
         try {
-        var _trainingInfoHtml = '<h3>Training Information</h3>' +
-            infoRow('Environment', envDisplay) +
-            infoRow('Category', formatCategory(run.category)) +
-            infoRow('Algorithm', run.algorithm) +
-            infoRow('Status', statusLabel) +
-            infoRow('Started', run.started || '—') +
-            (run.completed ? infoRow('Completed', run.completed) : '') +
-            infoRow('Progress', run.progress + '%');
+            var _trainingInfoHtml = '<h3>Training Information</h3>' +
+                infoRow('Environment', envDisplay) +
+                infoRow('Category', formatCategory(run.category)) +
+                infoRow('Algorithm', run.algorithm) +
+                infoRow('Status', statusLabel) +
+                infoRow('Started', run.started || '—') +
+                (run.completed ? infoRow('Completed', run.completed) : '') +
+                infoRow('Progress', run.progress + '%');
 
-        // Show advanced config if present
-        if (run.adv_max_steps || run.batch_size || run.rollouts_per_example || run.sampling || run.env_override || run.wandb) {
-            _trainingInfoHtml += '<div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-color)">' +
-                '<h4 style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem">Advanced Config</h4>';
-            if (run.adv_max_steps) _trainingInfoHtml += infoRow('max_steps', run.adv_max_steps);
-            if (run.batch_size) _trainingInfoHtml += infoRow('batch_size', run.batch_size);
-            if (run.rollouts_per_example) _trainingInfoHtml += infoRow('rollouts_per_example', run.rollouts_per_example);
-            if (run.sampling && run.sampling.max_tokens) _trainingInfoHtml += infoRow('sampling.max_tokens', run.sampling.max_tokens);
-            if (run.env_override) {
-                if (run.env_override.id) _trainingInfoHtml += infoRow('env.id', run.env_override.id);
-                if (run.env_override.args) _trainingInfoHtml += infoRow('env.args', '<code style="font-size:0.8rem">' + JSON.stringify(run.env_override.args) + '</code>');
+            // Show advanced config if present
+            if (run.adv_max_steps || run.batch_size || run.rollouts_per_example || run.sampling || run.env_override || run.wandb) {
+                _trainingInfoHtml += '<div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-color)">' +
+                    '<h4 style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem">Advanced Config</h4>';
+                if (run.adv_max_steps) _trainingInfoHtml += infoRow('max_steps', run.adv_max_steps);
+                if (run.batch_size) _trainingInfoHtml += infoRow('batch_size', run.batch_size);
+                if (run.rollouts_per_example) _trainingInfoHtml += infoRow('rollouts_per_example', run.rollouts_per_example);
+                if (run.sampling && run.sampling.max_tokens) _trainingInfoHtml += infoRow('sampling.max_tokens', run.sampling.max_tokens);
+                if (run.env_override) {
+                    if (run.env_override.id) _trainingInfoHtml += infoRow('env.id', run.env_override.id);
+                    if (run.env_override.args) _trainingInfoHtml += infoRow('env.args', '<code style="font-size:0.8rem">' + JSON.stringify(run.env_override.args) + '</code>');
+                }
+                if (run.wandb) {
+                    if (run.wandb.project) _trainingInfoHtml += infoRow('wandb.project', run.wandb.project);
+                    if (run.wandb.name) _trainingInfoHtml += infoRow('wandb.name', run.wandb.name);
+                }
+                _trainingInfoHtml += '</div>';
             }
-            if (run.wandb) {
-                if (run.wandb.project) _trainingInfoHtml += infoRow('wandb.project', run.wandb.project);
-                if (run.wandb.name) _trainingInfoHtml += infoRow('wandb.name', run.wandb.name);
-            }
-            _trainingInfoHtml += '</div>';
-        }
-        document.getElementById('detail-training-info').innerHTML = _trainingInfoHtml;
+            document.getElementById('detail-training-info').innerHTML = _trainingInfoHtml;
 
-        // Model / Compute config
-        var modelHtml = '<h3>Model &amp; Compute</h3>' +
-            infoRow('Base Model', run.model) +
-            infoRow('LoRA r', '32') +
-            infoRow('LoRA alpha', '16') +
-            infoRow('Dropout', '0.05') +
-            infoRow('Task Type', 'CAUSAL_LM');
-        if (run.results) {
-            modelHtml += '<div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-color)">' +
-                '<h4 style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem">Results</h4>' +
-                infoRow('Mean Reward', run.results.mean_reward != null ? run.results.mean_reward.toFixed(4) : '—') +
-                infoRow('Max Reward', run.results.max_reward != null ? run.results.max_reward.toFixed(4) : '—') +
-                infoRow('Min Reward', run.results.min_reward != null ? run.results.min_reward.toFixed(4) : '—') +
-                '</div>';
-        }
-        if (run.baseline_results) {
-            modelHtml += '<div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-color)">' +
-                '<h4 style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem">Baseline</h4>' +
-                infoRow('Mean Reward', run.baseline_results.mean_reward != null ? run.baseline_results.mean_reward.toFixed(4) : '—') +
-                infoRow('Max Reward', run.baseline_results.max_reward != null ? run.baseline_results.max_reward.toFixed(4) : '—') +
-                infoRow('Episodes', run.baseline_results.episodes || '—') +
-                '</div>';
-        }
-        document.getElementById('detail-model-config').innerHTML = modelHtml;
+            // Model / Compute config
+            var modelHtml = '<h3>Model &amp; Compute</h3>' +
+                infoRow('Base Model', run.model) +
+                infoRow('LoRA r', '32') +
+                infoRow('LoRA alpha', '16') +
+                infoRow('Dropout', '0.05') +
+                infoRow('Task Type', 'CAUSAL_LM');
+            if (run.results) {
+                modelHtml += '<div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-color)">' +
+                    '<h4 style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem">Results</h4>' +
+                    infoRow('Mean Reward', run.results.mean_reward != null ? run.results.mean_reward.toFixed(4) : '—') +
+                    infoRow('Max Reward', run.results.max_reward != null ? run.results.max_reward.toFixed(4) : '—') +
+                    infoRow('Min Reward', run.results.min_reward != null ? run.results.min_reward.toFixed(4) : '—') +
+                    '</div>';
+            }
+            if (run.baseline_results) {
+                modelHtml += '<div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-color)">' +
+                    '<h4 style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem">Baseline</h4>' +
+                    infoRow('Mean Reward', run.baseline_results.mean_reward != null ? run.baseline_results.mean_reward.toFixed(4) : '—') +
+                    infoRow('Max Reward', run.baseline_results.max_reward != null ? run.baseline_results.max_reward.toFixed(4) : '—') +
+                    infoRow('Episodes', run.baseline_results.episodes || '—') +
+                    '</div>';
+            }
+            document.getElementById('detail-model-config').innerHTML = modelHtml;
         } catch (e) { console.warn('renderRunDetails: info/model error', e); }
 
         // Rollout comparison — only show when training is complete
         try {
-        var rolloutEl = document.getElementById('detail-rollout');
-        var rolloutWrap = rolloutEl ? rolloutEl.closest('.details-full') : null;
-        if (run.status === 'completed' || run.status === 'awaiting_human_eval') {
-            if (rolloutWrap) rolloutWrap.style.display = '';
-            if (window.renderRolloutComparison) {
-                loadAndRenderRolloutComparison(rolloutEl, run);
+            var rolloutEl = document.getElementById('detail-rollout');
+            var rolloutWrap = rolloutEl ? rolloutEl.closest('.details-full') : null;
+            if (run.status === 'completed' || run.status === 'awaiting_human_eval') {
+                if (rolloutWrap) rolloutWrap.style.display = '';
+                if (window.renderRolloutComparison) {
+                    loadAndRenderRolloutComparison(rolloutEl, run);
+                } else {
+                    rolloutEl.innerHTML = '<p style="color:var(--text-secondary);padding:1rem;">Rollout comparison module not loaded.</p>';
+                }
             } else {
-                rolloutEl.innerHTML = '<p style="color:var(--text-secondary);padding:1rem;">Rollout comparison module not loaded.</p>';
+                // Hide rollout for running/pending/failed runs
+                if (rolloutWrap) rolloutWrap.style.display = 'none';
             }
-        } else {
-            // Hide rollout for running/pending/failed runs
-            if (rolloutWrap) rolloutWrap.style.display = 'none';
-        }
 
-        // State diagram — render from rollout data above model artifact
-        var diagramEl = document.getElementById('detail-state-diagram');
-        if (diagramEl && (run.status === 'completed' || run.status === 'awaiting_human_eval')) {
-            renderStateDiagram(diagramEl, run);
-        } else if (diagramEl) {
-            var diagramWrap = document.getElementById('detail-state-diagram-wrap');
-            if (diagramWrap) diagramWrap.style.display = 'none';
-        }
+            // State diagram — render from rollout data above model artifact
+            var diagramEl = document.getElementById('detail-state-diagram');
+            if (diagramEl && (run.status === 'completed' || run.status === 'awaiting_human_eval')) {
+                renderStateDiagram(diagramEl, run);
+            } else if (diagramEl) {
+                var diagramWrap = document.getElementById('detail-state-diagram-wrap');
+                if (diagramWrap) diagramWrap.style.display = 'none';
+            }
         } catch (e) { console.warn('renderRunDetails: rollout/diagram error', e); }
 
         // Model artifact
         try {
-        var artifactWrap = document.getElementById('detail-model-artifact-wrap');
-        var artifactPanel = document.getElementById('detail-model-artifact');
-        if (run.status === 'completed' && (run.model_url || run.model_saved)) {
-            artifactWrap.style.display = '';
-            var artifactHtml = '<h3>Model Artifact</h3>' +
-                infoRow('Status', run.model_saved ? 'Saved' : 'Pending') +
-                infoRow('Format', 'stable-baselines3 (.zip)') +
-                infoRow('Algorithm', run.algorithm || '—') +
-                infoRow('Base Model', run.model || '—');
-            if (run.model_metadata) {
-                if (run.model_metadata.base_model || run.model_metadata.model) {
-                    artifactHtml = artifactHtml.replace(
-                        infoRow('Base Model', run.model || '\u2014'),
-                        infoRow('Base Model', run.model_metadata.base_model || run.model_metadata.model || run.model || '\u2014')
-                    );
+            var artifactWrap = document.getElementById('detail-model-artifact-wrap');
+            var artifactPanel = document.getElementById('detail-model-artifact');
+            if (run.status === 'completed' && (run.model_url || run.model_saved)) {
+                artifactWrap.style.display = '';
+                var artifactHtml = '<h3>Model Artifact</h3>' +
+                    infoRow('Status', run.model_saved ? 'Saved' : 'Pending') +
+                    infoRow('Format', 'stable-baselines3 (.zip)') +
+                    infoRow('Algorithm', run.algorithm || '—') +
+                    infoRow('Base Model', run.model || '—');
+                if (run.model_metadata) {
+                    if (run.model_metadata.base_model || run.model_metadata.model) {
+                        artifactHtml = artifactHtml.replace(
+                            infoRow('Base Model', run.model || '\u2014'),
+                            infoRow('Base Model', run.model_metadata.base_model || run.model_metadata.model || run.model || '\u2014')
+                        );
+                    }
+                    artifactHtml += infoRow('Episodes Completed', run.model_metadata.total_episodes_completed || run.model_metadata.num_episodes || '\u2014');
+                    if (run.model_metadata.timestamp) {
+                        artifactHtml += infoRow('Saved At', fmtTimestamp(run.model_metadata.timestamp));
+                    }
                 }
-                artifactHtml += infoRow('Episodes Completed', run.model_metadata.total_episodes_completed || run.model_metadata.num_episodes || '\u2014');
-                if (run.model_metadata.timestamp) {
-                    artifactHtml += infoRow('Saved At', fmtTimestamp(run.model_metadata.timestamp));
+                if (run.model_url) {
+                    artifactHtml += '<div class="info-row" style="margin-top:0.5rem">' +
+                        '<span class="info-label">Model Path</span>' +
+                        '<span class="info-value" style="display:flex;align-items:center;gap:0.5rem">' +
+                        '<code style="font-size:0.8rem;word-break:break-all">' + esc(run.model_url) + '</code>' +
+                        '<button type="button" id="btn-copy-model-path" style="border:none;background:none;cursor:pointer;padding:2px;color:var(--accent-primary);flex-shrink:0" title="Copy path">' +
+                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+                        '</button></span></div>';
                 }
-            }
-            if (run.model_url) {
-                artifactHtml += '<div class="info-row" style="margin-top:0.5rem">' +
-                    '<span class="info-label">Model Path</span>' +
-                    '<span class="info-value" style="display:flex;align-items:center;gap:0.5rem">' +
-                    '<code style="font-size:0.8rem;word-break:break-all">' + esc(run.model_url) + '</code>' +
-                    '<button type="button" id="btn-copy-model-path" style="border:none;background:none;cursor:pointer;padding:2px;color:var(--accent-primary);flex-shrink:0" title="Copy path">' +
-                    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
-                    '</button></span></div>';
-            }
-            artifactPanel.innerHTML = artifactHtml;
-            var copyBtn = document.getElementById('btn-copy-model-path');
-            if (copyBtn && run.model_url) {
-                copyBtn.addEventListener('click', function () {
-                    navigator.clipboard.writeText(run.model_url).then(function () {
-                        showToast('Model path copied to clipboard', 'success');
-                    }).catch(function () {
-                        showToast(run.model_url, 'info');
+                artifactPanel.innerHTML = artifactHtml;
+                var copyBtn = document.getElementById('btn-copy-model-path');
+                if (copyBtn && run.model_url) {
+                    copyBtn.addEventListener('click', function () {
+                        navigator.clipboard.writeText(run.model_url).then(function () {
+                            showToast('Model path copied to clipboard', 'success');
+                        }).catch(function () {
+                            showToast(run.model_url, 'info');
+                        });
                     });
-                });
+                }
+            } else {
+                artifactWrap.style.display = 'none';
             }
-        } else {
-            artifactWrap.style.display = 'none';
-        }
         } catch (e) { console.warn('renderRunDetails: artifact error', e); }
 
         // Canvas charts
@@ -1209,32 +1266,32 @@
 
         // Performance panel
         try {
-        document.getElementById('detail-performance').innerHTML =
-            '<h3>Performance Improvement</h3>' +
-            perfRow('Task Completion', '23%', run.successRate != null ? run.successRate + '%' : '—', run.successRate != null ? '+' + (run.successRate - 23).toFixed(0) + '%' : '') +
-            perfRow('Avg Steps', '12.4', run._mock_trained_rollout ? run._mock_trained_rollout.total_steps : '7.1', run._mock_trained_rollout ? '-' + Math.round((1 - run._mock_trained_rollout.total_steps / 12.4) * 100) + '%' : '-43%') +
-            perfRow('Error Rate', '31%', '8.2%', '-74%');
+            document.getElementById('detail-performance').innerHTML =
+                '<h3>Performance Improvement</h3>' +
+                perfRow('Task Completion', '23%', run.successRate != null ? run.successRate + '%' : '—', run.successRate != null ? '+' + (run.successRate - 23).toFixed(0) + '%' : '') +
+                perfRow('Avg Steps', '12.4', run._mock_trained_rollout ? run._mock_trained_rollout.total_steps : '7.1', run._mock_trained_rollout ? '-' + Math.round((1 - run._mock_trained_rollout.total_steps / 12.4) * 100) + '%' : '-43%') +
+                perfRow('Error Rate', '31%', '8.2%', '-74%');
 
-        // Efficiency panel
-        document.getElementById('detail-efficiency').innerHTML =
-            '<h3>Efficiency Gains</h3>' +
-            perfRow('Tokens per Episode', '1,240', '890', '-28%') +
-            perfRow('Avg Latency', '3.2s', '2.1s', '-34%') +
-            perfRow('Tool Calls per Task', '8.5', run._mock_trained_rollout ? String(run._mock_trained_rollout.total_steps) : '5.2', run._mock_trained_rollout ? '-' + Math.round((1 - run._mock_trained_rollout.total_steps / 8.5) * 100) + '%' : '-39%');
+            // Efficiency panel
+            document.getElementById('detail-efficiency').innerHTML =
+                '<h3>Efficiency Gains</h3>' +
+                perfRow('Tokens per Episode', '1,240', '890', '-28%') +
+                perfRow('Avg Latency', '3.2s', '2.1s', '-34%') +
+                perfRow('Tool Calls per Task', '8.5', run._mock_trained_rollout ? String(run._mock_trained_rollout.total_steps) : '5.2', run._mock_trained_rollout ? '-' + Math.round((1 - run._mock_trained_rollout.total_steps / 8.5) * 100) + '%' : '-39%');
         } catch (e) { console.warn('renderRunDetails: performance/efficiency error', e); }
 
         // Trade-off note
         try {
-        var note = document.getElementById('detail-tradeoff');
-        if (run.status === 'completed') {
-            note.style.display = '';
-            note.innerHTML = '<strong>Trade-off Note:</strong> While overall success rate improved significantly, the model shows slightly higher latency on multi-step workflows. Consider fine-tuning with trajectory-focused verifiers for complex scenarios.';
-        } else if (run.status === 'awaiting_human_eval') {
-            note.style.display = '';
-            note.innerHTML = '<strong>Awaiting Human Evaluation:</strong> Training is complete but requires human-in-the-loop review before the model can be deployed. Click "Human Evaluation" above to begin the review process.';
-        } else {
-            note.style.display = 'none';
-        }
+            var note = document.getElementById('detail-tradeoff');
+            if (run.status === 'completed') {
+                note.style.display = '';
+                note.innerHTML = '<strong>Trade-off Note:</strong> While overall success rate improved significantly, the model shows slightly higher latency on multi-step workflows. Consider fine-tuning with trajectory-focused verifiers for complex scenarios.';
+            } else if (run.status === 'awaiting_human_eval') {
+                note.style.display = '';
+                note.innerHTML = '<strong>Awaiting Human Evaluation:</strong> Training is complete but requires human-in-the-loop review before the model can be deployed. Click "Human Evaluation" above to begin the review process.';
+            } else {
+                note.style.display = 'none';
+            }
         } catch (e) { console.warn('renderRunDetails: tradeoff error', e); }
     }
 
@@ -1304,13 +1361,13 @@
 
         /* ── Colour palette per node kind ── */
         var CLR = {
-            user:  { bg:'#eff6ff', bdr:'#93c5fd', tx:'#1e40af' },
-            agent: { bg:'#f0fdf4', bdr:'#86efac', tx:'#166534' },
-            tool:  { bg:'#fefce8', bdr:'#fde68a', tx:'#92400e' },
-            final: { bg:'#f1f5f9', bdr:'#cbd5e1', tx:'#475569' },
-            vPass: { bg:'#f0fdf4', bdr:'#86efac', tx:'#166534' },
-            vFail: { bg:'#fdf2f8', bdr:'#f9a8d4', tx:'#9d174d' },
-            reward:{ bg:'#faf5ff', bdr:'#e9d5ff', tx:'#7c3aed' }
+            user: { bg: '#eff6ff', bdr: '#93c5fd', tx: '#1e40af' },
+            agent: { bg: '#f0fdf4', bdr: '#86efac', tx: '#166534' },
+            tool: { bg: '#fefce8', bdr: '#fde68a', tx: '#92400e' },
+            final: { bg: '#f1f5f9', bdr: '#cbd5e1', tx: '#475569' },
+            vPass: { bg: '#f0fdf4', bdr: '#86efac', tx: '#166534' },
+            vFail: { bg: '#fdf2f8', bdr: '#f9a8d4', tx: '#9d174d' },
+            reward: { bg: '#faf5ff', bdr: '#e9d5ff', tx: '#7c3aed' }
         };
 
         /* ── Helpers ── */
@@ -1399,7 +1456,7 @@
 
         /* ── Render SVG ── */
         var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + svgW + '" height="' + svgH +
-                  '" viewBox="0 0 ' + svgW + ' ' + svgH + '" style="font-family:Inter,system-ui,-apple-system,sans-serif;">';
+            '" viewBox="0 0 ' + svgW + ' ' + svgH + '" style="font-family:Inter,system-ui,-apple-system,sans-serif;">';
 
         // Defs: arrowhead markers + drop-shadow
         svg += '<defs>';
@@ -1467,9 +1524,9 @@
         var out = '<div class="sd-container">';
         out += '<h3 class="sd-title">Rollout State Diagram</h3>';
         out += '<p class="sd-subtitle">' + esc(rollout.scenario_name || rollout.environment_name || '') +
-               ' &middot; Policy: ' + esc(rollout.policy_name || '\u2014') +
-               ' &middot; ' + rollout.total_steps + ' steps &middot; Reward: ' +
-               (rollout.total_reward != null ? rollout.total_reward.toFixed(2) : '\u2014') + '</p>';
+            ' &middot; Policy: ' + esc(rollout.policy_name || '\u2014') +
+            ' &middot; ' + rollout.total_steps + ' steps &middot; Reward: ' +
+            (rollout.total_reward != null ? rollout.total_reward.toFixed(2) : '\u2014') + '</p>';
         out += '<div class="sd-scroll">' + svg + '</div>';
 
         // Legend: node types + edge types
@@ -1680,10 +1737,10 @@
 
         var modes = [
             { label: 'Wrong transition', pct: 35, color: '#c026d3' },
-            { label: 'Timeout',          pct: 25, color: '#7c3aed' },
-            { label: 'Missing comment',  pct: 20, color: '#3b82f6' },
-            { label: 'Invalid status',   pct: 12, color: '#06b6d4' },
-            { label: 'Other',            pct: 8,  color: '#9ca3af' }
+            { label: 'Timeout', pct: 25, color: '#7c3aed' },
+            { label: 'Missing comment', pct: 20, color: '#3b82f6' },
+            { label: 'Invalid status', pct: 12, color: '#06b6d4' },
+            { label: 'Other', pct: 8, color: '#9ca3af' }
         ];
 
         var pad = { top: 15, right: 50, bottom: 10, left: 115 };
@@ -2247,7 +2304,7 @@
 
     // ─── Scenario Library UI (removed — managed via API only) ─────
     function initScenarioLibrary() { /* no-op */ }
-    window._renderCustomScenarioList = function() { /* no-op */ };
+    window._renderCustomScenarioList = function () { /* no-op */ };
     function renderCustomScenarioList() { /* no-op */ }
 
     if (document.readyState === 'loading') {

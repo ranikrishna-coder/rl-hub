@@ -24,6 +24,12 @@ SCENARIO_STORE_DB_PATH = os.getenv(
     os.path.join(DATA_DIR, "scenarios.db"),
 )
 
+# SQLite database path for user verifier state (gitignored by *.db rule)
+VERIFIER_STORE_DB_PATH = os.getenv(
+    "VERIFIER_STORE_DB_PATH",
+    os.path.join(DATA_DIR, "verifiers.db"),
+)
+
 # Legacy JSON path (used for migration and as fallback)
 CUSTOM_ENV_JSON_PATH = os.path.join(DATA_DIR, "custom_environments.json")
 
