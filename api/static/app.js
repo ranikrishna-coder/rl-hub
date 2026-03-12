@@ -2909,13 +2909,18 @@ function buildTrainingSection(envName, envCategory) {
         // Store run data for popup rendering
         _trainingRunDataMap[runId] = r;
 
-        tableHtml += '<tr onclick="toggleTrainingRun(\'' + runId + '\')" style="cursor:pointer;">' +
+        tableHtml += '<tr onclick="toggleTrainingRun(\'' + runId + '\')" style="cursor:pointer;" id="' + runId + '-row">' +
             '<td class="trt-name">' + (r.name || r.id) + (desc ? '<small>' + desc + '</small>' : '') + '</td>' +
             '<td><span class="trt-status ' + statusClass + '">' + statusLabel + '</span></td>' +
             '<td>' + envDisplay + '</td>' +
             '<td>' + model + '</td>' +
             '<td><div class="trt-progress"><div class="trt-bar"><div class="trt-bar-fill ' + statusClass + '" style="width:' + pct + '%"></div></div><span class="trt-pct">' + pct + '%</span></div></td>' +
             '<td>' + (r.started || '\u2014') + '</td>' +
+        '</tr>' +
+        '<tr class="trt-detail-row" id="' + runId + '-detail" style="display:none;">' +
+            '<td colspan="6" style="padding:0;">' +
+                '<div class="trt-detail-body" id="' + runId + '-detail-body"></div>' +
+            '</td>' +
         '</tr>';
     });
 
@@ -2976,7 +2981,25 @@ var _trainingRunDataMap = {};
 function toggleTrainingRun(runId) {
     var run = _trainingRunDataMap[runId];
     if (!run) return;
-    _openTrainingReportPopup(run);
+    var detailRow = document.getElementById(runId + '-detail');
+    var detailBody = document.getElementById(runId + '-detail-body');
+    if (!detailRow) return;
+    var isOpen = detailRow.style.display !== 'none';
+    if (isOpen) {
+        detailRow.style.display = 'none';
+        return;
+    }
+    detailRow.style.display = '';
+    if (detailBody && !detailBody._rendered) {
+        detailBody.innerHTML = _buildInlineReport(run);
+        detailBody._rendered = true;
+        requestAnimationFrame(function() {
+            var pc = detailBody.querySelector('.ir-chart-progress');
+            var fc = detailBody.querySelector('.ir-chart-failures');
+            if (pc) _renderPopupProgressChart(pc, run);
+            if (fc) _renderPopupFailureChart(fc, run);
+        });
+    }
 }
 window.toggleTrainingRun = toggleTrainingRun;
 
@@ -3151,7 +3174,15 @@ function _buildInlineReport(run) {
         html += '<div class="ir-tradeoff"><strong>Trade-off Note:</strong> While overall success rate improved significantly, the model shows slightly higher latency on multi-step workflows. Consider fine-tuning with trajectory-focused verifiers for complex scenarios.</div>';
     }
 
-    // ── 7. Model Artifact + Download ──
+    // ── 7. Episodes + HITL ──
+    if (run._episodes && run._episodes.length) {
+        html += '<div class="ir-panel" style="margin-top:1rem;">' +
+            '<h4 style="margin-bottom:0.75rem;">Training Episodes</h4>' +
+            _buildEpisodesSection(run) +
+        '</div>';
+    }
+
+    // ── 8. Model Artifact + Download ──
     if (run.status === 'completed' && (run.model_url || run.model_saved)) {
         html += '<div class="ir-panel ir-artifact">' +
             '<h4>Model Artifact</h4>' +
@@ -3167,6 +3198,86 @@ function _buildInlineReport(run) {
 
     return html;
 }
+
+// ─── Episodes + HITL Section ─────────────────────────────────────────────────
+function _buildEpisodesSection(run) {
+    var runId = run.id || 'run';
+    var html = '<div class="ir-episodes-wrap">' +
+        '<div class="ir-episodes-header">' +
+            '<button class="btn btn-primary btn-small" onclick="_sendToHITL(\'' + runId + '\')">' +
+                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>' +
+                ' Send Selected to HITL' +
+            '</button>' +
+        '</div>';
+
+    run._episodes.forEach(function(ep, epIdx) {
+        var epId = 'ep-' + runId + '-' + epIdx;
+        var sorted = ep.rollouts.slice().sort(function(a, b) { return b.reward - a.reward; });
+        var passCount = sorted.filter(function(r) { return r.pass; }).length;
+
+        html += '<div class="ir-episode" id="' + epId + '">' +
+            '<div class="ir-episode-header" onclick="toggleEpisode(\'' + epId + '\')">' +
+                '<svg class="ir-ep-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>' +
+                '<span class="ir-ep-title">Episode ' + ep.epoch + '</span>' +
+                '<span class="ir-ep-tag">' + ep.task_id + '</span>' +
+                '<span class="ir-ep-pill">mean <strong>' + ep.mean_reward.toFixed(3) + '</strong></span>' +
+                '<span class="ir-ep-pill">' + passCount + '/' + sorted.length + ' pass</span>' +
+                '<label class="ir-ep-selall" onclick="event.stopPropagation()">' +
+                    '<input type="checkbox" onchange="toggleSelectAllRollouts(\'' + epId + '\', this.checked)"> all' +
+                '</label>' +
+            '</div>' +
+            '<div class="ir-episode-body" id="' + epId + '-body" style="display:none;">' +
+                '<table class="ir-rollouts-table"><thead><tr>' +
+                    '<th></th><th>#</th><th>Reward</th><th>Pass</th><th>Turns</th><th>Tool Sequence</th>' +
+                '</tr></thead><tbody>';
+
+        sorted.forEach(function(r) {
+            var rwCls = r.reward >= 1.4 ? 'rw-high' : r.reward >= 1.0 ? 'rw-mid' : r.reward >= 0 ? 'rw-low' : 'rw-neg';
+            var tools = (r.tools || []).filter(Boolean).map(function(t) {
+                return '<span class="ir-tool-chip">' + t.replace('fhir_', '') + '</span>';
+            }).join('');
+            html += '<tr class="ir-rollout-row">' +
+                '<td><input type="checkbox" class="ir-rollout-cb" data-episode="' + epId + '" data-rollout="' + r.idx + '"></td>' +
+                '<td class="ir-rollout-idx">' + r.idx + '</td>' +
+                '<td><span class="ir-reward-badge ' + rwCls + '">' + r.reward.toFixed(2) + '</span></td>' +
+                '<td>' + (r.pass ? '<span class="rw-pass">✓</span>' : '<span class="rw-fail">✗</span>') + '</td>' +
+                '<td class="ir-rollout-turns">' + r.turns + '</td>' +
+                '<td><div class="ir-tool-chips">' + tools + '</div></td>' +
+            '</tr>';
+        });
+
+        html += '</tbody></table></div></div>';
+    });
+
+    html += '</div>';
+    return html;
+}
+
+function toggleEpisode(epId) {
+    var body = document.getElementById(epId + '-body');
+    var chevron = document.querySelector('#' + epId + ' .ir-ep-chevron');
+    if (!body) return;
+    var open = body.style.display === 'block';
+    body.style.display = open ? 'none' : 'block';
+    if (chevron) chevron.style.transform = open ? '' : 'rotate(90deg)';
+}
+window.toggleEpisode = toggleEpisode;
+
+function toggleSelectAllRollouts(epId, checked) {
+    document.querySelectorAll('[data-episode="' + epId + '"].ir-rollout-cb').forEach(function(cb) { cb.checked = checked; });
+}
+window.toggleSelectAllRollouts = toggleSelectAllRollouts;
+
+function _sendToHITL(runId) {
+    var selected = [];
+    document.querySelectorAll('.ir-rollout-cb:checked').forEach(function(cb) {
+        selected.push({ episode: cb.dataset.episode, rollout: cb.dataset.rollout });
+    });
+    if (!selected.length) { if (window.showToast) showToast('Select at least one rollout first.', 'error'); return; }
+    if (window.showToast) showToast(selected.length + ' rollout' + (selected.length !== 1 ? 's' : '') + ' sent to HITL queue.', 'success');
+    document.querySelectorAll('.ir-rollout-cb:checked').forEach(function(cb) { cb.checked = false; });
+}
+window._sendToHITL = _sendToHITL;
 
 function _buildInlineStepper(run) {
     var steps = ['Configuration', 'Baseline Eval', 'Training', 'Evaluation', 'Complete'];
@@ -3984,7 +4095,6 @@ function showEnvironmentDetails(envName) {
         '</div>' +
         buildScenariosSection(envName, env.category) +
         buildVerifiersSection(envName, env.category) +
-        buildConfigEditorSection(envName, details) +
         '<div class="detail-collapsible" id="section-environment">' +
             '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-environment\')">' +
                 '<h2><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9H4l5-9V3z"/><line x1="9" y1="3" x2="15" y2="3"/></svg> Simulations</h2>' +
@@ -4013,64 +4123,6 @@ function showEnvironmentDetails(envName) {
             setTimeout(function() { descBody.style.maxHeight = 'none'; }, 500);
         }
     });
-    var hfDeleteBtn = '<button class="btn btn-danger btn-small" onclick="deleteEnvironment(\'' + name.replace(/'/g, "\\'") + '\')">' +
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
-        ' Delete</button>';
-
-    detailBody.innerHTML =
-        // Hero
-        '<div class="detail-hero">' +
-            '<div class="detail-hero-left">' +
-                '<h1 class="detail-page-title">' + formatEnvironmentName(name) + '</h1>' +
-                '<span class="hf-badge hf-badge-sdk">' + sdk + '</span>' +
-                (hfUrl ? '<a href="' + hfUrl + '" target="_blank" class="hf-source-link">View on HuggingFace ↗</a>' : '') +
-            '</div>' +
-        '</div>' +
-        (desc ? '<p class="hf-description">' + desc + '</p>' : '') +
-        (tagsHtml ? '<div class="hf-tags-row">' + tagsHtml + '</div>' : '') +
-
-        // Metadata grid
-        '<div class="hf-meta-grid">' + metaHtml + '</div>' +
-
-        // Tabbed content: App / Files / README / API
-        '<div class="hf-tabs" id="hf-tabs">' +
-            '<button class="hf-tab active" data-tab="hf-tab-app" onclick="switchHFTab(this)">App</button>' +
-            '<button class="hf-tab" data-tab="hf-tab-files" onclick="switchHFTab(this)">Files <span class="hf-tab-count">' + files.length + '</span></button>' +
-            '<button class="hf-tab" data-tab="hf-tab-readme" onclick="switchHFTab(this)">README</button>' +
-            (endpoints.length > 0 ? '<button class="hf-tab" data-tab="hf-tab-api" onclick="switchHFTab(this)">API</button>' : '') +
-        '</div>' +
-
-        // Tab: App (embedded directly via HF Space embed URL)
-        '<div class="hf-tab-panel active" id="hf-tab-app">' +
-            (hfUrl && hfOwner && hfRepo ?
-                '<div class="hf-iframe-wrap"><iframe id="hf-app-iframe" class="hf-iframe" src="https://' + hfOwner + '-' + hfRepo + '.hf.space" allow="accelerometer; camera; encrypted-media; geolocation; gyroscope; microphone" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" loading="lazy"></iframe></div>' +
-                '<p style="text-align:center;font-size:0.75rem;color:#888;margin-top:0.5rem;">Embedded from <a href="' + hfUrl + '" target="_blank" style="color:var(--primary-color);">' + hfUrl + '</a></p>' :
-            '<div class="hf-empty-state">No live preview available. The environment has been cloned locally.</div>') +
-        '</div>' +
-
-        // Tab: Files
-        '<div class="hf-tab-panel" id="hf-tab-files">' +
-            '<div class="hf-file-browser">' + filesHtml + '</div>' +
-            '<div class="hf-file-viewer" id="hf-file-viewer" style="display:none;">' +
-                '<div class="hf-file-viewer-header"><span id="hf-file-viewer-title"></span>' +
-                    '<button class="hf-file-close-btn" onclick="closeFileViewer()" title="Close (Esc)"><kbd>Esc</kbd></button></div>' +
-                '<pre class="hf-file-content" id="hf-file-content"></pre>' +
-            '</div>' +
-        '</div>' +
-
-        // Tab: README
-        '<div class="hf-tab-panel" id="hf-tab-readme">' +
-            (readmeHtml ? '<div class="hf-readme">' + readmeHtml + '</div>' : '<div class="hf-empty-state">No README found.</div>') +
-        '</div>' +
-
-        // Tab: API
-        '<div class="hf-tab-panel" id="hf-tab-api">' +
-            endpointsHtml + modelsHtml + depsHtml +
-        '</div>' +
-        buildTrainingSection(name, env.category || 'huggingface') +
-        '<div class="env-delete-bottom">' + hfDeleteBtn + '</div>';
-
-    // No proxy needed - iframe uses direct HF Space embed URL
 
     document.getElementById('catalog-container').style.display = 'none';
     document.getElementById('env-detail-page').style.display = 'block';
