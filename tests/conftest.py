@@ -19,7 +19,7 @@ def client():
 @pytest.fixture(scope="module")
 def environments_list(client):
     """Cached list of all environments from /environments."""
-    resp = client.get("/environments")
+    resp = client.get("/api/environments")
     assert resp.status_code == 200
     data = resp.json()
     return data.get("environments", data if isinstance(data, list) else [])
