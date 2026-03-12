@@ -176,13 +176,21 @@
                 <div class="training-section training-section--compact">
                     <h3>B. Environment</h3>
                     <div class="t-field">
-                        <label class="t-label" for="tr-env-system">Environment <span class="t-hint-inline" id="env-system-hint"></span></label>
+                        <label class="t-label" for="tr-env-system">System <span class="t-hint-inline" id="env-system-hint"></span></label>
                         <select id="tr-env-system">
                             <option value="">— All systems —</option>
                         </select>
                     </div>
+                    <div class="t-field">
+                        <label class="t-label" for="tr-env">Scenario <span class="t-hint-inline" id="env-count-hint"></span></label>
+                        <select id="tr-env">
+                            <option value="">— Select scenario —</option>
+                        </select>
+                    </div>
                     <!-- Hidden: keep category select for backward compat -->
                     <select id="tr-env-category" style="display:none"><option value="">— All —</option></select>
+                    <!-- Hidden: kept for backward compat -->
+                    <select id="tr-scenario" style="display:none"><option value="">—</option></select>
                     <div id="env-preview-panel" class="env-preview" style="display:none">
                         <div class="ep-row"><span class="ep-label">System</span><span class="ep-value" id="ep-system"></span></div>
                         <div class="ep-row"><span class="ep-label">Action Space</span><span class="ep-value" id="ep-action-space"></span></div>
@@ -198,16 +206,6 @@
                 <!-- Section C: Training Data & Evaluation -->
                 <div class="training-section training-section--compact">
                     <h3>C. Training Data &amp; Evaluation</h3>
-                    <p class="t-hint" style="margin-bottom:0.5rem">Filtered by the selected environment</p>
-
-                    <div class="t-field">
-                        <label class="t-label" for="tr-env">Scenario <span class="t-hint-inline" id="env-count-hint"></span></label>
-                        <select id="tr-env">
-                            <option value="">— Select scenario —</option>
-                        </select>
-                    </div>
-                    <!-- Hidden: kept for backward compat -->
-                    <select id="tr-scenario" style="display:none"><option value="">—</option></select>
 
                     <div class="t-field">
                         <label class="t-label">Verifier</label>
