@@ -2061,6 +2061,8 @@ class VerifierDefinition(BaseModel):
     type: str  # rule-based, trajectory-based, llm-judge
     system: str = "Custom"
     environment: str
+    envName: str = ""           # specific environment name (e.g. "TreatmentPathwayOptimization")
+    source: str = "custom"      # origin: custom, cloned, built-in
     version: int = 1
     status: str = "active"
     used_in_scenarios: list = []
