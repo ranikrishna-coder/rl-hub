@@ -4,6 +4,14 @@ Reads from environment variables with sensible defaults.
 """
 import os
 
+# Load .env from project root so MARIADB_*, SSO_*, etc. are set when running uvicorn
+try:
+    from dotenv import load_dotenv
+    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    load_dotenv(os.path.join(_root, ".env"))
+except ImportError:
+    pass
+
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 API_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(API_DIR, "data")
