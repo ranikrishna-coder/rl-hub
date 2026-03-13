@@ -42,6 +42,18 @@ TRAINING_RUN_DB_PATH = os.getenv(
     os.path.join(DATA_DIR, "training_runs.db"),
 )
 
+# SQLite database path for episode rollout records (gitignored by *.db rule)
+ROLLOUT_STORE_DB_PATH = os.getenv(
+    "ROLLOUT_STORE_DB_PATH",
+    os.path.join(DATA_DIR, "rollouts.db"),
+)
+
+# SQLite database path for governance configurations (gitignored by *.db rule)
+GOVERNANCE_STORE_DB_PATH = os.getenv(
+    "GOVERNANCE_STORE_DB_PATH",
+    os.path.join(DATA_DIR, "governance.db"),
+)
+
 # Legacy JSON path (used for migration and as fallback)
 CUSTOM_ENV_JSON_PATH = os.path.join(DATA_DIR, "custom_environments.json")
 

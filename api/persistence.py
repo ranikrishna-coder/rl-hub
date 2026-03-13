@@ -626,6 +626,212 @@ class TrainingRunStore:
             return 0
 
 
+class RolloutStore:
+    """SQLite-backed store for episode rollout records."""
+
+    def __init__(self, db_path: Optional[str] = None):
+        if db_path is None:
+            from api.config import ROLLOUT_STORE_DB_PATH
+            db_path = ROLLOUT_STORE_DB_PATH
+        self.db_path = db_path
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        self._init_db()
+
+    def _conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _init_db(self) -> None:
+        with self._conn() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS rollouts (
+                    id          TEXT PRIMARY KEY,
+                    data        TEXT NOT NULL,
+                    environment TEXT DEFAULT '',
+                    job_id      TEXT DEFAULT '',
+                    source      TEXT DEFAULT 'training',
+                    created_at  TEXT NOT NULL,
+                    updated_at  TEXT NOT NULL
+                )
+            """)
+
+    def list_all(self) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT data FROM rollouts ORDER BY created_at DESC"
+            ).fetchall()
+        return [json.loads(r["data"]) for r in rows]
+
+    def get(self, rollout_id: str) -> Optional[Dict[str, Any]]:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT data FROM rollouts WHERE id = ?", (rollout_id,)
+            ).fetchone()
+        return json.loads(row["data"]) if row else None
+
+    def upsert(self, rollout_id: str, data: dict) -> None:
+        now = _utcnow_iso()
+        blob = json.dumps(data, default=str)
+        environment = data.get("environment_name", data.get("environment", ""))
+        job_id = data.get("job_id", "")
+        source = data.get("source", "training")
+        with self._conn() as conn:
+            conn.execute(
+                """INSERT INTO rollouts (id, data, environment, job_id, source, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(id) DO UPDATE SET
+                       data        = excluded.data,
+                       environment = excluded.environment,
+                       job_id      = excluded.job_id,
+                       source      = excluded.source,
+                       updated_at  = excluded.updated_at
+                """,
+                (rollout_id, blob, environment, job_id, source, now, now),
+            )
+
+    def delete(self, rollout_id: str) -> bool:
+        with self._conn() as conn:
+            cur = conn.execute(
+                "DELETE FROM rollouts WHERE id = ?", (rollout_id,)
+            )
+        return cur.rowcount > 0
+
+    def count(self) -> int:
+        with self._conn() as conn:
+            row = conn.execute("SELECT COUNT(*) AS c FROM rollouts").fetchone()
+        return row["c"]
+
+    def list_by_environment(self, environment: str) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT data FROM rollouts WHERE environment = ? ORDER BY created_at DESC",
+                (environment,),
+            ).fetchall()
+        return [json.loads(r["data"]) for r in rows]
+
+    def list_by_job(self, job_id: str) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT data FROM rollouts WHERE job_id = ? ORDER BY created_at DESC",
+                (job_id,),
+            ).fetchall()
+        return [json.loads(r["data"]) for r in rows]
+
+    def delete_by_environment(self, environment: str) -> int:
+        with self._conn() as conn:
+            cur = conn.execute(
+                "DELETE FROM rollouts WHERE environment = ?", (environment,)
+            )
+        return cur.rowcount
+
+    def count_by_environment(self, environment: str) -> int:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) AS c FROM rollouts WHERE environment = ?",
+                (environment,),
+            ).fetchone()
+        return row["c"]
+
+    def cap_by_environment(self, environment: str, max_count: int = 100) -> int:
+        """Keep only the newest max_count rollouts per environment, delete the rest."""
+        with self._conn() as conn:
+            cur = conn.execute(
+                """DELETE FROM rollouts WHERE environment = ? AND id NOT IN (
+                       SELECT id FROM rollouts WHERE environment = ?
+                       ORDER BY created_at DESC LIMIT ?
+                   )""",
+                (environment, environment, max_count),
+            )
+        return cur.rowcount
+
+    def db_size_bytes(self) -> int:
+        try:
+            return os.path.getsize(self.db_path)
+        except OSError:
+            return 0
+
+
+class GovernanceStore:
+    """SQLite-backed store for governance configuration records."""
+
+    def __init__(self, db_path: Optional[str] = None):
+        if db_path is None:
+            from api.config import GOVERNANCE_STORE_DB_PATH
+            db_path = GOVERNANCE_STORE_DB_PATH
+        self.db_path = db_path
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        self._init_db()
+
+    def _conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _init_db(self) -> None:
+        with self._conn() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS governance_configs (
+                    environment TEXT PRIMARY KEY,
+                    data        TEXT NOT NULL,
+                    created_at  TEXT NOT NULL,
+                    updated_at  TEXT NOT NULL
+                )
+            """)
+
+    def list_all(self) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT data FROM governance_configs ORDER BY created_at"
+            ).fetchall()
+        return [json.loads(r["data"]) for r in rows]
+
+    def get(self, environment: str) -> Optional[Dict[str, Any]]:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT data FROM governance_configs WHERE environment = ?",
+                (environment,),
+            ).fetchone()
+        return json.loads(row["data"]) if row else None
+
+    def upsert(self, environment: str, data: dict) -> None:
+        now = _utcnow_iso()
+        blob = json.dumps(data, default=str)
+        with self._conn() as conn:
+            conn.execute(
+                """INSERT INTO governance_configs (environment, data, created_at, updated_at)
+                   VALUES (?, ?, ?, ?)
+                   ON CONFLICT(environment) DO UPDATE SET
+                       data       = excluded.data,
+                       updated_at = excluded.updated_at
+                """,
+                (environment, blob, now, now),
+            )
+
+    def delete(self, environment: str) -> bool:
+        with self._conn() as conn:
+            cur = conn.execute(
+                "DELETE FROM governance_configs WHERE environment = ?",
+                (environment,),
+            )
+        return cur.rowcount > 0
+
+    def count(self) -> int:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) AS c FROM governance_configs"
+            ).fetchone()
+        return row["c"]
+
+    def db_size_bytes(self) -> int:
+        try:
+            return os.path.getsize(self.db_path)
+        except OSError:
+            return 0
+
+
 # ======================================================================
 # JSON → SQLite migration
 # ======================================================================

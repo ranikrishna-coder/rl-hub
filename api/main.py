@@ -1470,6 +1470,7 @@ def run_training(
                 if environment_name not in rollout_store:
                     rollout_store[environment_name] = []
                 rollout_store[environment_name].append(_baseline_rollout)
+                _rollout_store.upsert(_baseline_rollout["id"], _baseline_rollout)
                 training_jobs[job_id]["baseline_rollout_id"] = _baseline_rollout["id"]
         except Exception as e:
             print(f"Baseline run skipped: {e}")
@@ -1634,9 +1635,11 @@ def run_training(
                     if environment_name not in rollout_store:
                         rollout_store[environment_name] = []
                     rollout_store[environment_name].append(_rollout_entry)
+                    _rollout_store.upsert(_rollout_entry["id"], _rollout_entry)
                     # Cap at 100 rollouts per environment
                     if len(rollout_store[environment_name]) > 100:
                         rollout_store[environment_name] = rollout_store[environment_name][-100:]
+                        _rollout_store.cap_by_environment(environment_name, 100)
                     # Save the last stored rollout as the trained rollout for comparison
                     training_jobs[job_id]["trained_rollout_id"] = _rollout_entry["id"]
 
@@ -1840,6 +1843,9 @@ async def submit_human_eval(job_id: str, req: HumanEvalRequest):
         job["status"] = "completed"
         job["human_eval_decision"] = entry["decision"]
         job["human_eval_completed_at"] = entry["timestamp"]
+
+    # Persist human eval update to SQLite
+    _training_run_store.upsert(job_id, job)
 
     return {
         "success": True,
@@ -2250,10 +2256,12 @@ async def store_rollout(rollout: RolloutRecord):
     if env_name not in rollout_store:
         rollout_store[env_name] = []
     rollout_store[env_name].append(entry)
+    _rollout_store.upsert(entry["id"], entry)
 
     # Cap at 100 rollouts per environment
     if len(rollout_store[env_name]) > 100:
         rollout_store[env_name] = rollout_store[env_name][-100:]
+        _rollout_store.cap_by_environment(env_name, 100)
 
     return {"success": True, "id": entry["id"], "environment_name": env_name}
 
@@ -2571,7 +2579,9 @@ async def configure_governance(request: GovernanceConfigRequest):
             "safety_config": safety_config.__dict__,
             "environment_name": request.environment_name
         }
-        
+        # Persist to SQLite
+        _governance_store.upsert(request.environment_name, governance_configs[request.environment_name])
+
         return {
             "success": True,
             "environment_name": request.environment_name,
@@ -2609,20 +2619,36 @@ HF_SPACES_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__f
 # ---------------------------------------------------------------------------
 _CUSTOM_ENV_STORE_PATH = os.path.join(os.path.dirname(__file__), "data", "custom_environments.json")
 
-from api.persistence import EnvironmentStore, ScenarioStore, VerifierStore, ToolStore, TrainingRunStore, migrate_json_to_sqlite  # noqa: E402
-from api.config import ENV_STORE_DB_PATH, SCENARIO_STORE_DB_PATH, TOOL_STORE_DB_PATH, TRAINING_RUN_DB_PATH  # noqa: E402
+from api.persistence import EnvironmentStore, ScenarioStore, VerifierStore, ToolStore, TrainingRunStore, RolloutStore, GovernanceStore, migrate_json_to_sqlite  # noqa: E402
+from api.config import ENV_STORE_DB_PATH, SCENARIO_STORE_DB_PATH, TOOL_STORE_DB_PATH, TRAINING_RUN_DB_PATH, ROLLOUT_STORE_DB_PATH, GOVERNANCE_STORE_DB_PATH  # noqa: E402
 
 _env_store = EnvironmentStore(ENV_STORE_DB_PATH)
 _scenario_store = ScenarioStore(SCENARIO_STORE_DB_PATH)
 _verifier_db_store = VerifierStore()
 _tool_store = ToolStore(TOOL_STORE_DB_PATH)
 _training_run_store = TrainingRunStore(TRAINING_RUN_DB_PATH)
+_rollout_store = RolloutStore(ROLLOUT_STORE_DB_PATH)
+_governance_store = GovernanceStore(GOVERNANCE_STORE_DB_PATH)
 
 # Hydrate in-memory training_jobs from SQLite so runs survive restarts
 for _run in _training_run_store.list_all():
     _rid = _run.get("job_id") or _run.get("id", "")
     if _rid:
         training_jobs[_rid] = _run
+
+# Hydrate in-memory rollout_store from SQLite so rollouts survive restarts
+for _rollout in _rollout_store.list_all():
+    _env_name = _rollout.get("environment_name", "")
+    if _env_name:
+        if _env_name not in rollout_store:
+            rollout_store[_env_name] = []
+        rollout_store[_env_name].append(_rollout)
+
+# Hydrate in-memory governance_configs from SQLite
+for _gov in _governance_store.list_all():
+    _gov_env = _gov.get("environment_name", "")
+    if _gov_env:
+        governance_configs[_gov_env] = _gov
 
 # Seed in-memory verifier store from SQLite
 _verifier_store.update({v["id"]: v for v in _verifier_db_store.list_all() if v.get("id")})
@@ -4012,7 +4038,7 @@ async def upload_gymnasium_env(
         pass
 
     # Register in memory
-    _gymnasium_custom_envs[name] = {
+    _gym_meta = {
         "class_name": class_name,
         "file_path": file_path,
         "config_json": config_json,
@@ -4022,6 +4048,15 @@ async def upload_gymnasium_env(
         "action_dim": action_dim,
         "action_type": action_type,
     }
+    _gymnasium_custom_envs[name] = _gym_meta
+
+    # Persist metadata alongside .py file so it survives restart
+    meta_path = file_path.replace(".py", "_meta.json")
+    try:
+        with open(meta_path, "w") as _mf:
+            json.dump({"name": name, **_gym_meta}, _mf, indent=2, default=str)
+    except Exception:
+        pass  # best-effort
 
     # Also register in the financial env meta so it shows in the console
     slug = _re_mod.sub(r"[^a-z0-9-]", "-", name.lower()).strip("-")
@@ -4117,6 +4152,29 @@ _FINANCIAL_ENV_META = {
         "action_dim": 1,
     },
 }
+
+
+# Rehydrate _gymnasium_custom_envs from saved *_meta.json files on startup
+import glob as _glob
+for _meta_file in _glob.glob(os.path.join(_CUSTOM_ENVS_DIR, "*_meta.json")):
+    try:
+        with open(_meta_file, "r") as _mf:
+            _meta = json.load(_mf)
+        _gym_name = _meta.get("name", "")
+        if _gym_name and _gym_name not in _gymnasium_custom_envs:
+            _gymnasium_custom_envs[_gym_name] = {k: v for k, v in _meta.items() if k != "name"}
+            _gym_slug = _re_mod.sub(r"[^a-z0-9-]", "-", _gym_name.lower()).strip("-")
+            _FINANCIAL_ENV_SLUG_MAP[_gym_slug] = f"__custom__{_gym_name}"
+            _FINANCIAL_ENV_META[_gym_slug] = {
+                "display_name": _gym_name,
+                "description": _meta.get("description", f"Custom Gymnasium environment: {_meta.get('class_name', '')}"),
+                "tools": [],
+                "observation_dim": _meta.get("observation_dim", 0),
+                "action_type": _meta.get("action_type", "unknown"),
+                "action_dim": _meta.get("action_dim", 0),
+            }
+    except Exception:
+        pass  # skip corrupted metadata
 
 
 def _fin_ndarray_to_list(obj):
