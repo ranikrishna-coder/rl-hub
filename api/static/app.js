@@ -4222,12 +4222,42 @@ function _renderPopupProgressChart(canvas, run) {
     var totalEpisodes = run.episodes || 320, numPoints = 40;
     var rng = _popupSeededRandom(42 + Math.round(targetReward * 1000));
 
+    // Dynamic y-axis: cover the actual reward range with a margin
+    var resultMin = (run.results && typeof run.results.min_reward === 'number') ? run.results.min_reward : Math.min(0, baselineReward);
+    var resultMax = (run.results && typeof run.results.max_reward === 'number') ? run.results.max_reward : Math.max(1.0, targetReward);
+    var rawMin = Math.min(resultMin, baselineReward);
+    var rawMax = Math.max(resultMax, targetReward);
+    var rawRange = rawMax - rawMin;
+    var step = rawRange <= 0.5 ? 0.1 : rawRange <= 1.0 ? 0.2 : rawRange <= 2.0 ? 0.4 : 0.5;
+    var yMin = Math.floor(rawMin / step) * step;
+    var yMax = Math.ceil((rawMax + step * 0.2) / step) * step;
+    var yRange = yMax - yMin;
+
+    // Build episode anchors from _episodes if available, otherwise from baseline→target
+    var anchors = [{ t: 0, r: baselineReward }];
+    if (run._episodes && run._episodes.length) {
+        run._episodes.forEach(function (ep) {
+            anchors.push({ t: ep.epoch / totalEpisodes, r: ep.mean_reward });
+        });
+    } else {
+        anchors.push({ t: 1, r: targetReward });
+    }
+
+    // Generate curve points by interpolating between anchors with smooth-step
     var pts = [];
     for (var i = 0; i <= numPoints; i++) {
         var t = i / numPoints;
-        var base = baselineReward + (targetReward - baselineReward) * (1 - Math.exp(-4 * t));
-        var noise = (rng() - 0.5) * 0.04 * (1 - t * 0.6);
-        pts.push(Math.max(0, Math.min(1, base + noise)));
+        var prev = anchors[0], next = anchors[anchors.length - 1];
+        for (var k = 0; k < anchors.length - 1; k++) {
+            if (anchors[k].t <= t && t <= anchors[k + 1].t) { prev = anchors[k]; next = anchors[k + 1]; break; }
+        }
+        var alpha = (prev.t === next.t) ? 1 : (t - prev.t) / (next.t - prev.t);
+        alpha = Math.max(0, Math.min(1, alpha));
+        alpha = alpha * alpha * (3 - 2 * alpha); // smooth-step
+        var base = prev.r + (next.r - prev.r) * alpha;
+        var noiseAmp = step * 0.35 * (1 - alpha * 0.5);
+        var noise = (rng() - 0.5) * noiseAmp;
+        pts.push(Math.max(yMin, Math.min(yMax, base + noise)));
     }
     var smoothed = [];
     for (var i = 0; i < pts.length; i++) {
@@ -4236,35 +4266,59 @@ function _renderPopupProgressChart(canvas, run) {
         smoothed.push(sum / cnt);
     }
 
-    var yMin = 0, yMax = 1.0, yRange = yMax - yMin;
+    // Grid lines
+    var gridVals = [];
+    for (var v = yMin; v <= yMax + step * 0.01; v = Math.round((v + step) * 1e6) / 1e6) { gridVals.push(v); }
     ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 1;
-    [0, 0.2, 0.4, 0.6, 0.8, 1.0].forEach(function (v) {
+    gridVals.forEach(function (v) {
         var y = pad.top + plotH - ((v - yMin) / yRange) * plotH;
         ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + plotW, y); ctx.stroke();
     });
+    // Zero line (slightly darker when yMin < 0)
+    if (yMin < 0) {
+        var zy = pad.top + plotH - ((0 - yMin) / yRange) * plotH;
+        ctx.strokeStyle = '#d1d5db'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(pad.left, zy); ctx.lineTo(pad.left + plotW, zy); ctx.stroke();
+    }
     ctx.strokeStyle = '#d1d5db'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + plotH); ctx.lineTo(pad.left + plotW, pad.top + plotH); ctx.stroke();
+
+    // Axis labels
     ctx.fillStyle = '#6b7280'; ctx.font = '11px -apple-system,BlinkMacSystemFont,sans-serif'; ctx.textAlign = 'right';
-    [0, 0.2, 0.4, 0.6, 0.8, 1.0].forEach(function (v) { ctx.fillText(v.toFixed(1), pad.left - 6, pad.top + plotH - ((v - yMin) / yRange) * plotH + 4); });
+    gridVals.forEach(function (v) { ctx.fillText(v.toFixed(1), pad.left - 6, pad.top + plotH - ((v - yMin) / yRange) * plotH + 4); });
     ctx.textAlign = 'center';
     for (var i = 0; i <= 5; i++) { ctx.fillText(Math.round((i / 5) * totalEpisodes), pad.left + (i / 5) * plotW, pad.top + plotH + 16); }
     ctx.fillStyle = '#9ca3af'; ctx.textAlign = 'center'; ctx.fillText('Episodes', pad.left + plotW / 2, h - 4);
     ctx.save(); ctx.translate(13, pad.top + plotH / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('Mean Reward', 0, 0); ctx.restore();
 
+    // Fill under curve
     var grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
     grad.addColorStop(0, 'rgba(192,38,211,0.15)'); grad.addColorStop(1, 'rgba(192,38,211,0.02)');
     ctx.fillStyle = grad; ctx.beginPath(); ctx.moveTo(pad.left, pad.top + plotH);
     smoothed.forEach(function (v, idx) { ctx.lineTo(pad.left + (idx / numPoints) * plotW, pad.top + plotH - ((v - yMin) / yRange) * plotH); });
     ctx.lineTo(pad.left + plotW, pad.top + plotH); ctx.closePath(); ctx.fill();
 
+    // Curve line
     ctx.strokeStyle = '#c026d3'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.beginPath();
     smoothed.forEach(function (v, idx) { var x = pad.left + (idx / numPoints) * plotW, y = pad.top + plotH - ((v - yMin) / yRange) * plotH; if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
     ctx.stroke();
 
+    // Baseline reference line
     var baseY = pad.top + plotH - ((baselineReward - yMin) / yRange) * plotH;
     ctx.strokeStyle = '#9ca3af'; ctx.setLineDash([6, 4]); ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(pad.left, baseY); ctx.lineTo(pad.left + plotW, baseY); ctx.stroke(); ctx.setLineDash([]);
 
+    // Episode anchor dots (skip t=0 baseline anchor)
+    anchors.slice(1).forEach(function (a) {
+        var x = pad.left + a.t * plotW;
+        var y = pad.top + plotH - ((a.r - yMin) / yRange) * plotH;
+        ctx.fillStyle = '#7c3aed';
+        ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'white';
+        ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fill();
+    });
+
+    // Legend
     ctx.font = '11px -apple-system,BlinkMacSystemFont,sans-serif';
     var lx = pad.left + plotW - 120, ly = pad.top + 8;
     ctx.strokeStyle = '#c026d3'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + 20, ly); ctx.stroke();
