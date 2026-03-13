@@ -258,6 +258,32 @@
             });
     }
 
+    // ─── Load verifiers from API (persisted in SQLite) ─────────
+    function loadVerifiers() {
+        var apiBase = window.API_BASE || '';
+        return fetch(apiBase + '/api/verifiers')
+            .then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function (data) {
+                var apiVerifiers = data.verifiers || [];
+                if (!apiVerifiers.length) return;
+                // Build a set of existing IDs to avoid duplicates
+                var existingIds = {};
+                VERIFIERS.forEach(function (v) { if (v.id) existingIds[v.id] = true; });
+                apiVerifiers.forEach(function (v) {
+                    if (v.id && !existingIds[v.id]) {
+                        VERIFIERS.push(v);
+                        existingIds[v.id] = true;
+                    }
+                });
+            })
+            .catch(function (err) {
+                console.warn('Failed to load verifiers from API:', err);
+            });
+    }
+
     function getAllScenarios() {
         // Merge built-in scenarios (from training-config-data.js) with custom ones from API
         var builtIn = (CFG.scenarios || []).map(function (s) {
@@ -473,6 +499,16 @@
 
     function populateVerifiers() {
         var env = findEnv(document.getElementById('tr-env') ? document.getElementById('tr-env').value : '');
+        if (!env) {
+            // No environment selected — hide verifiers
+            var field = document.getElementById('verifier-field');
+            var container = document.getElementById('verifier-options');
+            var countHint = document.getElementById('verifier-count-hint');
+            if (container) container.innerHTML = '';
+            if (field) field.style.display = 'none';
+            if (countHint) countHint.textContent = '';
+            return;
+        }
         var cat = env ? env.category : '';
         var envName = env ? env.name : '';
 
@@ -548,14 +584,14 @@
                 var cb = document.createElement('input');
                 cb.type = 'checkbox';
                 cb.value = a;
-                cb.checked = true; // default all selected
+                cb.checked = false;
                 lbl.appendChild(cb);
                 lbl.appendChild(document.createTextNode(' ' + a));
                 container.appendChild(lbl);
             });
             if (countHint) countHint.textContent = '(' + actions.length + ')';
             if (selectAll) {
-                selectAll.checked = true;
+                selectAll.checked = false;
                 selectAll.onchange = function () {
                     var cbs = container.querySelectorAll('input[type="checkbox"]');
                     cbs.forEach(function (cb) { cb.checked = selectAll.checked; });
@@ -574,19 +610,31 @@
         var countHint = document.getElementById('scenario-count-hint');
         if (!scenarioField || !scenarioSel) return;
 
-        var envId = document.getElementById('tr-env') ? document.getElementById('tr-env').value : '';
-        var env = findEnv(envId);
+        var envVal = document.getElementById('tr-env') ? document.getElementById('tr-env').value : '';
+        var env = findEnv(envVal);
+        if (!env) {
+            // No environment selected — hide scenarios
+            scenarioSel.innerHTML = '<option value="">— Select scenario —</option>';
+            scenarioField.style.display = 'none';
+            if (countHint) countHint.textContent = '';
+            return;
+        }
         var cat = env ? env.category : '';
+        var envId = env ? env.id : '';
         var envName = env ? env.name : '';
         var system = env ? env.system : '';
 
         // Merge built-in + custom scenarios, filter by category, product, environment, or system
         var allScenarios = getAllScenarios();
         var matches = allScenarios.filter(function (s) {
-            if (!cat && !envName) return true; // no env selected — show all
-            if (s.environment && s.environment === envName) return true;
+            // Match custom scenarios by product or environment field against env ID (raw name)
+            if (envId && s.product && s.product === envId) return true;
+            if (envId && s.environment && s.environment === envId) return true;
+            // Also match against humanized name for backward compat
+            if (envName && s.environment && s.environment === envName) return true;
+            // Match built-in scenarios by category
             if (cat && s.category === cat) return true;
-            if (envName && s.product === envName) return true;
+            // Match by system
             if (system && s.product === system) return true;
             return false;
         });
@@ -705,16 +753,22 @@
     }
 
     function initConditionRows() {
-        document.getElementById('btn-add-condition').addEventListener('click', function () {
-            addConditionRow('', '');
-        });
-        document.getElementById('condition-rows').addEventListener('click', function (e) {
-            var btn = e.target.closest('.remove-btn');
-            if (btn && !btn.disabled) {
-                btn.closest('.condition-row').remove();
-                updateRemoveButtons();
-            }
-        });
+        var addBtn = document.getElementById('btn-add-condition');
+        var rowsEl = document.getElementById('condition-rows');
+        if (addBtn) {
+            addBtn.addEventListener('click', function () {
+                addConditionRow('', '');
+            });
+        }
+        if (rowsEl) {
+            rowsEl.addEventListener('click', function (e) {
+                var btn = e.target.closest('.remove-btn');
+                if (btn && !btn.disabled) {
+                    btn.closest('.condition-row').remove();
+                    updateRemoveButtons();
+                }
+            });
+        }
     }
 
     function initExistingVerifierChange() {
@@ -2156,7 +2210,7 @@
     function init() {
         // Load environments and agents/algorithms in parallel; agents/algorithms
         // tries the backend API first, falls back to hardcoded sample data
-        Promise.all([loadEnvironments(), loadScenarios(), fetchAgentsAndAlgorithms()]).then(function () {
+        Promise.all([loadEnvironments(), loadScenarios(), loadVerifiers(), fetchAgentsAndAlgorithms()]).then(function () {
             populateSystems();
             populateCategories();
             populateEnvironments();

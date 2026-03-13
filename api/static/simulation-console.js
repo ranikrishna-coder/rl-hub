@@ -149,8 +149,9 @@ async function loadJiraMockData() {
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
     await loadJiraMockData();
-    loadEnvironments();
-    loadCustomScenarios();
+    await loadCustomScenarios();
+    await loadCustomVerifiers();
+    await loadEnvironments();
     setupEventListeners();
     setupRangeInputs();
     setupVerifierControls();
@@ -159,6 +160,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // ── Verifier Section State ───────────────────────────────────────────
 let _verifierActiveSystem = null;
+let _verifierActiveEnvName = '';
 let _verifierActiveTypeFilter = 'all';
 let _selectedVerifierId = null;
 
@@ -171,6 +173,7 @@ function showVerifierSection(envName) {
     var category = env ? (env.category || '') : '';
     var system = window.VERIFIER_DATA.getSystemForCategory(category);
     _verifierActiveSystem = system;
+    _verifierActiveEnvName = envName || '';
     _verifierActiveTypeFilter = 'all';
     _selectedVerifierId = null;
     section.style.display = '';
@@ -205,6 +208,26 @@ function populateVerifierDropdown(system, typeFilter) {
     var select = document.getElementById('verifier-dropdown');
     if (!select) return;
     var verifiers = window.VERIFIER_DATA.getBySystem(system);
+    // Also include custom verifiers that match the current environment by envName or category
+    var envName = _verifierActiveEnvName || '';
+    if (envName) {
+        var env = allEnvironments.find(function (e) { return e.name === envName; });
+        var envCategory = env ? (env.category || '') : '';
+        var allV = window.VERIFIER_DATA.all || [];
+        var existingIds = {};
+        verifiers.forEach(function (v) { if (v.id) existingIds[v.id] = true; });
+        allV.forEach(function (v) {
+            if (v.id && !existingIds[v.id]) {
+                var match = false;
+                if (v.envName && v.envName === envName) match = true;
+                if (v.environment && envCategory && v.environment === envCategory) match = true;
+                if (match) {
+                    verifiers.push(v);
+                    existingIds[v.id] = true;
+                }
+            }
+        });
+    }
     if (typeFilter && typeFilter !== 'all') {
         verifiers = verifiers.filter(function (v) { return v.type === typeFilter; });
     }
@@ -669,7 +692,7 @@ function selectEnvironment(envName) {
 
 function loadCustomScenarios() {
     var apiBase = window.API_BASE || '';
-    fetch(apiBase + '/api/scenarios')
+    return fetch(apiBase + '/api/scenarios')
         .then(function (res) { return res.ok ? res.json() : { scenarios: [] }; })
         .then(function (data) {
             var CFG = window.TRAINING_CONFIG || {};
@@ -698,11 +721,36 @@ function loadCustomScenarios() {
         });
 }
 
+function loadCustomVerifiers() {
+    var apiBase = window.API_BASE || '';
+    return fetch(apiBase + '/api/verifiers')
+        .then(function (res) { return res.ok ? res.json() : { verifiers: [] }; })
+        .then(function (data) {
+            if (!data.verifiers || !data.verifiers.length) return;
+            if (!window.VERIFIER_DATA) return;
+            var allV = window.VERIFIER_DATA.all || [];
+            var existingIds = {};
+            allV.forEach(function (v) { if (v.id) existingIds[v.id] = true; });
+            data.verifiers.forEach(function (v) {
+                if (v.id && !existingIds[v.id]) {
+                    v.usedInScenarios = v.used_in_scenarios || v.usedInScenarios || [];
+                    v.failurePolicy = v.failure_policy || v.failurePolicy || {};
+                    allV.push(v);
+                    existingIds[v.id] = true;
+                }
+            });
+        })
+        .catch(function (err) {
+            console.warn('Failed to load custom verifiers:', err);
+        });
+}
+
 /* ── Scenario / Agent / Algorithm population (from TRAINING_CONFIG) ── */
 
 function populateSimScenarios(env) {
     var sel = document.getElementById('sim-scenario');
     if (!sel) return;
+    var envName = env ? (env.name || env.id || '') : '';
     var cat = env ? env.category : '';
     var sys = env ? (env.system || '') : '';
     var sysLower = sys.toLowerCase();
@@ -711,6 +759,9 @@ function populateSimScenarios(env) {
     (CFG.scenarios || []).forEach(function (s) {
         var match = false;
         if (!cat && !sys) match = true; // no filter — show all
+        // Match custom scenarios by product/environment field vs env name
+        if (envName && s.product && s.product === envName) match = true;
+        if (envName && s.environment && s.environment === envName) match = true;
         if (cat && s.category === cat) match = true;
         // Also match custom scenarios by product name vs system
         if (s.product && sysLower && sysLower.indexOf(s.product.toLowerCase()) !== -1) match = true;
