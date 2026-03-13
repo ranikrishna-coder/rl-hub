@@ -435,26 +435,25 @@ async def api_info():
 CONTACT_EMAIL_TO = "kausalyarani.k@centific.com"
 
 
-def _init_contact_db() -> None:
-    """Ensure contact_submissions table exists in MariaDB."""
-    from api.db import get_connection
-    conn = get_connection()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS contact_submissions (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    name VARCHAR(255) NOT NULL,
-                    email VARCHAR(255) NOT NULL,
-                    organization VARCHAR(255) NOT NULL,
-                    subject VARCHAR(512) NULL,
-                    use_case TEXT NOT NULL,
-                    created_at VARCHAR(32) NOT NULL
-                )
-            """)
-        conn.commit()
-    finally:
-        conn.close()
+def _get_contact_db():
+    """Return a SQLite connection to the contact submissions database."""
+    import sqlite3
+    from api.config import CONTACT_STORE_DB_PATH
+    os.makedirs(os.path.dirname(CONTACT_STORE_DB_PATH), exist_ok=True)
+    conn = sqlite3.connect(CONTACT_STORE_DB_PATH, check_same_thread=False)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS contact_submissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL,
+            organization TEXT NOT NULL,
+            subject TEXT,
+            use_case TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    """)
+    conn.commit()
+    return conn
 
 
 class ContactSubmissionRequest(BaseModel):
@@ -509,16 +508,13 @@ async def api_contact_submit(body: ContactSubmissionRequest, background_tasks: B
             detail="name, email, organization, and use case are required",
         )
     created_at = datetime.utcnow().isoformat() + "Z"
-    _init_contact_db()
-    from api.db import get_connection
-    conn = get_connection()
+    conn = _get_contact_db()
     try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """INSERT INTO contact_submissions (name, email, organization, subject, use_case, created_at)
-                   VALUES (%s, %s, %s, %s, %s, %s)""",
-                (name, email, organization, body.subject or "", use_case, created_at),
-            )
+        conn.execute(
+            """INSERT INTO contact_submissions (name, email, organization, subject, use_case, created_at)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (name, email, organization, body.subject or "", use_case, created_at),
+        )
         conn.commit()
     finally:
         conn.close()

@@ -65,6 +65,12 @@ ROLLOUT_STORE_DB_PATH = os.getenv(
     os.path.join(DATA_DIR, "rollouts.db"),
 )
 
+# SQLite database path for contact form submissions (gitignored by *.db rule)
+CONTACT_STORE_DB_PATH = os.getenv(
+    "CONTACT_STORE_DB_PATH",
+    os.path.join(DATA_DIR, "contact.db"),
+)
+
 # SQLite database path for governance configurations (gitignored by *.db rule)
 GOVERNANCE_STORE_DB_PATH = os.getenv(
     "GOVERNANCE_STORE_DB_PATH",
