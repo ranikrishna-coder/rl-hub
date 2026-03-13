@@ -47,14 +47,14 @@
               expected_workflow: ['admission_register', 'triage_assess', 'lab_order_create', 'imaging_schedule', 'pharmacy_dispense', 'care_plan_update', 'discharge_prepare', 'follow_up_schedule', 'billing_finalize'] },
 
             // ClinKriya Clinic (MedAgentBench) scenarios — keyed by environment name
-            { id: 'sc_ck_7', name: 'Prolonged QT Management', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 12, description: 'Monitor QTc interval, review current medications, and decide on clinical action using FHIR observation and medication data. Training task for GRPO run.',
-              expected_workflow: ['fhir_observation_search', 'fhir_medication_request_search', 'evaluate_qtc_risk', 'fhir_create_service_request', 'fhir_create_medication_request'] },
-            { id: 'sc_ck_3', name: 'Blood Pressure Recording', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 8, description: 'Record a vital-signs blood pressure observation (118/77 mmHg) for a patient encounter by posting a FHIR Observation resource.',
-              expected_workflow: ['fhir_patient_search', 'fhir_encounter_search', 'fhir_create_observation'] },
+            { id: 'sc_ck_7', name: 'QTc Interval Monitoring', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 12, description: 'Monitor QTc interval, review current medications, and decide on clinical action using FHIR observation and medication data.',
+              expected_workflow: ['fhir_observation_search', 'fhir_medication_request_search', 'evaluate_qtc_risk', 'fhir_service_request_create', 'fhir_medication_request_create'] },
+            { id: 'sc_ck_3', name: 'Vital Signs Documentation', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 8, description: 'Record a vital-signs blood pressure observation (118/77 mmHg) for a patient encounter by posting a FHIR Observation resource.',
+              expected_workflow: ['fhir_patient_search', 'fhir_vitals_search', 'fhir_vitals_create'] },
             { id: 'sc_ck_8', name: 'Orthopedic Referral', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 10, description: 'Create an urgent FHIR ServiceRequest for orthopedic consultation following ACL tear assessment using SNOMED referral code.',
-              expected_workflow: ['fhir_patient_search', 'fhir_condition_search', 'fhir_create_service_request'] },
-            { id: 'sc_ck_10', name: 'A1C Lab Order', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 7, description: 'Order hemoglobin A1C lab test (LOINC 4548-4) for diabetic patient management by creating a stat FHIR ServiceRequest.',
-              expected_workflow: ['fhir_patient_search', 'fhir_condition_search', 'fhir_create_service_request'] },
+              expected_workflow: ['fhir_patient_search', 'fhir_condition_search', 'fhir_service_request_create'] },
+            { id: 'sc_ck_10', name: 'A1C / Diabetes Management', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 7, description: 'Order hemoglobin A1C lab test (LOINC 4548-4) for diabetic patient management by creating a stat FHIR ServiceRequest.',
+              expected_workflow: ['fhir_patient_search', 'fhir_condition_search', 'fhir_service_request_create'] },
         ],
 
         agents: [
