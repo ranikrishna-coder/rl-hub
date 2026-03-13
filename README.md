@@ -9,7 +9,7 @@ A platform for designing, simulating, and training reinforcement learning agents
 | **Backend** | Python 3.11, FastAPI, Uvicorn |
 | **Frontend** | Vanilla HTML/JS/CSS (no build step) |
 | **RL Framework** | Gymnasium, Stable-Baselines3, PyTorch |
-| **Data** | In-memory (training jobs, rollouts); PostgreSQL schema available |
+| **Data** | SQLite (environments, scenarios, verifiers); in-memory (training jobs, rollouts) |
 | **Deployment** | Docker, Azure |
 
 ### Backend / API
@@ -36,12 +36,12 @@ A platform for designing, simulating, and training reinforcement learning agents
 | SciPy | Scientific computing |
 | Pandas | Data processing |
 
-### Database
+### Database & Persistence
 
 | Framework | Purpose |
 |-----------|---------|
+| SQLite (WAL mode) | Embedded DB for environments, scenarios, verifiers |
 | SQLAlchemy | ORM and DB abstractions |
-| SQLite | Embedded DB for scenarios, verifiers, custom envs |
 | psycopg2 | PostgreSQL driver (optional) |
 
 ### Frontend
@@ -95,6 +95,11 @@ Open **http://localhost:8000** in your browser.
 agentwork-simulator/
 ├── api/                        # FastAPI backend + static frontend
 │   ├── main.py                 # REST API, training loop, rollout store
+│   ├── persistence.py          # SQLite stores (EnvironmentStore, ScenarioStore, VerifierStore)
+│   ├── data/                   # SQLite databases (gitignored, persists across deploys)
+│   │   ├── environments.db     # Custom environments
+│   │   ├── scenarios.db        # User-created scenarios
+│   │   └── verifiers.db        # User-created verifiers
 │   └── static/                 # Frontend (6 HTML pages, 7 JS, 7 CSS)
 │       ├── app.js              # Catalog UI logic
 │       ├── training.js         # Training console (stepper, charts, rollout)
@@ -216,6 +221,46 @@ Seven verifier types validate agent behavior:
 - **Ensemble** — multi-verifier aggregation
 - **Base** — abstract interface
 
+## Data Persistence
+
+User-created data is stored in SQLite databases under `api/data/` with WAL mode enabled for concurrent read/write safety.
+
+| Database | Contents |
+|----------|----------|
+| `environments.db` | Custom environments created via the Add Environment form |
+| `scenarios.db` | User-created training scenarios per environment |
+| `verifiers.db` | User-created verifiers per environment |
+
+### Persistence Stores (`api/persistence.py`)
+
+| Store | Table | Key Operations |
+|-------|-------|----------------|
+| `EnvironmentStore` | `custom_environments` | CRUD for custom envs, system/category updates |
+| `ScenarioStore` | `user_scenarios` | Add, list, delete scenarios by environment |
+| `VerifierStore` | `user_verifiers` | Add, list, delete verifiers by environment |
+
+### What persists vs in-memory
+
+| Data | Storage | Survives Restart |
+|------|---------|-----------------|
+| Custom environments | SQLite (`environments.db`) | ✅ Yes |
+| Scenarios (user-created) | SQLite (`scenarios.db`) | ✅ Yes |
+| Verifiers (user-created) | SQLite (`verifiers.db`) | ✅ Yes |
+| Built-in 113 environments | Python registry (in-memory) | ✅ Yes (code) |
+| Training jobs & rollouts | In-memory dict | ❌ No |
+
+### Deployment Safety
+
+The `api/data/` directory is **gitignored** so user data is never overwritten by deployments. The CI/CD pipeline (`deploy-vm.yml`) performs a full backup-restore cycle:
+
+1. **Before** `git reset --hard`: backs up entire `api/data/` directory
+2. **After** reset: restores all `.db`, `.db-wal`, and `.db-shm` files
+3. Docker deployments mount `api/data/` as a volume for the same protection
+
+### Schema Migration
+
+Stores auto-migrate on startup using `ALTER TABLE ADD COLUMN` for forward compatibility — existing databases gain new columns without data loss.
+
 ## Testing
 
 ```bash
@@ -240,6 +285,16 @@ Tests cover Jira workflow definitions, RL environment behavior, registry integra
 | GET | `/kpis/{env_name}` | KPI metrics |
 | POST | `/human-eval/{job_id}` | Submit human evaluation |
 | GET | `/jira-mock-data` | Jira mock data |
+| PUT | `/api/environments/{name}/system` | Update environment system name |
+| PUT | `/api/environments/{name}/category` | Update environment category |
+| GET | `/api/environments/{name}/scenarios` | List scenarios for environment |
+| POST | `/api/environments/{name}/scenarios` | Add scenario to environment |
+| DELETE | `/api/environments/{name}/scenarios/{id}` | Delete a scenario |
+| GET | `/api/environments/{name}/verifiers` | List verifiers for environment |
+| POST | `/api/environments/{name}/verifiers` | Add verifier to environment |
+| DELETE | `/api/environments/{name}/verifiers/{id}` | Delete a verifier |
+| POST | `/api/environments/{name}/clone-scenarios` | Clone scenarios to new environment |
+| POST | `/api/environments/{name}/clone-verifiers` | Clone verifiers to new environment |
 
 Full API docs at `http://localhost:8000/docs` (Swagger UI).
 
