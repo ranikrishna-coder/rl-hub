@@ -3162,7 +3162,7 @@ function buildVerifiersSection(envName, envCategory) {
     var allVerifiers = (verifierData && verifierData.all) ? verifierData.all : [];
     // Custom/cloned envs: only show env-specific items, skip category-level built-ins
     var env = allEnvironments.find(function (e) { return e.name === envName; });
-    var isCustomEnv = env && env.source === 'custom';
+    var isCustomEnv = env && (env.source === 'custom' || env.source === 'huggingface');
     var filtered = allVerifiers.filter(function (v) {
         if (v.envName) return v.envName === envName;
         if (isCustomEnv) return false;
@@ -3467,7 +3467,7 @@ async function deleteVerifier(envName, verifierId) {
 
     // Update DOM in-place: rebuild only the verifiers list without full re-render
     var allVerifiers = (store && store.all) ? store.all : [];
-    var isCustomEnv = env && env.source === 'custom';
+    var isCustomEnv = env && (env.source === 'custom' || env.source === 'huggingface');
     var filtered = allVerifiers.filter(function (v) {
         if (v.envName) return v.envName === envName;
         if (isCustomEnv) return false;
