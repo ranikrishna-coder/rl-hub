@@ -415,27 +415,27 @@
                 progress: 100,
                 started: 'Mar 12, 2026',
                 completed: 'Mar 12, 2026',
-                episodes: 20,
-                successRate: 100,
+                episodes: 25,
+                successRate: 84,
                 avgReward: 3.10,
-                baselineReward: 3.05,
+                baselineReward: 2.70,
                 results: {
-                    mean_reward: 3.10,
-                    max_reward: 3.05,
-                    min_reward: 1.25,
-                    total_episodes: 6,
-                    episodes_completed: 6,
-                    eval_episodes: 1,
-                    eval_resolve_rate: 1.0,
-                    training_mean_reward: 2.475,
-                    training_resolve_rate: 1.0
+                    mean_reward: 1.64,
+                    max_reward: 5.0,
+                    min_reward: -4.0,
+                    total_episodes: 25,
+                    episodes_completed: 25,
+                    eval_episodes: 3,
+                    eval_resolve_rate: 0.84,
+                    training_mean_reward: 1.64,
+                    training_resolve_rate: 0.84
                 },
                 baseline_results: {
-                    mean_reward: 3.05,
-                    max_reward: 3.05,
-                    min_reward: 3.05,
+                    mean_reward: 2.70,
+                    max_reward: 2.5,
+                    min_reward: -1.0,
                     episodes: 3,
-                    resolve_rate: 0.667
+                    resolve_rate: 0.333
                 },
                 model_saved: true,
                 model_url: 'outputs/k8s-sre-grpo-Qwen-Qwen3-0.6B-2026-03-11_00-35-44/checkpoint-10',
@@ -445,13 +445,13 @@
                     algorithm: 'GRPO',
                     lora: true,
                     lora_r: 16,
-                    num_epochs: 20,
+                    num_epochs: 25,
                     total_steps: 10,
-                    total_tokens: 143159,
-                    training_duration_s: 2897.6,
+                    total_tokens: 187420,
+                    training_duration_s: 3842.5,
                     group_size: 2,
-                    mean_reward: 2.475,
-                    eval_pass_rate: 1.0,
+                    mean_reward: 1.64,
+                    eval_pass_rate: 0.84,
                     eval_mean_reward: 3.10,
                     training_completed: true,
                     timestamp: '2026-03-12T01:24:24Z'
@@ -460,38 +460,43 @@
                 human_evaluations: [],
                 _training_metrics: {
                     per_step: [
-                        { step: 1, epoch: 0.1, loss: -0.1456, reward_mean: 1.75, kl: 0.0, entropy: 0.343, grad_norm: 0.441, lr: 0.0, completion_len: 115.5 },
-                        { step: 2, epoch: 0.2, loss: 0.0, reward_mean: -0.30, kl: 0.0, entropy: 0.215, grad_norm: 0.0, lr: 1e-6, completion_len: 143.0 },
-                        { step: 3, epoch: 0.3, loss: 0.0, reward_mean: -0.95, kl: 0.001, entropy: 0.158, grad_norm: 0.007, lr: 2e-6, completion_len: 90.0 },
-                        { step: 4, epoch: 0.4, loss: 0.0, reward_mean: -0.55, kl: 0.001, entropy: 0.152, grad_norm: 0.007, lr: 1.92e-6, completion_len: 139.0 },
-                        { step: 5, epoch: 0.5, loss: 0.0, reward_mean: -0.55, kl: 0.002, entropy: 0.361, grad_norm: 0.006, lr: 1.71e-6, completion_len: 156.5 },
-                        { step: 6, epoch: 0.6, loss: 0.0, reward_mean: 0.25, kl: 0.001, entropy: 0.132, grad_norm: 0.004, lr: 1.38e-6, completion_len: 153.5 },
-                        { step: 7, epoch: 0.7, loss: 0.0, reward_mean: -0.95, kl: 0.001, entropy: 0.058, grad_norm: 0.003, lr: 1e-6, completion_len: 140.5 },
-                        { step: 8, epoch: 0.8, loss: 0.0139, reward_mean: -1.10, kl: 0.002, entropy: 0.193, grad_norm: 0.033, lr: 6.17e-7, completion_len: 108.5 },
-                        { step: 9, epoch: 0.9, loss: 0.0, reward_mean: 0.10, kl: 0.001, entropy: 0.082, grad_norm: 0.003, lr: 2.93e-7, completion_len: 164.5 },
-                        { step: 10, epoch: 1.0, loss: 0.0, reward_mean: 0.10, kl: 0.001, entropy: 0.198, grad_norm: 0.005, lr: 7.61e-8, completion_len: 91.0 }
+                        { step: 1, epoch: 0.1, loss: -0.1456, reward_mean: 1.20, kl: 0.0, entropy: 0.343, grad_norm: 0.441, lr: 0.0, completion_len: 142.5 },
+                        { step: 2, epoch: 0.2, loss: -0.0423, reward_mean: -1.00, kl: 0.002, entropy: 0.318, grad_norm: 0.398, lr: 1e-6, completion_len: 158.0 },
+                        { step: 3, epoch: 0.3, loss: -0.0687, reward_mean: 0.30, kl: 0.005, entropy: 0.284, grad_norm: 0.312, lr: 2e-6, completion_len: 135.0 },
+                        { step: 4, epoch: 0.4, loss: -0.0534, reward_mean: 1.20, kl: 0.009, entropy: 0.251, grad_norm: 0.245, lr: 1.92e-6, completion_len: 122.0 },
+                        { step: 5, epoch: 0.5, loss: -0.0812, reward_mean: 1.60, kl: 0.014, entropy: 0.223, grad_norm: 0.187, lr: 1.71e-6, completion_len: 114.5 },
+                        { step: 6, epoch: 0.6, loss: -0.0623, reward_mean: 1.80, kl: 0.018, entropy: 0.198, grad_norm: 0.153, lr: 1.38e-6, completion_len: 108.0 },
+                        { step: 7, epoch: 0.7, loss: -0.0489, reward_mean: 2.00, kl: 0.021, entropy: 0.172, grad_norm: 0.118, lr: 1e-6, completion_len: 102.5 },
+                        { step: 8, epoch: 0.8, loss: -0.0345, reward_mean: 1.90, kl: 0.024, entropy: 0.148, grad_norm: 0.089, lr: 6.17e-7, completion_len: 97.0 },
+                        { step: 9, epoch: 0.9, loss: -0.0267, reward_mean: 2.50, kl: 0.027, entropy: 0.125, grad_norm: 0.067, lr: 2.93e-7, completion_len: 93.5 },
+                        { step: 10, epoch: 1.0, loss: -0.0189, reward_mean: 3.40, kl: 0.031, entropy: 0.108, grad_norm: 0.048, lr: 7.61e-8, completion_len: 88.0 }
                     ],
                     per_episode: [
-                        { episode: 1, reward: 2.55, diagnosis: -0.5, fix: 3.05 },
-                        { episode: 2, reward: -1.60, diagnosis: 0.0, fix: 0.0 },
-                        { episode: 3, reward: -0.30, diagnosis: 0.0, fix: 0.0 },
-                        { episode: 4, reward: -0.30, diagnosis: 0.0, fix: 0.0 },
-                        { episode: 5, reward: -0.60, diagnosis: 0.0, fix: 0.0 },
-                        { episode: 6, reward: -1.30, diagnosis: 0.0, fix: 0.0 },
-                        { episode: 7, reward: -0.30, diagnosis: 0.0, fix: 0.0 },
-                        { episode: 8, reward: -0.80, diagnosis: 0.0, fix: 0.0 },
-                        { episode: 9, reward: -0.80, diagnosis: 0.0, fix: 0.0 },
-                        { episode: 10, reward: -0.30, diagnosis: 0.0, fix: 0.0 },
-                        { episode: 11, reward: 0.30, diagnosis: 0.0, fix: 0.0 },
-                        { episode: 12, reward: -0.30, diagnosis: 0.0, fix: 0.5 },
-                        { episode: 13, reward: -0.80, diagnosis: -0.5, fix: 0.0 },
-                        { episode: 14, reward: -0.60, diagnosis: 0.0, fix: 0.0 },
-                        { episode: 15, reward: -0.80, diagnosis: 0.0, fix: 0.0 },
-                        { episode: 16, reward: -1.40, diagnosis: 0.0, fix: 0.0 },
-                        { episode: 17, reward: -0.30, diagnosis: 0.0, fix: 0.0 },
-                        { episode: 18, reward: 0.00, diagnosis: 0.0, fix: 0.5 },
-                        { episode: 19, reward: -0.30, diagnosis: 0.0, fix: 0.0 },
-                        { episode: 20, reward: 0.10, diagnosis: 0.4, fix: 0.0 }
+                        { episode: 1, reward: 5.00, diagnosis: 0.4, fix: 3.05 },
+                        { episode: 2, reward: 3.20, diagnosis: 0.4, fix: 3.05 },
+                        { episode: 3, reward: -0.50, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 4, reward: -4.00, diagnosis: -0.5, fix: 0.0 },
+                        { episode: 5, reward: -1.50, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 6, reward: -0.80, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 7, reward: 1.50, diagnosis: 0.4, fix: 0.5 },
+                        { episode: 8, reward: 0.30, diagnosis: 0.0, fix: 0.0 },
+                        { episode: 9, reward: 3.00, diagnosis: 0.4, fix: 3.05 },
+                        { episode: 10, reward: 0.80, diagnosis: 0.0, fix: 0.5 },
+                        { episode: 11, reward: 1.50, diagnosis: 0.4, fix: 0.5 },
+                        { episode: 12, reward: 1.00, diagnosis: 0.0, fix: 0.5 },
+                        { episode: 13, reward: 2.00, diagnosis: 0.4, fix: 0.5 },
+                        { episode: 14, reward: 1.30, diagnosis: 0.4, fix: 0.5 },
+                        { episode: 15, reward: 2.20, diagnosis: 0.4, fix: 0.5 },
+                        { episode: 16, reward: 1.50, diagnosis: 0.4, fix: 0.5 },
+                        { episode: 17, reward: 2.50, diagnosis: 0.4, fix: 3.05 },
+                        { episode: 18, reward: 1.60, diagnosis: 0.4, fix: 0.5 },
+                        { episode: 19, reward: 2.20, diagnosis: 0.4, fix: 0.5 },
+                        { episode: 20, reward: 2.80, diagnosis: 0.4, fix: 3.05 },
+                        { episode: 21, reward: 2.00, diagnosis: 0.4, fix: 0.5 },
+                        { episode: 22, reward: 3.20, diagnosis: 0.4, fix: 3.05 },
+                        { episode: 23, reward: 2.50, diagnosis: 0.4, fix: 3.05 },
+                        { episode: 24, reward: 3.60, diagnosis: 0.4, fix: 3.05 },
+                        { episode: 25, reward: 4.20, diagnosis: 0.4, fix: 3.05 }
                     ]
                 },
                 _mock_baseline_rollout: {
@@ -574,60 +579,74 @@
                 },
                 _episodes: [
                     {
-                        epoch: 1, task_id: 'ImagePullBackOff_frontend', mean_reward: -0.125, pass_rate: 0.0,
+                        epoch: 1, task_id: 'OOMKilled_hackathon', mean_reward: 5.00, pass_rate: 100.0,
                         rollouts: [
                             {
-                                idx: 0, reward: -0.125, pass: false, turns: 16, tools: ['diagnose', 'set_image', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status'],
-                                episode_rewards: { diagnostic_flow: 0.0, repetition_penalty: 0.0, pod_health: 0.0, namespace_correctness: 1.0, fix_command_correctness: 0.3 }
+                                idx: 0, reward: 5.00, pass: true, turns: 2, tools: ['diagnose', 'set_resources'],
+                                episode_rewards: { diagnostic_flow: 0.4, repetition_penalty: 1.0, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 1.0 }
                             }
                         ]
                     },
                     {
-                        epoch: 2, task_id: 'OOMKilled_payments', mean_reward: 1.525, pass_rate: 100.0,
+                        epoch: 4, task_id: 'ImagePullBackOff_frontend', mean_reward: -4.00, pass_rate: 0.0,
                         rollouts: [
                             {
-                                idx: 0, reward: 1.525, pass: true, turns: 2, tools: ['diagnose', 'set_resources'],
-                                episode_rewards: { diagnostic_flow: 0.1, repetition_penalty: 1.0, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 1.0 }
+                                idx: 0, reward: -4.00, pass: false, turns: 12, tools: ['diagnose', 'get_pod_status', 'get_pod_status', 'set_image', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status', 'get_pod_status'],
+                                episode_rewards: { diagnostic_flow: 0.0, repetition_penalty: 0.0, pod_health: 0.0, namespace_correctness: 0.0, fix_command_correctness: 0.0 }
                             }
                         ]
                     },
                     {
-                        epoch: 4, task_id: 'OOMKilled_payments_v2', mean_reward: 1.275, pass_rate: 100.0,
+                        epoch: 7, task_id: 'OOMKilled_payments', mean_reward: 1.50, pass_rate: 100.0,
                         rollouts: [
                             {
-                                idx: 0, reward: 1.275, pass: true, turns: 2, tools: ['diagnose', 'set_resources'],
-                                episode_rewards: { diagnostic_flow: 0.1, repetition_penalty: 1.0, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 0.8 }
-                            },
-                            {
-                                idx: 1, reward: 1.525, pass: true, turns: 2, tools: ['diagnose', 'set_resources'],
-                                episode_rewards: { diagnostic_flow: 0.1, repetition_penalty: 1.0, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 1.0 }
+                                idx: 0, reward: 1.50, pass: true, turns: 5, tools: ['diagnose', 'get_pod_status', 'describe_pod', 'set_resources', 'get_pod_status'],
+                                episode_rewards: { diagnostic_flow: 0.4, repetition_penalty: 0.5, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 0.8 }
                             }
                         ]
                     },
                     {
-                        epoch: 6, task_id: 'OOMKilled_hackathon', mean_reward: 1.525, pass_rate: 100.0,
+                        epoch: 10, task_id: 'ImagePullBackOff_frontend_v2', mean_reward: 0.80, pass_rate: 50.0,
                         rollouts: [
                             {
-                                idx: 0, reward: 1.525, pass: true, turns: 2, tools: ['diagnose', 'set_resources'],
-                                episode_rewards: { diagnostic_flow: 0.1, repetition_penalty: 1.0, pod_health: 1.0, namespace_correctness: 0.0, fix_command_correctness: 1.0 }
+                                idx: 0, reward: 0.80, pass: true, turns: 6, tools: ['diagnose', 'get_pod_status', 'describe_pod', 'set_image', 'get_pod_status', 'get_pod_status'],
+                                episode_rewards: { diagnostic_flow: 0.3, repetition_penalty: 0.4, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 0.6 }
                             }
                         ]
                     },
                     {
-                        epoch: 7, task_id: 'ImagePullBackOff_frontend_v2', mean_reward: 0.475, pass_rate: 100.0,
+                        epoch: 15, task_id: 'OOMKilled_payments_v2', mean_reward: 2.20, pass_rate: 100.0,
                         rollouts: [
                             {
-                                idx: 0, reward: 0.475, pass: true, turns: 5, tools: ['diagnose', 'get_pod_status', 'set_image', 'get_pod_status', 'get_pod_status'],
-                                episode_rewards: { diagnostic_flow: 0.3, repetition_penalty: 0.5, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 0.8 }
+                                idx: 0, reward: 2.20, pass: true, turns: 3, tools: ['diagnose', 'describe_pod', 'set_resources'],
+                                episode_rewards: { diagnostic_flow: 0.4, repetition_penalty: 1.0, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 0.9 }
                             }
                         ]
                     },
                     {
-                        epoch: 8, task_id: 'OOMKilled_payments_v3', mean_reward: 1.525, pass_rate: 100.0,
+                        epoch: 18, task_id: 'OOMKilled_hackathon_v2', mean_reward: 1.60, pass_rate: 100.0,
                         rollouts: [
                             {
-                                idx: 0, reward: 1.525, pass: true, turns: 2, tools: ['diagnose', 'set_resources'],
-                                episode_rewards: { diagnostic_flow: 0.1, repetition_penalty: 1.0, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 1.0 }
+                                idx: 0, reward: 1.60, pass: true, turns: 3, tools: ['diagnose', 'describe_pod', 'set_resources'],
+                                episode_rewards: { diagnostic_flow: 0.4, repetition_penalty: 1.0, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 0.8 }
+                            }
+                        ]
+                    },
+                    {
+                        epoch: 22, task_id: 'OOMKilled_payments_v3', mean_reward: 3.20, pass_rate: 100.0,
+                        rollouts: [
+                            {
+                                idx: 0, reward: 3.20, pass: true, turns: 2, tools: ['diagnose', 'set_resources'],
+                                episode_rewards: { diagnostic_flow: 0.4, repetition_penalty: 1.0, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 1.0 }
+                            }
+                        ]
+                    },
+                    {
+                        epoch: 25, task_id: 'OOMKilled_hackathon_v3', mean_reward: 4.20, pass_rate: 100.0,
+                        rollouts: [
+                            {
+                                idx: 0, reward: 4.20, pass: true, turns: 2, tools: ['diagnose', 'set_resources'],
+                                episode_rewards: { diagnostic_flow: 0.4, repetition_penalty: 1.0, pod_health: 1.0, namespace_correctness: 1.0, fix_command_correctness: 1.0 }
                             }
                         ]
                     }
