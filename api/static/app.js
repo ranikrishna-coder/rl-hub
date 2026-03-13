@@ -4635,7 +4635,9 @@ function _renderPopupProgressChart(canvas, run) {
     ctx.fillStyle = '#6b7280'; ctx.font = '11px -apple-system,BlinkMacSystemFont,sans-serif'; ctx.textAlign = 'right';
     gridVals.forEach(function (v) { ctx.fillText(v.toFixed(1), pad.left - 6, pad.top + plotH - ((v - yMin) / yRange) * plotH + 4); });
     ctx.textAlign = 'center';
-    for (var i = 0; i <= 5; i++) { ctx.fillText(Math.round((i / 5) * totalEpisodes), pad.left + (i / 5) * plotW, pad.top + plotH + 16); }
+    var xTicks = [];
+    for (var i = 0; i <= 5; i++) { var tv = Math.round((i / 5) * totalEpisodes); if (xTicks.indexOf(tv) === -1) xTicks.push(tv); }
+    xTicks.forEach(function (tv) { ctx.fillText(tv, pad.left + (tv / totalEpisodes) * plotW, pad.top + plotH + 16); });
     ctx.fillStyle = '#9ca3af'; ctx.textAlign = 'center'; ctx.fillText('Episodes', pad.left + plotW / 2, h - 4);
     ctx.save(); ctx.translate(13, pad.top + plotH / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('Mean Reward', 0, 0); ctx.restore();
 

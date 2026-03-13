@@ -16,8 +16,6 @@
             { id: 'sc_jira_1', name: 'Jira Issue Resolution', category: 'jira', task_count: 5, description: 'Resolve a Jira issue by transitioning through correct statuses',
               expected_workflow: ['jira_get_issue', 'jira_transition_issue', 'jira_add_comment', 'jira_update_fields', 'jira_resolve_issue'] },
 
-            { id: 'sc_epic_1', name: 'Clinical Workflow', category: 'clinical', task_count: 3, description: 'Search and retrieve patient records, place clinical orders in Epic EHR',
-              expected_workflow: ['fhir_patient_search', 'fhir_patient_read', 'fhir_encounter_search'] },
 
             { id: 'sc_img_1', name: 'Imaging Workflow', category: 'imaging', task_count: 5, description: 'Schedule and prioritize radiology imaging orders',
               expected_workflow: ['pacs_query_worklist', 'pacs_check_availability', 'pacs_schedule_exam', 'pacs_assign_priority', 'pacs_confirm_booking'] },
