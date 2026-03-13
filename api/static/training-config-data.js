@@ -55,6 +55,8 @@
               expected_workflow: ['fhir_patient_search', 'fhir_condition_search', 'fhir_service_request_create'] },
             { id: 'sc_ck_10', name: 'A1C / Diabetes Management', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 7, description: 'Order hemoglobin A1C lab test (LOINC 4548-4) for diabetic patient management by creating a stat FHIR ServiceRequest.',
               expected_workflow: ['fhir_patient_search', 'fhir_condition_search', 'fhir_service_request_create'] },
+            { id: 'sc_ck_ct', name: 'CT Follow-Up & IR Referral', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 9, description: 'Confirm malignant neoplasm diagnosis, check if last CT Abdomen/Pelvis is >3 months old, then order a new CT scan and create a referral to Interventional Radiology.',
+              expected_workflow: ['fhir_patient_search', 'fhir_condition_search', 'fhir_procedure_search', 'fhir_service_request_create', 'fhir_service_request_create'] },
         ],
 
         agents: [
