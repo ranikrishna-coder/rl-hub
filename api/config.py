@@ -26,6 +26,8 @@ MARIADB_PORT = int(os.getenv("MARIADB_PORT", "3306"))
 MARIADB_USER = os.getenv("MARIADB_USER", "agentwork")
 MARIADB_PASSWORD = os.getenv("MARIADB_PASSWORD", "")
 MARIADB_DATABASE = os.getenv("MARIADB_DATABASE", "agentwork_simulator")
+# Connection pool size (reduces latency by reusing connections)
+MARIADB_POOL_SIZE = int(os.getenv("MARIADB_POOL_SIZE", "10"))
 
 # Legacy JSON path (used for migration and as fallback)
 CUSTOM_ENV_JSON_PATH = os.path.join(DATA_DIR, "custom_environments.json")
