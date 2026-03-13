@@ -244,15 +244,15 @@
   .action-hint { font-size: 0.7rem; color: var(--muted); margin-top: 0.25rem; }
 
   /* ── Simulation two-column layout ─────────────────────── */
-  .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: stretch; }
-  /* min-width:0 prevents overflow; flex-col makes each column fill its full grid height */
+  /* align-items:start so each column sizes independently — no cross-stretching */
+  .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: start; }
   .sim-grid > div { min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
   @media (max-width: 1000px) { .sim-grid { grid-template-columns: 1fr; } }
 
-  /* ── Event Log card stretches to bottom of right column ── */
-  .sim-card.log-card { flex: 1; display: flex; flex-direction: column; min-height: 0; margin-bottom: 0; }
-  .sim-card.log-card .sim-card-body { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0; }
-  .sim-card.log-card .log-area { flex: 1; max-height: none; min-height: 120px; }
+  /* ── Event Log: fixed max-height so it never expands past StepInfo ── */
+  .sim-card.log-card { display: flex; flex-direction: column; margin-bottom: 0; }
+  .sim-card.log-card .sim-card-body { padding: 0; }
+  .sim-card.log-card .log-area { max-height: 220px; min-height: 120px; overflow-y: auto; }
 
   /* ── Inner cards (obs, reward, info, log) ──────────────── */
   .sim-card {
@@ -480,6 +480,33 @@
     display: flex; justify-content: space-between; align-items: center;
     font-size: 0.78rem; font-weight: 600; color: var(--text); margin-bottom: 4px;
   }
+
+  /* ── Rollout Summary: Pre vs Post Training ────────────── */
+  .rollout-summary-card {
+    margin: 0.75rem 1.25rem 0;
+    border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  }
+  .rollout-summary-hdr {
+    background: #4a0e3a; color: white;
+    padding: 0.55rem 1rem; font-size: 0.84rem; font-weight: 700;
+  }
+  .rollout-summary-tbl { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .rollout-summary-tbl th {
+    padding: 0.45rem 1rem; text-align: left;
+    font-size: 0.67rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border); background: var(--card);
+  }
+  .rollout-summary-tbl th.pre-col  { color: #c62828; }
+  .rollout-summary-tbl th.post-col { color: var(--green); }
+  .rollout-summary-tbl td { padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); }
+  .rollout-summary-tbl tr:last-child td { border-bottom: none; }
+  .rollout-summary-tbl .m-name { font-weight: 500; color: var(--text); }
+  .rollout-summary-tbl .m-pre  { color: var(--muted); }
+  .rollout-summary-tbl .m-post { font-weight: 700; color: var(--text); }
+  .rs-change { font-size: 0.75rem; font-weight: 700; }
+  .rs-change.pos { color: var(--green); }
+  .rs-change.neg { color: #c62828; }
 
   .rollout-history-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -1001,11 +1028,32 @@
             <div class="chart-wrap-sm" style="margin-top:0.5rem;"><canvas id="trainChart"></canvas></div>
           </div>
 
+          <!-- Rollout Summary: Pre vs Post Training (shown after first run) -->
+          <div id="rolloutSummaryWrap" style="display:none;">
+            <div class="rollout-summary-card">
+              <div class="rollout-summary-hdr" id="rolloutSummaryHdr">Rollout Summary: Pre vs Post Training</div>
+              <table class="rollout-summary-tbl">
+                <thead>
+                  <tr>
+                    <th>Metric</th>
+                    <th class="pre-col">Pre-Training</th>
+                    <th class="post-col">Post-Training</th>
+                    <th>Change</th>
+                  </tr>
+                </thead>
+                <tbody id="rolloutSummaryBody"></tbody>
+              </table>
+            </div>
+          </div>
+
           <!-- Rollout History (shown after first run) -->
           <div id="rolloutHistory" style="display:none;margin-top:1rem;">
             <div class="rollout-history-header">
-              <h4 style="font-size:0.88rem;font-weight:700;margin:0;">Training Runs</h4>
-              <span id="rolloutCountLabel" style="font-size:0.75rem;color:var(--muted);"></span>
+              <h4 style="font-size:0.88rem;font-weight:700;margin:0;">Rollout History</h4>
+              <div style="display:flex;align-items:center;gap:0.75rem;">
+                <span id="rolloutCountLabel" style="font-size:0.75rem;color:var(--muted);"></span>
+                <button class="btn btn-outline" onclick="renderRolloutHistory()" style="font-size:0.72rem;padding:0.18rem 0.6rem;">&#8635; Refresh</button>
+              </div>
             </div>
             <div id="rolloutHistoryBody" class="rollout-history-body"></div>
           </div>
@@ -1174,6 +1222,71 @@ function setTrainAlgo(algo) {
   }
 }
 
+/* ── Shared helper: build pre/post summary tbody HTML ─── */
+function _buildSummaryBody(run) {
+  var best        = run.best_episode || {};
+  var postReturn  = (best.total_return  || 0) * 100;
+  var postSharpe  = best.sharpe_ratio   || 0;
+  var postDD      = (run.max_drawdown   || 0) * 100;
+  var postPortVal = 100000 * (1 + (best.total_return || 0));
+
+  function chg(pre, post, higherBetter, fmt) {
+    var delta  = post - pre;
+    var better = higherBetter ? delta >= 0 : delta <= 0;
+    var arrow  = delta >= 0 ? '\u25b2' : '\u25bc';
+    return '<span class="rs-change ' + (better ? 'pos' : 'neg') + '">' + arrow + ' ' + fmt(Math.abs(delta)) + '</span>';
+  }
+  function fmtPct(v) { return v.toFixed(2) + '%'; }
+  function fmtNum(v) { return v.toFixed(3); }
+  function fmtUSD(v) { return '$' + Math.round(v).toLocaleString('en-US'); }
+
+  return [
+    { label:'Total Return',    pre:'0.00%',    post: postReturn.toFixed(2)+'%', change: chg(0, postReturn,  true,  fmtPct) },
+    { label:'Sharpe Ratio',    pre:'0.000',    post: postSharpe.toFixed(3),     change: chg(0, postSharpe,  true,  fmtNum) },
+    { label:'Max Drawdown',    pre:'0.00%',    post: postDD.toFixed(2)+'%',     change: chg(0, postDD,      false, fmtPct) },
+    { label:'Portfolio Value', pre:'$100,000', post: fmtUSD(postPortVal),       change: chg(100000, postPortVal, true, fmtUSD) }
+  ].map(function(r) {
+    return '<tr>' +
+      '<td class="m-name">' + r.label + '</td>' +
+      '<td class="m-pre">'  + r.pre   + '</td>' +
+      '<td class="m-post">' + r.post  + '</td>' +
+      '<td>'                + r.change + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+/* Shared header HTML for the summary table (thead) */
+function _summaryThead() {
+  return '<thead><tr>' +
+    '<th>Metric</th>' +
+    '<th class="pre-col">Pre-Training</th>' +
+    '<th class="post-col">Post-Training</th>' +
+    '<th>Change</th>' +
+    '</tr></thead>';
+}
+
+/* ── Update top-level summary card (always latest run) ── */
+function renderRolloutSummary(run) {
+  var wrap = document.getElementById('rolloutSummaryWrap');
+  var body = document.getElementById('rolloutSummaryBody');
+  var hdr  = document.getElementById('rolloutSummaryHdr');
+  if (!wrap || !body) return;
+  if (hdr) hdr.textContent = 'Run #' + (run.runIndex || trainRuns.length) + ' \u2014 Pre vs Post Training';
+  body.innerHTML = _buildSummaryBody(run);
+  wrap.style.display = '';
+}
+
+/* ── Toggle per-run inline summary row in history table ─ */
+function toggleRunSummary(idx, e) {
+  if (e) e.stopPropagation();
+  var row = document.getElementById('runsummary-' + idx);
+  if (!row) return;
+  var open = row.style.display !== 'none';
+  row.style.display = open ? 'none' : '';
+  var btn = document.getElementById('runexpand-' + idx);
+  if (btn) btn.innerHTML = open ? '&#9660;&nbsp;Pre/Post' : '&#9650;&nbsp;Pre/Post';
+}
+
 /* ── Render rollout history table ─────────────────────── */
 function renderRolloutHistory() {
   var hist = document.getElementById('rolloutHistory');
@@ -1189,18 +1302,36 @@ function renderRolloutHistory() {
     '<th>#</th><th>Algorithm</th><th>Episodes</th><th>Best Return</th><th>Sharpe</th><th>Status</th><th></th>' +
     '</tr></thead><tbody>' +
     trainRuns.map(function(r, i) {
-      var ret = r.best_episode ? (r.best_episode.total_return * 100).toFixed(1) + '%' : '--';
+      var ret    = r.best_episode ? (r.best_episode.total_return * 100).toFixed(1) + '%' : '--';
       var sharpe = r.best_episode ? r.best_episode.sharpe_ratio.toFixed(3) : '--';
-      var statusColor = r.status === 'complete' ? 'var(--green)' : '#c62828';
-      return '<tr onclick="showRolloutDetail(' + i + ')">' +
+      var retColor = r.best_episode && r.best_episode.total_return >= 0 ? 'var(--green)' : '#c62828';
+      var statusOk = r.status === 'complete';
+      /* Main run row */
+      var mainRow = '<tr onclick="showRolloutDetail(' + i + ')" style="cursor:pointer;">' +
         '<td style="font-weight:700;color:var(--primary);">#' + (i + 1) + '</td>' +
-        '<td><span class="badge ' + (r.algorithm === 'DQN' ? 'badge-trained' : 'badge-training') + '" style="font-size:0.65rem;">' + r.algorithm + '</span></td>' +
+        '<td><span class="badge ' + (r.algorithm === 'DQN' || r.algorithm === 'DDQN' ? 'badge-trained' : 'badge-training') + '" style="font-size:0.65rem;">' + r.algorithm + '</span></td>' +
         '<td>' + (r.episodes_trained || r.episodes) + '</td>' +
-        '<td style="font-weight:700;">' + ret + '</td>' +
+        '<td style="font-weight:700;color:' + retColor + ';">' + ret + '</td>' +
         '<td>' + sharpe + '</td>' +
-        '<td><span style="color:' + statusColor + ';font-weight:700;font-size:0.75rem;">' + (r.status === 'complete' ? '&#10003; Done' : '&#10007; Failed') + '</span></td>' +
-        '<td><button class="rollout-view-btn" onclick="event.stopPropagation();showRolloutDetail(' + i + ')">View &#8250;</button></td>' +
+        '<td><span style="color:' + (statusOk ? 'var(--green)' : '#c62828') + ';font-weight:700;font-size:0.75rem;">' + (statusOk ? '&#10003; Done' : '&#10007; Failed') + '</span></td>' +
+        '<td style="display:flex;gap:0.4rem;align-items:center;">' +
+          '<button class="rollout-view-btn" onclick="event.stopPropagation();showRolloutDetail(' + i + ')">View &#8250;</button>' +
+          '<button id="runexpand-' + i + '" class="rollout-view-btn" style="background:var(--primary-pale);color:var(--primary);" onclick="toggleRunSummary(' + i + ',event)">&#9660;&nbsp;Pre/Post</button>' +
+        '</td>' +
         '</tr>';
+      /* Expandable pre/post summary row (hidden by default) */
+      var expandRow = '<tr id="runsummary-' + i + '" style="display:none;">' +
+        '<td colspan="7" style="padding:0;">' +
+          '<div style="padding:0.75rem 1.25rem;background:var(--primary-pale);border-bottom:1px solid var(--border);">' +
+            '<div style="font-size:0.72rem;font-weight:700;color:#4a0e3a;margin-bottom:0.4rem;text-transform:uppercase;letter-spacing:0.05em;">Run #' + (i + 1) + ' &mdash; Pre vs Post Training</div>' +
+            '<table class="rollout-summary-tbl" style="font-size:0.76rem;">' +
+              _summaryThead() +
+              '<tbody>' + _buildSummaryBody(r) + '</tbody>' +
+            '</table>' +
+          '</div>' +
+        '</td>' +
+        '</tr>';
+      return mainRow + expandRow;
     }).join('') +
     '</tbody></table>';
 }
@@ -1216,15 +1347,22 @@ function showRolloutDetail(idx) {
   /* Header */
   var algo = run.algorithm || '—';
   var best = run.best_episode || {};
+  var algoBadgeCls = (algo === 'DQN' || algo === 'DDQN') ? 'badge-trained' : 'badge-training';
   document.getElementById('rolloutDetailHeader').innerHTML =
-    '<div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">' +
+    /* Run title row */
+    '<div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.75rem;">' +
     '<span style="font-size:1rem;font-weight:700;">Run #' + (idx + 1) + '</span>' +
-    '<span class="badge ' + (algo === 'DQN' ? 'badge-trained' : 'badge-training') + '">' + algo + '</span>' +
+    '<span class="badge ' + algoBadgeCls + '">' + algo + '</span>' +
     '<span style="font-size:0.8rem;color:var(--muted);">' + (run.episodes_trained || run.episodes) + ' episodes</span>' +
     '</div>' +
-    '<div style="margin-top:0.4rem;font-size:0.78rem;color:var(--muted);">Best Return: <strong style="color:var(--primary);">' +
-    ((best.total_return || 0) * 100).toFixed(2) + '%</strong> &nbsp; Sharpe: <strong>' +
-    (best.sharpe_ratio || 0).toFixed(3) + '</strong></div>';
+    /* Pre vs Post summary mini-table */
+    '<div class="rollout-summary-card" style="margin:0 0 0.75rem;">' +
+      '<div class="rollout-summary-hdr" style="font-size:0.78rem;padding:0.4rem 0.85rem;">Pre vs Post Training</div>' +
+      '<table class="rollout-summary-tbl" style="font-size:0.77rem;">' +
+        _summaryThead() +
+        '<tbody>' + _buildSummaryBody(run) + '</tbody>' +
+      '</table>' +
+    '</div>';
 
   /* Activate progress tab by default */
   showRolloutTab('progress');
@@ -2207,6 +2345,7 @@ function trainAgent() {
       runIndex: trainRuns.length + 1
     });
     trainRuns.push(runRecord);
+    renderRolloutSummary(runRecord);
     renderRolloutHistory();
 
     log('info', 'Run #' + trainRuns.length + ' complete! ' + (res.episodes_trained || episodes) + ' eps — Best return: ' +
@@ -2486,6 +2625,8 @@ function showActivePanel(envType, createRes) {
   if (agentBtn) { agentBtn.disabled = true; agentBtn.style.display = ''; }
   var agentStopBtn = document.getElementById('agentStopBtn');
   if (agentStopBtn) agentStopBtn.style.display = 'none';
+  var summaryWrap = document.getElementById('rolloutSummaryWrap');
+  if (summaryWrap) summaryWrap.style.display = 'none';
   var trainPanel = document.getElementById('trainPanel');
   if (trainPanel) {
     trainPanel.style.display = 'none';

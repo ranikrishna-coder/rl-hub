@@ -4125,8 +4125,14 @@ def _train_dqn_financial(env, n_episodes: int = 15):
         if total_reward > best_raw:
             best_raw = total_reward
             best_episode = {**ep_data}
+    # Compute max drawdown from normalised per-episode returns
+    _peak, _dd, _max_dd = 0.0, 0.0, 0.0
+    for _ep in history:
+        _peak = max(_peak, _ep["total_return"])
+        _dd = _peak - _ep["total_return"]
+        _max_dd = max(_max_dd, _dd)
     return {"policy": W, "history": history, "best_episode": best_episode or history[-1],
-            "final_epsilon": round(epsilon, 4)}
+            "final_epsilon": round(epsilon, 4), "max_drawdown": round(_max_dd, 4)}
 
 
 def _train_ppo_financial(env, n_episodes: int = 15):
@@ -4168,8 +4174,14 @@ def _train_ppo_financial(env, n_episodes: int = 15):
         if total_reward > best_raw:
             best_raw = total_reward
             best_episode = {**ep_data}
+    # Compute max drawdown from normalised per-episode returns
+    _peak, _dd, _max_dd = 0.0, 0.0, 0.0
+    for _ep in history:
+        _peak = max(_peak, _ep["total_return"])
+        _dd = _peak - _ep["total_return"]
+        _max_dd = max(_max_dd, _dd)
     return {"policy": W, "history": history, "best_episode": best_episode or history[-1],
-            "final_epsilon": round(noise, 4)}
+            "final_epsilon": round(noise, 4), "max_drawdown": round(_max_dd, 4)}
 
 
 class _FinTrainRequest(BaseModel):
