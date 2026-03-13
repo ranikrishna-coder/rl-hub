@@ -374,6 +374,12 @@ class VerifierStore:
                     updated_at  TEXT NOT NULL
                 )
             """)
+            # Migrate older schema: add missing columns if they don't exist
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(user_verifiers)")}
+            if "environment" not in cols:
+                conn.execute("ALTER TABLE user_verifiers ADD COLUMN environment TEXT DEFAULT ''")
+            if "source" not in cols:
+                conn.execute("ALTER TABLE user_verifiers ADD COLUMN source TEXT DEFAULT 'custom'")
 
     def list_all(self) -> List[Dict[str, Any]]:
         with self._conn() as conn:

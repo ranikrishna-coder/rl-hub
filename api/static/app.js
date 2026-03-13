@@ -1492,6 +1492,22 @@ function updateSaveButton(envName) {
     }
 }
 
+// ─── Utility: Deduplicate workflow strings ───
+function _deduplicateWorkflows(workflowStr) {
+    if (!workflowStr) return [];
+    var parts = workflowStr.split(',').map(function (w) { return w.trim(); }).filter(Boolean);
+    var seen = {};
+    var result = [];
+    parts.forEach(function (p) {
+        var key = p.toLowerCase();
+        if (!seen[key]) {
+            seen[key] = true;
+            result.push(p);
+        }
+    });
+    return result;
+}
+
 // Data-driven chip definitions for environment cards.
 // Each entry maps a data key to a display format. Order = display priority.
 var CARD_CHIP_FIELDS = [
@@ -1521,11 +1537,11 @@ function createEnvCard(env) {
         } else if (field.format === 'flag') {
             chips += '<span class="env-chip env-chip--flag">' + field.label + '</span>';
         } else {
-            // For workflow field, split on commas to render multiple chips
+            // For workflow field, split on commas to render multiple chips (deduplicated)
             if (field.key === 'workflow' && typeof val === 'string' && val.indexOf(',') !== -1) {
-                var parts = val.split(',');
+                var parts = _deduplicateWorkflows(val);
                 for (var pi = 0; pi < parts.length; pi++) {
-                    var part = parts[pi].trim();
+                    var part = parts[pi];
                     if (part) {
                         var partDisplay = field.label ? field.label + ': ' + part : part;
                         chips += '<span class="env-chip">' + partDisplay + '</span>';
@@ -2402,77 +2418,38 @@ function closeEnvDetailPage() {
 }
 
 // ─── Build Scenarios Section for detail page ───
-// Load persisted scenarios from backend and merge into TRAINING_CONFIG
+// Load persisted scenarios from backend and merge into TRAINING_CONFIG (async/await)
 var _persistedScenariosLoaded = {};
-function _loadPersistedScenarios(envName, envCategory) {
+async function _ensurePersistedScenarios(envName, envCategory) {
     var cacheKey = envName + '|' + envCategory;
     if (_persistedScenariosLoaded[cacheKey]) return;
     _persistedScenariosLoaded[cacheKey] = true;
 
-    fetch(API_BASE + '/api/scenarios?product=' + encodeURIComponent(envName))
-        .then(function (res) { return res.ok ? res.json() : null; })
-        .then(function (data) {
-            if (!data || !data.scenarios || !data.scenarios.length) return;
-            var cfg = window.TRAINING_CONFIG;
-            if (!cfg || !cfg.scenarios) return;
-            var existingIds = new Set(cfg.scenarios.map(function (s) { return s.id; }));
-            var added = 0;
-            data.scenarios.forEach(function (s) {
-                if (!existingIds.has(s.id)) {
-                    s.source = s.source || 'custom';
-                    s.environment = s.environment || s.product || '';
-                    s.expected_workflow = s.expected_workflow || [];
-                    cfg.scenarios.push(s);
-                    existingIds.add(s.id);
-                    added++;
-                }
-            });
-            if (added > 0) {
-                console.log('[Scenarios] Loaded ' + added + ' persisted scenario(s) for ' + envName);
-                var section = document.getElementById('section-scenarios');
-                if (section) {
-                    var allScenarios = cfg.scenarios;
-                    var filtered = allScenarios.filter(function (s) {
-                        if (s.environment) return s.environment === envName;
-                        return s.category === envCategory || s.product === envName;
-                    });
-                    var countSpan = section.querySelector('.detail-collapsible-header h2 span');
-                    if (countSpan) countSpan.textContent = '(' + filtered.length + ')';
-                    var body = document.getElementById('section-scenarios-body');
-                    if (body) {
-                        var contentDiv = body.querySelector('.detail-collapsible-content');
-                        if (contentDiv) {
-                            var listHtml = '';
-                            filtered.forEach(function (s, idx) {
-                                var actBtns = '<div class="card-action-btns" onclick="event.stopPropagation()">' +
-                                    '<button class="btn-xs btn-xs-edit" onclick="editScenario(\'' + envName.replace(/'/g, "\\'") + '\', \'' + envCategory + '\', \'' + s.id + '\')" title="Edit scenario">' +
-                                    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
-                                    ' Edit</button>' +
-                                    '<button class="btn-xs btn-xs-delete" onclick="deleteScenario(\'' + envName.replace(/'/g, "\\'") + '\', \'' + s.id + '\')" title="Delete scenario">' +
-                                    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>' +
-                                    ' Delete</button>' +
-                                    '</div>';
-                                listHtml += '<div class="scenario-card clickable-card" id="scenario-card-' + idx + '" onclick="showScenarioDetail(\'' + envCategory + '\', ' + idx + ', \'' + envName.replace(/'/g, "\\'") + '\')" title="Click to view details">' +
-                                    '<div class="scenario-card-header">' +
-                                    '<span class="scenario-card-name">' + s.name + '</span>' +
-                                    '<span class="scenario-card-badge">' + s.category + '</span>' +
-                                    '<span class="scenario-card-tasks">' + (s.task_count || 0) + ' tasks</span>' +
-                                    actBtns +
-                                    '</div>' +
-                                    '<p class="scenario-card-desc">' + (s.description || '') + '</p>' +
-                                    '</div>';
-                            });
-                            var existingCards = contentDiv.querySelectorAll('.scenario-card');
-                            var noMsg = contentDiv.querySelector('p[style]');
-                            if (noMsg) noMsg.remove();
-                            existingCards.forEach(function (c) { c.remove(); });
-                            contentDiv.insertAdjacentHTML('afterbegin', listHtml);
-                        }
-                    }
-                }
+    try {
+        var res = await fetch(API_BASE + '/api/scenarios?product=' + encodeURIComponent(envName));
+        if (!res.ok) return;
+        var data = await res.json();
+        if (!data || !data.scenarios || !data.scenarios.length) return;
+        var cfg = window.TRAINING_CONFIG;
+        if (!cfg || !cfg.scenarios) return;
+        var existingIds = new Set(cfg.scenarios.map(function (s) { return s.id; }));
+        var added = 0;
+        data.scenarios.forEach(function (s) {
+            if (!existingIds.has(s.id)) {
+                s.source = s.source || 'custom';
+                s.environment = s.environment || s.product || '';
+                s.expected_workflow = s.expected_workflow || [];
+                cfg.scenarios.push(s);
+                existingIds.add(s.id);
+                added++;
             }
-        })
-        .catch(function (e) { console.warn('[Scenarios] Failed to load persisted scenarios:', e); });
+        });
+        if (added > 0) {
+            console.log('[Scenarios] Loaded ' + added + ' persisted scenario(s) for ' + envName);
+        }
+    } catch (e) {
+        console.warn('[Scenarios] Failed to load persisted scenarios:', e);
+    }
 }
 
 function buildScenariosSection(envName, envCategory) {
@@ -2484,8 +2461,7 @@ function buildScenariosSection(envName, envCategory) {
         return s.category === envCategory || s.product === envName;
     });
 
-    // Also load persisted scenarios from backend (async, will re-render if new ones found)
-    _loadPersistedScenarios(envName, envCategory);
+    // Persisted scenarios are now pre-loaded via _ensurePersistedScenarios() before render
 
     var listHtml = '';
     if (filtered.length) {
@@ -2700,111 +2676,54 @@ function deleteScenario(envName, scenarioId) {
 }
 window.deleteScenario = deleteScenario;
 
-// ─── Load persisted verifiers from backend and merge into VERIFIER_DATA ───
+// ─── Load persisted verifiers from backend and merge into VERIFIER_DATA (async/await) ───
 var _persistedVerifiersLoaded = {};
-function _loadPersistedVerifiers(envName, envCategory) {
+async function _ensurePersistedVerifiers(envName, envCategory) {
     var cacheKey = envName + '|' + envCategory;
     if (_persistedVerifiersLoaded[cacheKey]) return;
     _persistedVerifiersLoaded[cacheKey] = true;
 
-    fetch(API_BASE + '/api/verifiers')
-        .then(function (res) { return res.ok ? res.json() : null; })
-        .then(function (data) {
-            if (!data || !data.verifiers || !data.verifiers.length) return;
-            var store = window.VERIFIER_DATA;
-            if (!store || !store.all) return;
-            var existingIds = new Set(store.all.map(function (v) { return v.id; }));
-            var added = 0;
-            data.verifiers.forEach(function (v) {
-                var normalized = {
-                    id: v.id,
-                    name: v.name,
-                    type: v.type,
-                    system: v.system || 'Custom',
-                    environment: v.environment,
-                    envName: v.envName || v.env_name || '',
-                    source: v.source || (v.system === 'Custom' ? 'custom' : ''),
-                    version: v.version || 1,
-                    status: v.status || 'active',
-                    usedInScenarios: v.used_in_scenarios || v.usedInScenarios || [],
-                    description: v.description || '',
-                    metadata: v.metadata || {},
-                    logic: v.logic || {},
-                    exampleInput: v.example_input || v.exampleInput || {},
-                    exampleOutput: v.example_output || v.exampleOutput || {},
-                    failurePolicy: v.failure_policy || v.failurePolicy || {},
-                    subVerifiers: v.subVerifiers || []
-                };
-                if (!existingIds.has(normalized.id)) {
-                    store.all.push(normalized);
-                    existingIds.add(normalized.id);
-                    added++;
-                }
-            });
-            if (added > 0) {
-                console.log('[Verifiers] Loaded ' + added + ' persisted verifier(s) from backend');
-                var section = document.getElementById('section-verifiers');
-                if (section) {
-                    var allVerifiers = store.all;
-                    var filtered = allVerifiers.filter(function (v) {
-                        if (v.envName) return v.envName === envName;
-                        return v.environment === envCategory;
-                    });
-                    var countSpan = section.querySelector('.detail-collapsible-header h2 span');
-                    if (countSpan) countSpan.textContent = '(' + filtered.length + ')';
-                    // Re-render verifier cards
-                    var body = document.getElementById('section-verifiers-body');
-                    if (body) {
-                        var contentDiv = body.querySelector('.detail-collapsible-content');
-                        if (contentDiv) {
-                            var listHtml = '';
-                            filtered.forEach(function (v, idx) {
-                                var typeClass = (v.type || '').replace(/[^a-z0-9-]/gi, '-').toLowerCase();
-                                var vActBtns = '<div class="card-action-btns" onclick="event.stopPropagation()">' +
-                                    '<button class="btn-xs btn-xs-edit" onclick="editVerifier(\'' + envName.replace(/'/g, "\\'") + '\', \'' + envCategory + '\', \'' + v.id + '\')" title="Edit verifier">' +
-                                    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
-                                    ' Edit</button>' +
-                                    '<button class="btn-xs btn-xs-delete" onclick="deleteVerifier(\'' + envName.replace(/'/g, "\\'") + '\', \'' + v.id + '\')" title="Delete verifier">' +
-                                    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>' +
-                                    ' Delete</button>' +
-                                    '</div>';
-                                var scoringHtml = '';
-                                if (v.logic && v.logic.scoring && typeof v.logic.scoring === 'object' && !Array.isArray(v.logic.scoring)) {
-                                    var keys = Object.keys(v.logic.scoring);
-                                    scoringHtml = '<div class="verifier-scoring">';
-                                    keys.forEach(function (k) {
-                                        scoringHtml += '<span class="verifier-score-badge">' + k.replace(/_/g, ' ') + ': ' + v.logic.scoring[k] + '</span>';
-                                    });
-                                    scoringHtml += '</div>';
-                                }
-                                var subHtml = '';
-                                if (v.subVerifiers && v.subVerifiers.length) {
-                                    subHtml = '<div class="verifier-subs"><span style="font-size:0.75rem;color:var(--text-secondary);font-weight:600;">Sub-verifiers:</span>';
-                                    v.subVerifiers.forEach(function (sv) {
-                                        subHtml += '<span class="verifier-sub-chip" title="' + (sv.description || '') + '">' + sv.name + '</span>';
-                                    });
-                                    subHtml += '</div>';
-                                }
-                                listHtml += '<div class="verifier-card clickable-card" id="verifier-card-' + idx + '" onclick="showVerifierDetail(\'' + envCategory + '\', ' + idx + ')" title="Click to view JSON config">' +
-                                    '<div class="verifier-card-header">' +
-                                    '<span class="verifier-card-name">' + v.name + '</span>' +
-                                    '<span class="verifier-card-type type-' + typeClass + '">' + v.type + '</span>' +
-                                    vActBtns +
-                                    '</div>' +
-                                    '<p class="verifier-card-desc">' + (v.description || '') + '</p>' +
-                                    scoringHtml + subHtml +
-                                    '</div>';
-                            });
-                            var verifiersList = contentDiv.querySelector('.verifiers-list');
-                            if (verifiersList) {
-                                verifiersList.innerHTML = listHtml;
-                            }
-                        }
-                    }
-                }
+    try {
+        var res = await fetch(API_BASE + '/api/verifiers');
+        if (!res.ok) return;
+        var data = await res.json();
+        if (!data || !data.verifiers || !data.verifiers.length) return;
+        var store = window.VERIFIER_DATA;
+        if (!store || !store.all) return;
+        var existingIds = new Set(store.all.map(function (v) { return v.id; }));
+        var added = 0;
+        data.verifiers.forEach(function (v) {
+            var normalized = {
+                id: v.id,
+                name: v.name,
+                type: v.type,
+                system: v.system || 'Custom',
+                environment: v.environment,
+                envName: v.envName || v.env_name || '',
+                source: v.source || (v.system === 'Custom' ? 'custom' : ''),
+                version: v.version || 1,
+                status: v.status || 'active',
+                usedInScenarios: v.used_in_scenarios || v.usedInScenarios || [],
+                description: v.description || '',
+                metadata: v.metadata || {},
+                logic: v.logic || {},
+                exampleInput: v.example_input || v.exampleInput || {},
+                exampleOutput: v.example_output || v.exampleOutput || {},
+                failurePolicy: v.failure_policy || v.failurePolicy || {},
+                subVerifiers: v.subVerifiers || []
+            };
+            if (!existingIds.has(normalized.id)) {
+                store.all.push(normalized);
+                existingIds.add(normalized.id);
+                added++;
             }
-        })
-        .catch(function (e) { console.warn('[Verifiers] Failed to load persisted verifiers:', e); });
+        });
+        if (added > 0) {
+            console.log('[Verifiers] Loaded ' + added + ' persisted verifier(s) from backend');
+        }
+    } catch (e) {
+        console.warn('[Verifiers] Failed to load persisted verifiers:', e);
+    }
 }
 
 // ─── Build Verifiers Section for detail page ───
@@ -2816,8 +2735,7 @@ function buildVerifiersSection(envName, envCategory) {
         return v.environment === envCategory;
     });
 
-    // Also load persisted verifiers from backend (async, will re-render if new ones found)
-    _loadPersistedVerifiers(envName, envCategory);
+    // Persisted verifiers are now pre-loaded via _ensurePersistedVerifiers() before render
 
     var listHtml = '';
     if (filtered.length) {
@@ -4589,7 +4507,7 @@ function _buildSimulationsContent(envName, env, details) {
     return '<iframe src="/test-console?env=' + encodeURIComponent(envName) + '&embedded=1" style="width:100%;height:700px;border:none;" loading="lazy"></iframe>';
 }
 
-function showEnvironmentDetails(envName) {
+async function showEnvironmentDetails(envName) {
     var env = allEnvironments.find(function (e) { return e.name === envName; });
     if (!env) return;
 
@@ -4600,6 +4518,12 @@ function showEnvironmentDetails(envName) {
         _showTerraformDetailView(env, details);
         return;
     }
+
+    // Pre-load persisted scenarios & verifiers BEFORE rendering (fixes persistence on refresh)
+    await Promise.all([
+        _ensurePersistedScenarios(envName, env.category || ''),
+        _ensurePersistedVerifiers(envName, env.category || '')
+    ]);
 
     // Enrich HuggingFace environments with RL defaults from category registry
     if (details.source === 'huggingface' || env.source === 'huggingface') {
@@ -4641,6 +4565,17 @@ function showEnvironmentDetails(envName) {
         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
         '</button>';
 
+    // Build deduplicated workflow chips for detail hero
+    var _detailWorkflows = _deduplicateWorkflows(env.workflow || details.workflow || '');
+    var _workflowChipsHtml = '';
+    if (_detailWorkflows.length > 0) {
+        _workflowChipsHtml = '<span class="detail-workflow-chips">';
+        _detailWorkflows.forEach(function (w) {
+            _workflowChipsHtml += '<span class="workflow-tag">' + w + '</span>';
+        });
+        _workflowChipsHtml += '</span>';
+    }
+
     var detailBody = document.getElementById('env-detail-body');
     detailBody.innerHTML =
         '<div class="detail-hero">' +
@@ -4653,7 +4588,10 @@ function showEnvironmentDetails(envName) {
         howToUse +
         '</div>' +
         '</span>' +
-        '<span class="env-category category-' + env.category + '">' + env.category + '</span>' +
+        '<span class="env-category category-' + env.category + '" id="env-detail-category-badge">' + env.category +
+            '<button class="btn-icon-xs" onclick="event.stopPropagation();editCategoryField(\'' + eName + '\')" title="Edit category">' +
+            '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+            '</button></span>' +
         (env.system ? '<span class="env-system-badge">' + env.system +
             '<button class="btn-icon-xs" onclick="event.stopPropagation();editSystemField(\'' + eName + '\')" title="Edit system">' +
             '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
@@ -4661,6 +4599,7 @@ function showEnvironmentDetails(envName) {
             : '<span class="env-system-badge" style="cursor:pointer;" onclick="editSystemField(\'' + eName + '\')" title="Set system">' +
             '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
             ' System</span>') +
+        _workflowChipsHtml +
         ((details.hf_url || env.hf_url) ? '<a href="' + (details.hf_url || env.hf_url) + '" target="_blank" class="hf-source-link" style="margin-left:0.5rem;font-size:0.82rem;">View on HuggingFace ↗</a>' : '') +
         '<div class="env-hero-actions" style="display:flex;gap:6px;margin-left:auto;">' + cloneBtn + editBtn + deleteBtn + '</div>' +
         '</div>' +
@@ -6622,6 +6561,7 @@ function submitAddEnvironment(event) {
     };
 
     // Merge extra fields from clone source if present
+    var _cloneSourceName = null;
     if (_cloneSourceEnv) {
         var cloneFields = ['category', 'system', 'domain', 'workflow', 'tags',
             'actions', 'stateFeatures', 'actionSpace', 'actionType', 'multi_agent'];
@@ -6630,6 +6570,7 @@ function submitAddEnvironment(event) {
                 newEnv[f] = _cloneSourceEnv[f];
             }
         });
+        _cloneSourceName = _cloneSourceEnv.name;
         _cloneSourceEnv = null;
     }
 
@@ -6647,6 +6588,48 @@ function submitAddEnvironment(event) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newEnv)
     }).then(function () {
+        // If cloning, also clone scenarios & verifiers for the new environment
+        if (_cloneSourceName) {
+            var cloneSrc = _cloneSourceName;
+            console.log('[Clone] Cloning scenarios & verifiers from "' + cloneSrc + '" to "' + name + '"');
+
+            // Gather hardcoded scenarios from TRAINING_CONFIG for the source env
+            var srcEnvObj = allEnvironments.find(function (e) { return e.name === cloneSrc; });
+            var srcCat = srcEnvObj ? srcEnvObj.category : '';
+            var hardcodedScenarios = [];
+            if (window.TRAINING_CONFIG && window.TRAINING_CONFIG.scenarios) {
+                hardcodedScenarios = window.TRAINING_CONFIG.scenarios.filter(function (s) {
+                    if (s.source === 'custom' || s.source === 'cloned') return false; // skip custom, handled by backend
+                    if (s.environment) return s.environment === cloneSrc;
+                    return s.category === srcCat || s.product === cloneSrc;
+                });
+            }
+            var hardcodedVerifiers = [];
+            if (window.VERIFIER_DATA && window.VERIFIER_DATA.all) {
+                hardcodedVerifiers = window.VERIFIER_DATA.all.filter(function (v) {
+                    if (v.source === 'custom' || v.source === 'cloned') return false;
+                    if (v.envName) return v.envName === cloneSrc;
+                    return v.environment === srcCat;
+                });
+            }
+
+            fetch(API_BASE + '/api/environments/' + encodeURIComponent(name) + '/clone-scenarios', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source: cloneSrc, hardcoded: hardcodedScenarios })
+            }).then(function (r) { return r.ok ? r.json() : null; })
+              .then(function (d) { if (d) console.log('[Clone] Scenarios cloned:', d); })
+              .catch(function (e) { console.warn('[Clone] Scenario clone failed:', e); });
+
+            fetch(API_BASE + '/api/environments/' + encodeURIComponent(name) + '/clone-verifiers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source: cloneSrc, hardcoded: hardcodedVerifiers })
+            }).then(function (r) { return r.ok ? r.json() : null; })
+              .then(function (d) { if (d) console.log('[Clone] Verifiers cloned:', d); })
+              .catch(function (e) { console.warn('[Clone] Verifier clone failed:', e); });
+        }
+
         // Fetch classification to update local grid/details
         return fetch(API_BASE + '/api/classify-environment', {
             method: 'POST',
@@ -7180,9 +7163,9 @@ function editEnvironment(envName) {
         domainOptions += '<option value="' + d + '"' + selected + '>' + d + '</option>';
     });
 
-    // Workflow tags
+    // Workflow tags (deduplicated)
     var currentWorkflow = env.workflow || details.workflow || '';
-    var workflowParts = currentWorkflow ? currentWorkflow.split(',').map(function (w) { return w.trim(); }).filter(Boolean) : [];
+    var workflowParts = _deduplicateWorkflows(currentWorkflow);
     var workflowTagsHtml = workflowParts.map(function (w) {
         return '<span class="workflow-tag" data-value="' + w + '">' + w + ' <button type="button" class="workflow-tag-remove" onclick="this.parentElement.remove()">&times;</button></span>';
     }).join('');
@@ -7308,6 +7291,103 @@ function editSystemField(envName) {
     input.addEventListener('click', function (e) { e.stopPropagation(); });
 }
 window.editSystemField = editSystemField;
+
+// ─── Inline editable category field ───
+var _categoryOptions = ['clinical', 'financial', 'operational', 'telehealth', 'interoperability', 'imaging', 'pharmacy', 'insurance', 'supply_chain', 'revenue_cycle', 'cross_workflow', 'dev-sim', 'med-sim', 'fin-sim', 'hr-sim', 'retail-sim', 'custom'];
+
+function editCategoryField(envName) {
+    var env = null;
+    if (typeof allEnvironments !== 'undefined' && allEnvironments) {
+        env = allEnvironments.find(function (e) { return e.name === envName; });
+    }
+    if (!env && window.ENVIRONMENT_REGISTRY) {
+        env = window.ENVIRONMENT_REGISTRY.find(function (e) { return e.name === envName; });
+    }
+    if (!env && window._customEnvironments) {
+        env = window._customEnvironments.find(function (e) { return e.name === envName; });
+    }
+    var current = (env && env.category) || '';
+
+    var badge = document.getElementById('env-detail-category-badge');
+    if (!badge) return;
+
+    // Create inline edit container with dropdown
+    var wrapper = document.createElement('span');
+    wrapper.className = 'category-inline-edit';
+    wrapper.style.cssText = 'display:inline-flex;align-items:center;gap:4px;';
+
+    var select = document.createElement('select');
+    select.className = 'category-inline-select';
+    _categoryOptions.forEach(function (opt) {
+        var option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        if (opt === current) option.selected = true;
+        select.appendChild(option);
+    });
+
+    var saveBtn = document.createElement('button');
+    saveBtn.className = 'btn-icon-xs system-inline-save';
+    saveBtn.title = 'Save';
+    saveBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn-icon-xs system-inline-cancel';
+    cancelBtn.title = 'Cancel';
+    cancelBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+    wrapper.appendChild(select);
+    wrapper.appendChild(saveBtn);
+    wrapper.appendChild(cancelBtn);
+
+    badge.parentNode.replaceChild(wrapper, badge);
+    select.focus();
+
+    function saveCategory() {
+        var newCategory = select.value;
+        // Update in-memory
+        if (env) {
+            env.category = newCategory;
+            env.domain = newCategory;
+        }
+        // Persist to backend
+        fetch(API_BASE + '/api/environments/' + encodeURIComponent(envName) + '/category', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ category: newCategory })
+        }).then(function (res) {
+            if (res.ok) {
+                showToast('Category updated to "' + newCategory + '"', 'success');
+                // Also update allEnvironments if env is there
+                if (typeof allEnvironments !== 'undefined') {
+                    var ae = allEnvironments.find(function (e) { return e.name === envName; });
+                    if (ae) { ae.category = newCategory; ae.domain = newCategory; }
+                }
+            } else {
+                console.warn('[Category] Update failed:', res.status);
+            }
+        }).catch(function (e) { console.warn('[Category] Update error:', e); });
+        // Clear scenario/verifier caches for this env (category changed)
+        var oldCacheKey = envName + '|' + current;
+        delete _persistedScenariosLoaded[oldCacheKey];
+        delete _persistedVerifiersLoaded[oldCacheKey];
+        // Re-render detail page
+        showEnvironmentDetails(envName);
+    }
+
+    function cancelEdit() {
+        showEnvironmentDetails(envName);
+    }
+
+    saveBtn.addEventListener('click', function (e) { e.stopPropagation(); saveCategory(); });
+    cancelBtn.addEventListener('click', function (e) { e.stopPropagation(); cancelEdit(); });
+    select.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); saveCategory(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+    });
+    select.addEventListener('click', function (e) { e.stopPropagation(); });
+}
+window.editCategoryField = editCategoryField;
 
 function _initEditWorkflowTagInput() {
     var container = document.getElementById('edit-workflow-tags-container');

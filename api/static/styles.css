@@ -2813,6 +2813,19 @@ h1 svg, h2 svg, h3 svg, h4 svg {
     font-size: 0.8rem;
 }
 
+/* ── Detail page workflow chips container ── */
+.detail-workflow-chips {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 0.5rem;
+    flex-wrap: wrap;
+}
+.detail-workflow-chips .workflow-tag {
+    padding: 3px 10px;
+    cursor: default;
+}
+
 /* ── Card Action Buttons (Edit / Delete on scenario & verifier cards) ── */
 .card-action-btns {
     display: inline-flex;
@@ -2948,6 +2961,28 @@ h1 svg, h2 svg, h3 svg, h4 svg {
 .system-inline-input::placeholder {
     color: var(--text-secondary, #888);
     font-weight: 400;
+}
+.category-inline-select {
+    padding: 0.2rem 0.5rem;
+    border: 1.5px solid var(--primary-color, #c026d3);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-family: inherit;
+    font-weight: 500;
+    background: var(--card-bg, #fff);
+    color: var(--text-primary, #1a1a2e);
+    outline: none;
+    min-width: 120px;
+    max-width: 220px;
+    box-shadow: 0 0 0 3px rgba(192, 38, 211, 0.12);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237e22ce'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 22px;
 }
 .system-inline-save {
     color: #22c55e;
@@ -4269,4 +4304,6 @@ h1 svg, h2 svg, h3 svg, h4 svg {
 [data-theme="dark"] .env-system-badge { background: var(--bg-tertiary, #1e1b30); color: var(--text-secondary, #a8a2b8); border-color: var(--border-color, #3e3a52); }
 [data-theme="dark"] .system-inline-input { background: var(--card-bg, #252236); color: var(--text-primary, #f3f0f9); border-color: var(--primary-color, #e879f9); }
 [data-theme="dark"] .system-inline-input::placeholder { color: var(--text-secondary, #a8a2b8); }
+[data-theme="dark"] .category-inline-select { background-color: var(--card-bg, #252236); color: var(--text-primary, #f3f0f9); border-color: var(--primary-color, #e879f9); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23e879f9'/%3E%3C/svg%3E"); }
+[data-theme="dark"] .category-inline-select option { background: var(--card-bg, #252236); color: var(--text-primary, #f3f0f9); }
 

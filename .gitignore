@@ -57,8 +57,11 @@ logs/
 
 # Database
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
+api/data/
 
 # Testing
 .pytest_cache/

@@ -3263,12 +3263,33 @@ async def update_environment_system(name: str, request: Request):
         env["system"] = new_system
         _persist_environments()
         return {"status": "updated", "name": name, "system": new_system}
-    # Try built-in ENVIRONMENT_REGISTRY
-    from portal.registry import ENVIRONMENT_REGISTRY
-    builtin = next((e for e in ENVIRONMENT_REGISTRY if e.get("name") == name), None)
-    if builtin:
-        builtin["system"] = new_system
+    # Try built-in ENVIRONMENT_REGISTRY (dict keyed by name)
+    from portal.environment_registry import ENVIRONMENT_REGISTRY
+    if name in ENVIRONMENT_REGISTRY:
+        ENVIRONMENT_REGISTRY[name]["system"] = new_system
         return {"status": "updated", "name": name, "system": new_system}
+    raise HTTPException(status_code=404, detail=f"Environment '{name}' not found.")
+
+
+@app.put("/api/environments/{name}/category")
+async def update_environment_category(name: str, request: Request):
+    """Update just the 'category' (domain) field on any environment (custom or built-in)."""
+    global custom_environments
+    data = await request.json()
+    new_category = data.get("category", "")
+    # Try custom environments first
+    env = next((e for e in custom_environments if e["name"] == name), None)
+    if env:
+        env["category"] = new_category
+        env["domain"] = new_category
+        _persist_environments()
+        return {"status": "updated", "name": name, "category": new_category}
+    # Try built-in ENVIRONMENT_REGISTRY (dict keyed by name)
+    from portal.environment_registry import ENVIRONMENT_REGISTRY
+    if name in ENVIRONMENT_REGISTRY:
+        ENVIRONMENT_REGISTRY[name]["category"] = new_category
+        ENVIRONMENT_REGISTRY[name]["domain"] = new_category
+        return {"status": "updated", "name": name, "category": new_category}
     raise HTTPException(status_code=404, detail=f"Environment '{name}' not found.")
 
 
@@ -3422,6 +3443,123 @@ async def delete_scenario(scenario_id: str):
     if not _scenario_store.delete(scenario_id):
         raise HTTPException(status_code=404, detail=f"Scenario '{scenario_id}' not found.")
     return {"status": "deleted", "id": scenario_id}
+
+
+@app.post("/api/environments/{name}/clone-scenarios")
+async def clone_scenarios(name: str, request: Request):
+    """Clone scenarios from a source environment into the target environment.
+    Copies both custom DB scenarios and hardcoded scenarios matching the source."""
+    import uuid as _uuid
+    data = await request.json()
+    source = data.get("source", "")
+    if not source:
+        raise HTTPException(status_code=400, detail="Source environment name required.")
+
+    # Find source env to get its category
+    source_env = next((e for e in custom_environments if e["name"] == source), None)
+    if not source_env:
+        from portal.environment_registry import ENVIRONMENT_REGISTRY
+        source_env = ENVIRONMENT_REGISTRY.get(source)
+    source_category = source_env.get("category", "") if source_env else ""
+
+    cloned = 0
+
+    # Clone persisted (DB) scenarios matching source env
+    db_scenarios = _scenario_store.list_by_product(source)
+    for s in db_scenarios:
+        new_id = "scenario_" + str(_uuid.uuid4())[:8]
+        new_s = dict(s)
+        new_s["id"] = new_id
+        new_s["product"] = name
+        new_s["environment"] = name
+        new_s["source"] = "cloned"
+        _scenario_store.upsert(new_id, new_s)
+        cloned += 1
+
+    # Also persist hardcoded scenarios sent from frontend
+    hardcoded = data.get("hardcoded", [])
+    if isinstance(hardcoded, list):
+        for s in hardcoded:
+            new_id = "scenario_" + str(_uuid.uuid4())[:8]
+            new_s = dict(s)
+            new_s["id"] = new_id
+            new_s["product"] = name
+            new_s["environment"] = name
+            new_s["source"] = "cloned"
+            _scenario_store.upsert(new_id, new_s)
+            cloned += 1
+
+    return {"status": "ok", "cloned": cloned, "target": name, "source": source}
+
+
+@app.post("/api/environments/{name}/clone-verifiers")
+async def clone_verifiers(name: str, request: Request):
+    """Clone verifiers from a source environment into the target environment.
+    Copies both custom DB verifiers and hardcoded verifiers matching the source."""
+    import uuid as _uuid
+    data = await request.json()
+    source = data.get("source", "")
+    if not source:
+        raise HTTPException(status_code=400, detail="Source environment name required.")
+
+    # Find source env to get its category
+    source_env = next((e for e in custom_environments if e["name"] == source), None)
+    if not source_env:
+        from portal.environment_registry import ENVIRONMENT_REGISTRY
+        source_env = ENVIRONMENT_REGISTRY.get(source)
+    source_category = source_env.get("category", "") if source_env else ""
+
+    # Find target env to get its category
+    target_env = next((e for e in custom_environments if e["name"] == name), None)
+    if not target_env:
+        from portal.environment_registry import ENVIRONMENT_REGISTRY
+        target_env = ENVIRONMENT_REGISTRY.get(name)
+    target_category = target_env.get("category", "") if target_env else source_category
+
+    cloned = 0
+
+    # 1. Clone persisted (DB) verifiers
+    db_verifiers = _verifier_db_store.list_by_environment(source_category)
+    # Also check verifiers associated by envName
+    all_db_verifiers = _verifier_db_store.list_all()
+    env_name_verifiers = [v for v in all_db_verifiers if v.get("envName") == source or v.get("env_name") == source]
+    # Merge and deduplicate
+    seen_ids = set()
+    combined = []
+    for v in db_verifiers + env_name_verifiers:
+        vid = v.get("id")
+        if vid and vid not in seen_ids:
+            seen_ids.add(vid)
+            combined.append(v)
+
+    for v in combined:
+        new_id = "verifier_" + str(_uuid.uuid4())[:8]
+        new_v = dict(v)
+        new_v["id"] = new_id
+        new_v["environment"] = target_category
+        new_v["envName"] = name
+        new_v["env_name"] = name
+        new_v["source"] = "cloned"
+        _verifier_store[new_id] = new_v
+        _verifier_db_store.upsert(new_id, new_v)
+        cloned += 1
+
+    # Also persist hardcoded verifiers sent from frontend
+    hardcoded = data.get("hardcoded", [])
+    if isinstance(hardcoded, list):
+        for v in hardcoded:
+            new_id = "verifier_" + str(_uuid.uuid4())[:8]
+            new_v = dict(v)
+            new_v["id"] = new_id
+            new_v["environment"] = target_category
+            new_v["envName"] = name
+            new_v["env_name"] = name
+            new_v["source"] = "cloned"
+            _verifier_store[new_id] = new_v
+            _verifier_db_store.upsert(new_id, new_v)
+            cloned += 1
+
+    return {"status": "ok", "cloned": cloned, "target": name, "source": source}
 
 
 @app.get("/api/environment/{name}/analyze")
