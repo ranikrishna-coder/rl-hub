@@ -61,7 +61,7 @@ Created safety and compliance controls:
 
 ### 4. Database Schema Updates ✅
 
-**Location**: `/database/schema.sql`
+**Location**: `database/schema_mariadb.sql`
 
 Added new tables:
 
@@ -235,7 +235,7 @@ python3 test_verifier_refactor.py
 
 ### Modified Files
 - `environments/clinical/treatment_pathway_optimization.py` (refactored)
-- `database/schema.sql` (added new tables)
+- `database/schema_mariadb.sql` (MariaDB schema)
 - `api/main.py` (added new endpoints)
 
 ### Backup Files

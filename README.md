@@ -9,7 +9,7 @@ A platform for designing, simulating, and training reinforcement learning agents
 | **Backend** | Python 3.11, FastAPI, Uvicorn |
 | **Frontend** | Vanilla HTML/JS/CSS (no build step) |
 | **RL Framework** | Gymnasium, Stable-Baselines3, PyTorch |
-| **Data** | SQLite (environments, scenarios, verifiers); in-memory (training jobs, rollouts) |
+| **Data** | MariaDB (environments, scenarios, verifiers, contact); in-memory (training jobs, rollouts) |
 | **Deployment** | Docker, Azure |
 
 ### Backend / API
@@ -40,9 +40,9 @@ A platform for designing, simulating, and training reinforcement learning agents
 
 | Framework | Purpose |
 |-----------|---------|
-| SQLite (WAL mode) | Embedded DB for environments, scenarios, verifiers |
-| SQLAlchemy | ORM and DB abstractions |
-| psycopg2 | PostgreSQL driver (optional) |
+| MariaDB | Persistence for environments, scenarios, verifiers, contact form (configure via MARIADB_* env vars) |
+| PyMySQL | MariaDB/MySQL driver |
+| SQLAlchemy | ORM and DB abstractions (optional) |
 
 ### Frontend
 
@@ -95,11 +95,8 @@ Open **http://localhost:8000** in your browser.
 agentwork-simulator/
 ├── api/                        # FastAPI backend + static frontend
 │   ├── main.py                 # REST API, training loop, rollout store
-│   ├── persistence.py          # SQLite stores (EnvironmentStore, ScenarioStore, VerifierStore)
-│   ├── data/                   # SQLite databases (gitignored, persists across deploys)
-│   │   ├── environments.db     # Custom environments
-│   │   ├── scenarios.db        # User-created scenarios
-│   │   └── verifiers.db        # User-created verifiers
+│   ├── persistence.py          # MariaDB stores (EnvironmentStore, ScenarioStore, VerifierStore)
+│   ├── data/                   # Local data dir (gitignored; legacy JSON migration)
 │   └── static/                 # Frontend (6 HTML pages, 7 JS, 7 CSS)
 │       ├── app.js              # Catalog UI logic
 │       ├── training.js         # Training console (stepper, charts, rollout)
@@ -223,43 +220,41 @@ Seven verifier types validate agent behavior:
 
 ## Data Persistence
 
-User-created data is stored in SQLite databases under `api/data/` with WAL mode enabled for concurrent read/write safety.
+User-created data is stored in **MariaDB** (configured via `MARIADB_*` env vars). Create the database and tables using `database/schema_mariadb.sql` or let the app create tables on first use.
 
-| Database | Contents |
-|----------|----------|
-| `environments.db` | Custom environments created via the Add Environment form |
-| `scenarios.db` | User-created training scenarios per environment |
-| `verifiers.db` | User-created verifiers per environment |
+| Table | Contents |
+|-------|----------|
+| `user_environments` | Custom environments created via the Add Environment form |
+| `user_scenarios` | User-created training scenarios per environment |
+| `user_verifiers` | User-created verifiers per environment |
+| `contact_submissions` | Contact form submissions |
 
 ### Persistence Stores (`api/persistence.py`)
 
 | Store | Table | Key Operations |
 |-------|-------|----------------|
-| `EnvironmentStore` | `custom_environments` | CRUD for custom envs, system/category updates |
-| `ScenarioStore` | `user_scenarios` | Add, list, delete scenarios by environment |
+| `EnvironmentStore` | `user_environments` | CRUD for custom envs, backups, health snapshots |
+| `ScenarioStore` | `user_scenarios` | Add, list, delete scenarios by environment/product |
 | `VerifierStore` | `user_verifiers` | Add, list, delete verifiers by environment |
 
 ### What persists vs in-memory
 
 | Data | Storage | Survives Restart |
 |------|---------|-----------------|
-| Custom environments | SQLite (`environments.db`) | ✅ Yes |
-| Scenarios (user-created) | SQLite (`scenarios.db`) | ✅ Yes |
-| Verifiers (user-created) | SQLite (`verifiers.db`) | ✅ Yes |
+| Custom environments | MariaDB | ✅ Yes |
+| Scenarios (user-created) | MariaDB | ✅ Yes |
+| Verifiers (user-created) | MariaDB | ✅ Yes |
+| Contact form submissions | MariaDB | ✅ Yes |
 | Built-in 113 environments | Python registry (in-memory) | ✅ Yes (code) |
 | Training jobs & rollouts | In-memory dict | ❌ No |
 
 ### Deployment Safety
 
-The `api/data/` directory is **gitignored** so user data is never overwritten by deployments. The CI/CD pipeline (`deploy-vm.yml`) performs a full backup-restore cycle:
-
-1. **Before** `git reset --hard`: backs up entire `api/data/` directory
-2. **After** reset: restores all `.db`, `.db-wal`, and `.db-shm` files
-3. Docker deployments mount `api/data/` as a volume for the same protection
+Back up your MariaDB database and credentials. The `api/data/` directory is gitignored (used for legacy JSON migration only). Docker deployments can pass `MARIADB_*` env vars to the container.
 
 ### Schema Migration
 
-Stores auto-migrate on startup using `ALTER TABLE ADD COLUMN` for forward compatibility — existing databases gain new columns without data loss.
+Stores auto-migrate on startup using `ALTER TABLE ADD COLUMN` where needed for forward compatibility.
 
 ## Testing
 

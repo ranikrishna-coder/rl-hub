@@ -55,12 +55,7 @@ models/**/*_subtasks.json
 *.log
 logs/
 
-# Database
-*.db
-*.db-wal
-*.db-shm
-*.sqlite
-*.sqlite3
+# Database (MariaDB is external; local data dir for legacy JSON migration)
 api/data/
 
 # Testing

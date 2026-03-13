@@ -2585,7 +2585,7 @@ function saveNewScenario(envName, envCategory) {
             if (window.TRAINING_CONFIG && window.TRAINING_CONFIG.scenarios) {
                 window.TRAINING_CONFIG.scenarios.push(newScenario);
             }
-            // Persist to backend SQLite store
+            // Persist to backend (MariaDB)
             fetch(API_BASE + '/api/scenarios', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

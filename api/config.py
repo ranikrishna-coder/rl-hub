@@ -9,26 +9,15 @@ API_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(API_DIR, "data")
 HF_SPACES_DIR = os.path.join(PROJECT_ROOT, "hf_spaces")
 
-# Storage backend: "sqlite" (default, survives git deployments) or "json" (legacy)
-STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "sqlite")
+# Storage backend: "mariadb" (default) or "json" (legacy for migration only)
+STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "mariadb")
 
-# SQLite database path for user environment state (gitignored by *.db rule)
-ENV_STORE_DB_PATH = os.getenv(
-    "ENV_STORE_DB_PATH",
-    os.path.join(DATA_DIR, "environments.db"),
-)
-
-# SQLite database path for user scenario state (gitignored by *.db rule)
-SCENARIO_STORE_DB_PATH = os.getenv(
-    "SCENARIO_STORE_DB_PATH",
-    os.path.join(DATA_DIR, "scenarios.db"),
-)
-
-# SQLite database path for user verifier state (gitignored by *.db rule)
-VERIFIER_STORE_DB_PATH = os.getenv(
-    "VERIFIER_STORE_DB_PATH",
-    os.path.join(DATA_DIR, "verifiers.db"),
-)
+# MariaDB connection (used for environments, scenarios, verifiers, contact form)
+MARIADB_HOST = os.getenv("MARIADB_HOST", "localhost")
+MARIADB_PORT = int(os.getenv("MARIADB_PORT", "3306"))
+MARIADB_USER = os.getenv("MARIADB_USER", "agentwork")
+MARIADB_PASSWORD = os.getenv("MARIADB_PASSWORD", "")
+MARIADB_DATABASE = os.getenv("MARIADB_DATABASE", "agentwork_simulator")
 
 # Legacy JSON path (used for migration and as fallback)
 CUSTOM_ENV_JSON_PATH = os.path.join(DATA_DIR, "custom_environments.json")

@@ -31,7 +31,7 @@ The deployment target is **Azure** (Dockerized FastAPI backend serving static fr
 | **Backend** | Python 3.11, FastAPI, Uvicorn |
 | **Frontend** | Vanilla HTML/JS/CSS (no build step, no framework) |
 | **RL Framework** | Gymnasium, Stable-Baselines3, PyTorch |
-| **Data** | In-memory (training jobs, rollouts); PostgreSQL schema available |
+| **Data** | MariaDB (environments, scenarios, verifiers, contact); in-memory (training jobs, rollouts) |
 | **Deployment** | Docker, Azure |
 | **Testing** | Pytest |
 | **Version Control** | Git, GitHub |
@@ -335,7 +335,7 @@ Full API docs at `http://localhost:8000/docs` (Swagger UI).
 
 ### 8.2 Scalability
 
-- **Backend**: Stateless except for in-memory stores (`training_jobs`, `rollout_store`). Dockerized for horizontal scaling behind a load balancer. Future: persistent DB (Postgres/Redis) for job and rollout storage.
+- **Backend**: Stateless except for in-memory stores (`training_jobs`, `rollout_store`). Persistence via MariaDB (environments, scenarios, verifiers, contact). Dockerized for horizontal scaling behind a load balancer.
 - **Frontends**: Pure static assets; trivial to host behind a CDN.
 
 ### 8.3 Reliability

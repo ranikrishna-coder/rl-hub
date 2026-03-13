@@ -250,7 +250,7 @@
             });
     }
 
-    // ─── Load verifiers from API (persisted in SQLite) ─────────
+    // ─── Load verifiers from API (persisted in MariaDB) ─────────
     function loadVerifiers() {
         var apiBase = window.API_BASE || '';
         return fetch(apiBase + '/api/verifiers')

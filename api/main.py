@@ -13,7 +13,6 @@ import uvicorn
 import json
 import os
 import sys
-import sqlite3
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -436,25 +435,26 @@ async def api_info():
 CONTACT_EMAIL_TO = "kausalyarani.k@centific.com"
 
 
-def _contact_db_path() -> str:
-    p = os.path.join(os.path.dirname(__file__), "data")
-    os.makedirs(p, exist_ok=True)
-    return os.path.join(p, "contact_submissions.db")
-
-
 def _init_contact_db() -> None:
-    with sqlite3.connect(_contact_db_path()) as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS contact_submissions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL,
-                organization TEXT NOT NULL,
-                subject TEXT,
-                use_case TEXT NOT NULL,
-                created_at TEXT NOT NULL
-            )
-        """)
+    """Ensure contact_submissions table exists in MariaDB."""
+    from api.db import get_connection
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS contact_submissions (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    email VARCHAR(255) NOT NULL,
+                    organization VARCHAR(255) NOT NULL,
+                    subject VARCHAR(512) NULL,
+                    use_case TEXT NOT NULL,
+                    created_at VARCHAR(32) NOT NULL
+                )
+            """)
+        conn.commit()
+    finally:
+        conn.close()
 
 
 class ContactSubmissionRequest(BaseModel):
@@ -510,12 +510,18 @@ async def api_contact_submit(body: ContactSubmissionRequest, background_tasks: B
         )
     created_at = datetime.utcnow().isoformat() + "Z"
     _init_contact_db()
-    with sqlite3.connect(_contact_db_path()) as conn:
-        conn.execute(
-            """INSERT INTO contact_submissions (name, email, organization, subject, use_case, created_at)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (name, email, organization, body.subject or "", use_case, created_at),
-        )
+    from api.db import get_connection
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO contact_submissions (name, email, organization, subject, use_case, created_at)
+                   VALUES (%s, %s, %s, %s, %s, %s)""",
+                (name, email, organization, body.subject or "", use_case, created_at),
+            )
+        conn.commit()
+    finally:
+        conn.close()
     background_tasks.add_task(_send_contact_email, body)
     return {"ok": True, "message": "Thank you. Your message has been submitted."}
 
@@ -999,7 +1005,7 @@ async def list_environments():
         
         enhanced_environments.append(enhanced_env)
 
-    # ── Merge custom / imported environments (persisted in SQLite) ──
+    # ── Merge custom / imported environments (persisted in MariaDB) ──
     built_in_names = {e["name"] for e in enhanced_environments}
     for ce in custom_environments:
         if ce.get("name") and ce["name"] not in built_in_names:
@@ -2050,7 +2056,7 @@ async def validate_all_environments():
 # VERIFIER ARCHITECTURE ENDPOINTS (CRUD + lifecycle)
 # ============================================================================
 
-# In-memory verifier definitions store — seeded from SQLite after _verifier_db_store init (below)
+# In-memory verifier definitions store — seeded from MariaDB after _verifier_db_store init (below)
 _verifier_store: Dict[str, dict] = {}
 
 
@@ -2154,7 +2160,7 @@ async def duplicate_verifier(verifier_id: str):
 
 @app.delete("/api/verifiers/{verifier_id}")
 async def delete_verifier_definition(verifier_id: str):
-    """Delete a verifier from both in-memory store and SQLite"""
+    """Delete a verifier from both in-memory store and MariaDB"""
     found = False
     if verifier_id in _verifier_store:
         del _verifier_store[verifier_id]
@@ -2592,29 +2598,28 @@ import subprocess as _subprocess
 HF_SPACES_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hf_spaces")
 
 # ---------------------------------------------------------------------------
-# Persistent environment store  (SQLite – survives git reset --hard deploys)
+# Persistent stores (MariaDB – configured via MARIADB_* env vars)
 # ---------------------------------------------------------------------------
 _CUSTOM_ENV_STORE_PATH = os.path.join(os.path.dirname(__file__), "data", "custom_environments.json")
 
-from api.persistence import EnvironmentStore, ScenarioStore, VerifierStore, migrate_json_to_sqlite  # noqa: E402
-from api.config import ENV_STORE_DB_PATH, SCENARIO_STORE_DB_PATH  # noqa: E402
+from api.persistence import EnvironmentStore, ScenarioStore, VerifierStore, migrate_json_to_store  # noqa: E402
 
-_env_store = EnvironmentStore(ENV_STORE_DB_PATH)
-_scenario_store = ScenarioStore(SCENARIO_STORE_DB_PATH)
+_env_store = EnvironmentStore()
+_scenario_store = ScenarioStore()
 _verifier_db_store = VerifierStore()
 
-# Seed in-memory verifier store from SQLite
+# Seed in-memory verifier store from MariaDB
 _verifier_store.update({v["id"]: v for v in _verifier_db_store.list_all() if v.get("id")})
-_migrated = migrate_json_to_sqlite(_CUSTOM_ENV_STORE_PATH, _env_store)
+_migrated = migrate_json_to_store(_CUSTOM_ENV_STORE_PATH, _env_store)
 
 
 def _load_persisted_environments() -> List[Dict[str, Any]]:
-    """Load custom environments from the SQLite store."""
+    """Load custom environments from the MariaDB store."""
     return _env_store.list_all()
 
 
 def _persist_environments() -> None:
-    """Sync in-memory custom_environments list to the SQLite store."""
+    """Sync in-memory custom_environments list to the MariaDB store."""
     for env in custom_environments:
         name = env.get("name")
         if name:
@@ -2622,7 +2627,7 @@ def _persist_environments() -> None:
 
 
 def _remove_persisted_environment(name: str) -> None:
-    """Remove a single environment from the SQLite store."""
+    """Remove a single environment from the MariaDB store."""
     _env_store.delete(name)
 
 
@@ -3381,7 +3386,7 @@ async def save_custom_environment_config(request: Request):
 
 
 # ---------------------------------------------------------------------------
-# Scenario CRUD (SQLite-persisted, supports any custom JSON structure)
+# Scenario CRUD (MariaDB-persisted, supports any custom JSON structure)
 # ---------------------------------------------------------------------------
 
 @app.get("/api/scenarios")
