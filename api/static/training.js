@@ -598,57 +598,6 @@
         }
     }
 
-    function populateActions() {
-        var field = document.getElementById('action-field');
-        var container = document.getElementById('action-options');
-        var countHint = document.getElementById('action-count-hint');
-        var selectAll = document.getElementById('action-select-all');
-        if (!field || !container) return;
-
-        // Actions only appear after a scenario is selected
-        var scenarioVal = document.getElementById('tr-scenario') ? document.getElementById('tr-scenario').value : '';
-        var actions = [];
-
-        if (scenarioVal) {
-            // Find the selected scenario and use its expected_workflow as actions
-            var allScenarios = getAllScenarios();
-            var scenario = allScenarios.filter(function (s) { return s.id === scenarioVal; })[0];
-            if (scenario && scenario.expected_workflow && scenario.expected_workflow.length > 0) {
-                actions = scenario.expected_workflow;
-            } else {
-                // Fallback: use the environment's actions if scenario has no expected_workflow
-                var env = findEnv(document.getElementById('tr-env').value);
-                actions = (env && env.actions) ? env.actions : [];
-            }
-        }
-
-        container.innerHTML = '';
-        if (actions.length > 0) {
-            field.style.display = '';
-            actions.forEach(function (a) {
-                var lbl = document.createElement('label');
-                var cb = document.createElement('input');
-                cb.type = 'checkbox';
-                cb.value = a;
-                cb.checked = false;
-                lbl.appendChild(cb);
-                lbl.appendChild(document.createTextNode(' ' + a));
-                container.appendChild(lbl);
-            });
-            if (countHint) countHint.textContent = '(' + actions.length + ')';
-            if (selectAll) {
-                selectAll.checked = false;
-                selectAll.onchange = function () {
-                    var cbs = container.querySelectorAll('input[type="checkbox"]');
-                    cbs.forEach(function (cb) { cb.checked = selectAll.checked; });
-                };
-            }
-        } else {
-            field.style.display = 'none';
-            if (countHint) countHint.textContent = '';
-        }
-    }
-
     // Populate scenario dropdown based on selected environment / system
     function filterScenarios() {
         var scenarioField = document.getElementById('scenario-field');
@@ -747,16 +696,13 @@
     function onEnvironmentChange() {
         updateEnvPreview();
         filterScenarios();
-        // Hide actions until a scenario is selected
-        var actionField = document.getElementById('action-field');
-        if (actionField) actionField.style.display = 'none';
         populateVerifiers();
         filterAgents();
         updateVerifierSystem();
     }
 
     function onScenarioChange() {
-        populateActions();
+        // No additional actions needed on scenario change
     }
 
     function initVerifierToggle() {
@@ -979,13 +925,6 @@
         // Scenario (optional — from the scenario dropdown)
         var scenarioVal = document.getElementById('tr-scenario') ? document.getElementById('tr-scenario').value : '';
         if (scenarioVal) body.scenario_id = scenarioVal;
-
-        // Actions — collect checked actions
-        var actionCbs = document.querySelectorAll('#action-options input[type="checkbox"]:checked');
-        if (actionCbs.length > 0) {
-            body.actions = [];
-            actionCbs.forEach(function (cb) { body.actions.push(cb.value); });
-        }
 
         // Verifiers — collect all checked verifier IDs (multi-select)
         var verifierCbs = document.querySelectorAll('#verifier-options input[type="checkbox"]:checked');
