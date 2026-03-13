@@ -2512,7 +2512,7 @@ function buildScenariosSection(envName, envCategory) {
         '<textarea id="add-scenario-json" class="add-env-terraform-editor" rows="10" spellcheck="false" placeholder=\'{\n  "name": "My Scenario",\n  "category": "' + envCategory + '",\n  "task_count": 5,\n  "description": "Describe the scenario...",\n  "expected_workflow": ["tool_1", "tool_2", "tool_3"]\n}\'></textarea>' +
         '<div style="margin-top:0.75rem;display:flex;gap:8px;">' +
         '<button class="btn btn-primary btn-small" onclick="saveNewScenario(\'' + envName.replace(/'/g, "\\'") + '\', \'' + envCategory + '\')">Save Scenario</button>' +
-        '<button class="btn btn-outline btn-small" onclick="toggleAddScenarioForm()">Cancel</button>' +
+        '<button class="btn btn-outline btn-small" onclick="cancelScenarioForm()">Cancel</button>' +
         '</div>' +
         '</div>' +
         '</div>' +
@@ -2523,9 +2523,42 @@ function buildScenariosSection(envName, envCategory) {
 function toggleAddScenarioForm() {
     var form = document.getElementById('add-scenario-form');
     if (!form) return;
-    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    var isVisible = form.style.display !== 'none';
+
+    if (isVisible && !_editingScenarioId) {
+        // Already in add mode and visible — toggle off
+        form.style.display = 'none';
+        return;
+    }
+
+    // Reset to add mode and show
+    _editingScenarioId = null;
+    var textarea = document.getElementById('add-scenario-json');
+    if (textarea) textarea.value = '';
+    var saveBtn = form.querySelector('.btn-primary');
+    if (saveBtn) saveBtn.textContent = 'Save Scenario';
+    var heading = form.querySelector('h4');
+    if (heading) heading.textContent = 'New Scenario (JSON)';
+
+    form.style.display = 'block';
+    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 window.toggleAddScenarioForm = toggleAddScenarioForm;
+
+function cancelScenarioForm() {
+    var form = document.getElementById('add-scenario-form');
+    _editingScenarioId = null;
+    if (form) {
+        form.style.display = 'none';
+        var textarea = document.getElementById('add-scenario-json');
+        if (textarea) textarea.value = '';
+        var saveBtn = form.querySelector('.btn-primary');
+        if (saveBtn) saveBtn.textContent = 'Save Scenario';
+        var heading = form.querySelector('h4');
+        if (heading) heading.textContent = 'New Scenario (JSON)';
+    }
+}
+window.cancelScenarioForm = cancelScenarioForm;
 
 function saveNewScenario(envName, envCategory) {
     var textarea = document.getElementById('add-scenario-json');
@@ -2641,9 +2674,11 @@ function editScenario(envName, envCategory, scenarioId) {
         };
         textarea.value = JSON.stringify(editData, null, 2);
     }
-    // Update button text
+    // Update button text and heading
     var saveBtn = form ? form.querySelector('.btn-primary') : null;
     if (saveBtn) saveBtn.textContent = 'Update Scenario';
+    var heading = form ? form.querySelector('h4') : null;
+    if (heading) heading.textContent = 'Edit Scenario (JSON)';
     // Scroll into view
     if (form) form.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -2807,7 +2842,7 @@ function buildVerifiersSection(envName, envCategory) {
         '<textarea id="add-verifier-json" class="add-env-terraform-editor" rows="10" spellcheck="false" placeholder=\'{\n  "name": "My Verifier",\n  "type": "rule-based",\n  "description": "Describe the verifier...",\n  "logic": { "type": "custom_validator", "checks": {} },\n  "scoring": { "accuracy_weight": 0.5, "completeness_weight": 0.5 },\n  "failurePolicy": { "hard_fail": false, "penalty": -0.5 }\n}\'></textarea>' +
         '<div style="margin-top:0.75rem;display:flex;gap:8px;">' +
         '<button class="btn btn-primary btn-small" onclick="saveNewVerifier(\'' + envName.replace(/'/g, "\\'") + '\', \'' + envCategory + '\')">Save Verifier</button>' +
-        '<button class="btn btn-outline btn-small" onclick="toggleAddVerifierForm()">Cancel</button>' +
+        '<button class="btn btn-outline btn-small" onclick="cancelVerifierForm()">Cancel</button>' +
         '</div>' +
         '</div>' +
         '</div>' +
@@ -2818,9 +2853,42 @@ function buildVerifiersSection(envName, envCategory) {
 function toggleAddVerifierForm() {
     var form = document.getElementById('add-verifier-form');
     if (!form) return;
-    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    var isVisible = form.style.display !== 'none';
+
+    if (isVisible && !_editingVerifierId) {
+        // Already in add mode and visible — toggle off
+        form.style.display = 'none';
+        return;
+    }
+
+    // Reset to add mode and show
+    _editingVerifierId = null;
+    var textarea = document.getElementById('add-verifier-json');
+    if (textarea) textarea.value = '';
+    var saveBtn = form.querySelector('.btn-primary');
+    if (saveBtn) saveBtn.textContent = 'Save Verifier';
+    var heading = form.querySelector('h4');
+    if (heading) heading.textContent = 'New Verifier (JSON)';
+
+    form.style.display = 'block';
+    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 window.toggleAddVerifierForm = toggleAddVerifierForm;
+
+function cancelVerifierForm() {
+    var form = document.getElementById('add-verifier-form');
+    _editingVerifierId = null;
+    if (form) {
+        form.style.display = 'none';
+        var textarea = document.getElementById('add-verifier-json');
+        if (textarea) textarea.value = '';
+        var saveBtn = form.querySelector('.btn-primary');
+        if (saveBtn) saveBtn.textContent = 'Save Verifier';
+        var heading = form.querySelector('h4');
+        if (heading) heading.textContent = 'New Verifier (JSON)';
+    }
+}
+window.cancelVerifierForm = cancelVerifierForm;
 
 var _editingVerifierId = null;
 function saveNewVerifier(envName, envCategory) {
@@ -2964,9 +3032,11 @@ function editVerifier(envName, envCategory, verifierId) {
         };
         textarea.value = JSON.stringify(editData, null, 2);
     }
-    // Update button text
+    // Update button text and heading
     var saveBtn = form ? form.querySelector('.btn-primary') : null;
     if (saveBtn) saveBtn.textContent = 'Update Verifier';
+    var heading = form ? form.querySelector('h4') : null;
+    if (heading) heading.textContent = 'Edit Verifier (JSON)';
     // Scroll into view
     if (form) form.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
