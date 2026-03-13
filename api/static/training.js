@@ -1629,35 +1629,69 @@
         var targetReward = run.avgReward || 0.63;
         var baselineReward = run.baselineReward || 0.22;
         var totalEpisodes = run.episodes || 320;
-        var numPoints = 40;
-        var rng = seededRandom(42 + Math.round(targetReward * 1000));
 
-        // Generate smooth reward curve using exponential approach + small deterministic noise
-        var rewardPoints = [];
-        for (var i = 0; i <= numPoints; i++) {
-            var t = i / numPoints;
-            var base = baselineReward + (targetReward - baselineReward) * (1 - Math.exp(-4 * t));
-            var noise = (rng() - 0.5) * 0.04 * (1 - t * 0.6); // noise decreases as training progresses
-            rewardPoints.push(Math.max(0, Math.min(1, base + noise)));
-        }
+        // ── Use real per-episode data when available ──
+        var perEp = (run._training_metrics && run._training_metrics.per_episode) ? run._training_metrics.per_episode : null;
+        var rawPoints = [];  // actual reward values to plot
+        var smoothed = [];   // smoothed version
 
-        // Smooth the points with a simple moving average
-        var smoothed = [];
-        for (var i = 0; i < rewardPoints.length; i++) {
-            var sum = 0, cnt = 0;
-            for (var j = Math.max(0, i - 2); j <= Math.min(rewardPoints.length - 1, i + 2); j++) {
-                sum += rewardPoints[j]; cnt++;
+        if (perEp && perEp.length > 0) {
+            // Real data path: use actual per-episode rewards
+            totalEpisodes = perEp.length;
+            for (var i = 0; i < perEp.length; i++) {
+                rawPoints.push(perEp[i].reward);
             }
-            smoothed.push(sum / cnt);
+            // Compute running average (window of 3) for smoothed line
+            for (var i = 0; i < rawPoints.length; i++) {
+                var sum = 0, cnt = 0;
+                for (var j = Math.max(0, i - 1); j <= Math.min(rawPoints.length - 1, i + 1); j++) {
+                    sum += rawPoints[j]; cnt++;
+                }
+                smoothed.push(sum / cnt);
+            }
+        } else {
+            // Fallback: generate synthetic curve
+            var numPoints = 40;
+            var rng = seededRandom(42 + Math.round(targetReward * 1000));
+            for (var i = 0; i <= numPoints; i++) {
+                var t = i / numPoints;
+                var base = baselineReward + (targetReward - baselineReward) * (1 - Math.exp(-4 * t));
+                var noise = (rng() - 0.5) * 0.04 * (1 - t * 0.6);
+                rawPoints.push(base + noise);
+            }
+            for (var i = 0; i < rawPoints.length; i++) {
+                var sum = 0, cnt = 0;
+                for (var j = Math.max(0, i - 2); j <= Math.min(rawPoints.length - 1, i + 2); j++) {
+                    sum += rawPoints[j]; cnt++;
+                }
+                smoothed.push(sum / cnt);
+            }
         }
 
-        var yMin = 0, yMax = 1.0;
+        // ── Dynamic y-axis from actual data range ──
+        var allVals = rawPoints.slice();
+        allVals.push(baselineReward);
+        var dataMin = allVals.reduce(function (a, b) { return Math.min(a, b); }, Infinity);
+        var dataMax = allVals.reduce(function (a, b) { return Math.max(a, b); }, -Infinity);
+        var dataRange = dataMax - dataMin;
+        var margin = Math.max(dataRange * 0.15, 0.1);
+        // Nice step size
+        var rawRange = (dataMax + margin) - (dataMin - margin);
+        var step = rawRange <= 1.0 ? 0.2 : rawRange <= 2.0 ? 0.5 : rawRange <= 5.0 ? 1.0 : 2.0;
+        var yMin = Math.floor((dataMin - margin) / step) * step;
+        var yMax = Math.ceil((dataMax + margin) / step) * step;
+        if (yMin === yMax) yMax = yMin + step;
         var yRange = yMax - yMin;
+
+        // Build y-axis ticks
+        var yTicks = [];
+        for (var v = yMin; v <= yMax + step * 0.01; v += step) {
+            yTicks.push(Math.round(v * 100) / 100);
+        }
 
         // Grid lines
         ctx.strokeStyle = '#f0f0f0';
         ctx.lineWidth = 1;
-        var yTicks = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
         yTicks.forEach(function (v) {
             var y = pad.top + plotH - ((v - yMin) / yRange) * plotH;
             ctx.beginPath();
@@ -1665,6 +1699,17 @@
             ctx.lineTo(pad.left + plotW, y);
             ctx.stroke();
         });
+
+        // Zero line (if visible)
+        if (yMin < 0 && yMax > 0) {
+            var zeroY = pad.top + plotH - ((0 - yMin) / yRange) * plotH;
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(pad.left, zeroY);
+            ctx.lineTo(pad.left + plotW, zeroY);
+            ctx.stroke();
+        }
 
         // Axes
         ctx.strokeStyle = '#d1d5db';
@@ -1686,10 +1731,10 @@
 
         // X-axis tick labels
         ctx.textAlign = 'center';
-        var xTicks = 5;
-        for (var i = 0; i <= xTicks; i++) {
-            var ep = Math.round((i / xTicks) * totalEpisodes);
-            var x = pad.left + (i / xTicks) * plotW;
+        var xTickCount = 5;
+        for (var i = 0; i <= xTickCount; i++) {
+            var ep = Math.round((i / xTickCount) * totalEpisodes);
+            var x = pad.left + (i / xTickCount) * plotW;
             ctx.fillText(ep, x, pad.top + plotH + 16);
         }
 
@@ -1704,38 +1749,56 @@
         ctx.fillText('Mean Reward', 0, 0);
         ctx.restore();
 
-        // Gradient fill under curve
+        var numPts = rawPoints.length;
+
+        // Gradient fill under smoothed curve (down to zero or yMin)
+        var fillBase = (yMin < 0 && yMax > 0)
+            ? pad.top + plotH - ((0 - yMin) / yRange) * plotH
+            : pad.top + plotH;
         var grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
-        grad.addColorStop(0, 'rgba(192, 38, 211, 0.15)');
+        grad.addColorStop(0, 'rgba(192, 38, 211, 0.18)');
         grad.addColorStop(1, 'rgba(192, 38, 211, 0.02)');
         ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.moveTo(pad.left, pad.top + plotH);
+        ctx.moveTo(pad.left, fillBase);
         smoothed.forEach(function (v, idx) {
-            var x = pad.left + (idx / numPoints) * plotW;
+            var x = pad.left + (idx / (numPts - 1)) * plotW;
             var y = pad.top + plotH - ((v - yMin) / yRange) * plotH;
             ctx.lineTo(x, y);
         });
-        ctx.lineTo(pad.left + plotW, pad.top + plotH);
+        ctx.lineTo(pad.left + (numPts - 1) / (numPts - 1) * plotW, fillBase);
         ctx.closePath();
         ctx.fill();
 
-        // Reward curve line
+        // Per-episode scatter dots (light, behind curve)
+        if (perEp) {
+            ctx.fillStyle = 'rgba(192, 38, 211, 0.25)';
+            rawPoints.forEach(function (v, idx) {
+                var x = pad.left + (idx / (numPts - 1)) * plotW;
+                var y = pad.top + plotH - ((v - yMin) / yRange) * plotH;
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // Smoothed reward curve line
         ctx.strokeStyle = '#c026d3';
         ctx.lineWidth = 2.5;
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
         ctx.beginPath();
         smoothed.forEach(function (v, idx) {
-            var x = pad.left + (idx / numPoints) * plotW;
+            var x = pad.left + (idx / (numPts - 1)) * plotW;
             var y = pad.top + plotH - ((v - yMin) / yRange) * plotH;
             if (idx === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         });
         ctx.stroke();
 
-        // Baseline dashed line
-        var baseY = pad.top + plotH - ((baselineReward - yMin) / yRange) * plotH;
+        // Baseline dashed line (clamp to visible area)
+        var clampedBase = Math.max(yMin, Math.min(yMax, baselineReward));
+        var baseY = pad.top + plotH - ((clampedBase - yMin) / yRange) * plotH;
         ctx.strokeStyle = '#9ca3af';
         ctx.setLineDash([6, 4]);
         ctx.lineWidth = 1.5;
