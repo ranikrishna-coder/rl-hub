@@ -92,7 +92,7 @@ agentwork-simulator/
 ├── training/                    # Train PPO, DQN (stable-baselines3)
 ├── docs/                        # Documentation
 │   └── TRAINING_FRAMEWORK.md   # Training frameworks (Gymnasium, SB3, SLM)
-├── database/                    # PostgreSQL schema
+├── database/                    # MariaDB schema and docs
 ├── models/                      # Trained models (ppo, slm, etc.)
 ├── tests/                       # pytest tests
 ├── scripts/

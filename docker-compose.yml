@@ -20,19 +20,3 @@ services:
       retries: 3
       start_period: 40s
 
-  # Optional: PostgreSQL database
-  # postgres:
-  #   image: postgres:15-alpine
-  #   container_name: agentwork-simulator-db
-  #   environment:
-  #     POSTGRES_DB: agentwork_simulator
-  #     POSTGRES_USER: agentwork_simulator_user
-  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   ports:
-  #     - "5432:5432"
-
-# volumes:
-#   postgres_data:
-

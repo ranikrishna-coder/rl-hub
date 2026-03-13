@@ -319,9 +319,6 @@ python -m api.main
 Create a `.env` file or set environment variables:
 
 ```bash
-# Optional: Database connection
-DATABASE_URL=postgresql://user:password@localhost:5432/agentwork_simulator
-
 # Optional: API settings
 API_HOST=0.0.0.0
 API_PORT=8000
@@ -381,12 +378,12 @@ server {
 }
 ```
 
-## 🐳 Docker Compose with Database
+## 🐳 Docker Compose
 
-Uncomment the PostgreSQL service in `docker-compose.yml` and set `DB_PASSWORD`:
+Ensure MariaDB is available and set `MARIADB_*` env vars (see `.env.example`). Then:
 
 ```bash
-DB_PASSWORD=your_secure_password docker-compose up -d
+docker-compose up -d
 ```
 
 ## 📊 Monitoring

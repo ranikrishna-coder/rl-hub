@@ -9,7 +9,7 @@
 
 | File | Lines Changed (meaningful) | Purpose |
 |------|---------------------------|---------|
-| `api/config.py` | +6 | New config for verifier SQLite DB path |
+| `api/config.py` | +6 | New config for verifier DB (now MariaDB) |
 | `api/persistence.py` | +89 | New `VerifierStore` class for persistent verifier storage |
 | `api/main.py` | +36 / −4 | Verifier persistence, Kubernetes classification fix |
 | `api/static/app.js` | +175 | Scenario & verifier backend persistence, HF iframe fix |
@@ -26,16 +26,15 @@ Custom verifiers created through the UI were stored only in an in-memory Python 
 ### Changes
 
 #### `api/config.py`
-- Added `VERIFIER_STORE_DB_PATH` configuration variable pointing to `data/verifiers.db`.
+- Verifier persistence (now via MariaDB; see `MARIADB_*` in `.env.example`).
 
 #### `api/persistence.py`
-- Added a new **`VerifierStore`** class — a full SQLite-backed CRUD store for verifier definitions.
+- Added a new **`VerifierStore`** class — a full MariaDB-backed CRUD store for verifier definitions.
 - Methods: `list_all()`, `get()`, `upsert()`, `delete()`, `count()`, `list_by_environment()`, `db_size_bytes()`.
-- Uses WAL journal mode and `ON CONFLICT` upsert for safe concurrent access.
 
 #### `api/main.py`
-- Replaced the in-memory `_verifier_store: Dict[str, dict] = {}` with a `VerifierStore` instance backed by SQLite.
-- All CRUD endpoints (`POST`, `PUT`, `PATCH`, `GET`) now **read from and write to** the SQLite database in addition to the in-memory cache.
+- Replaced the in-memory `_verifier_store: Dict[str, dict] = {}` with a `VerifierStore` instance backed by MariaDB.
+- All CRUD endpoints (`POST`, `PUT`, `PATCH`, `GET`) now **read from and write to** the MariaDB database in addition to the in-memory cache.
 - Made the `system` field **optional** in `VerifierDefinition` (defaults to `"Custom"`) — the frontend was not always sending this field, causing 422 errors.
 - Added `environment` query parameter to `GET /api/verifiers` for filtering verifiers by environment.
 
@@ -64,7 +63,7 @@ Imported HuggingFace environments (e.g., SRE 24×7) were being classified as **"
 ### Changes
 
 #### `api/static/app.js`
-- **`saveNewScenario()`**: Now sends a `POST` request to `/api/scenarios` to persist new scenarios to the backend SQLite database.
+- **`saveNewScenario()`**: Now sends a `POST` request to `/api/scenarios` to persist new scenarios to the backend (MariaDB).
 - **`buildScenariosSection()`**: Updated filter to match scenarios by `category` **OR** `product` (environment name).
 - Added **`_loadPersistedScenarios()`**: Async function that fetches custom scenarios from `/api/scenarios?product={envName}` and merges them into the in-memory `TRAINING_CONFIG.scenarios` array, then re-renders the section.
 
@@ -156,10 +155,6 @@ The "Improvement" metric on the training page always prepended a `+` sign, even 
 
 ---
 
-## Database Files Created (gitignored)
+## Database (MariaDB)
 
-| File | Purpose |
-|------|---------|
-| `data/verifiers.db` | SQLite store for custom verifier definitions |
-| `data/scenarios.db` | SQLite store for custom scenarios (pre-existing) |
-| `data/environments.db` | SQLite store for custom environments (pre-existing) |
+Persistence uses MariaDB (see `database/schema_mariadb.sql`). Tables: `user_verifiers`, `user_scenarios`, `user_environments`, `contact_submissions`, plus backups and health snapshots. Configure via `MARIADB_*` env vars.

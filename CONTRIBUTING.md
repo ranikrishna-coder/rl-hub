@@ -8,7 +8,7 @@ Thanks for your interest in contributing! This guide will help you get set up an
 
 - **Python 3.9+** (3.11 recommended)
 - **Git**
-- **PostgreSQL 15+** (optional, for full database features)
+- **MariaDB 10.3+** or MySQL (for persistence; configure via MARIADB_* env vars)
 
 ### 1. Clone the Repository
 

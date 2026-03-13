@@ -2965,7 +2965,7 @@ async function saveNewScenario(envName, envCategory) {
             if (window.TRAINING_CONFIG && window.TRAINING_CONFIG.scenarios) {
                 window.TRAINING_CONFIG.scenarios.push(newScenario);
             }
-            // Persist to backend SQLite store — await before re-rendering
+            // Persist to backend — await before re-rendering
             try {
                 var res = await fetch(API_BASE + '/api/scenarios', {
                     method: 'POST',
