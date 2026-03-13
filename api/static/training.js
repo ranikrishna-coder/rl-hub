@@ -2321,8 +2321,23 @@
                 _preselectedEnv = null;
             }
         });
-        document.getElementById('btn-back-list').addEventListener('click', function () { showView('list'); refreshAndRenderList(); });
-        document.getElementById('btn-back-list-2').addEventListener('click', function () { showView('list'); refreshAndRenderList(); });
+        document.getElementById('btn-back-list').addEventListener('click', function () {
+            // If embedded in env detail iframe, close the iframe instead of showing list
+            var isEmbedded = new URLSearchParams(window.location.search).get('embedded') === '1';
+            if (isEmbedded && window.parent !== window) {
+                window.parent.postMessage({ type: 'training-back-to-env' }, '*');
+                return;
+            }
+            showView('list'); refreshAndRenderList();
+        });
+        document.getElementById('btn-back-list-2').addEventListener('click', function () {
+            var isEmbedded = new URLSearchParams(window.location.search).get('embedded') === '1';
+            if (isEmbedded && window.parent !== window) {
+                window.parent.postMessage({ type: 'training-back-to-env' }, '*');
+                return;
+            }
+            showView('list'); refreshAndRenderList();
+        });
         document.getElementById('btn-cancel-new').addEventListener('click', function () { showView('list'); });
 
         // Back from rollout detail

@@ -5709,6 +5709,14 @@ function toggleTrainingInline(envName) {
 }
 window.toggleTrainingInline = toggleTrainingInline;
 
+// Listen for postMessage from training iframe to close it (back to env detail)
+window.addEventListener('message', function (event) {
+    if (event.data && event.data.type === 'training-back-to-env') {
+        var wrap = document.getElementById('training-inline-iframe-wrap');
+        if (wrap) wrap.style.display = 'none';
+    }
+});
+
 function _openTrainingConfigModal(envName) {
     const env = allEnvironments.find(e => e.name === envName);
     const exampleConfig = getExampleConfig(envName);
