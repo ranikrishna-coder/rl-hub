@@ -3902,7 +3902,8 @@ function buildTrainingSection(envName, envCategory) {
             ' New Training' +
             '</button>' +
             '</div>' +
-            '<div id="training-inline-iframe-wrap" style="display:none;margin-top:1rem;">' +
+            '<div id="training-inline-iframe-wrap" style="display:none;margin-top:1rem;position:relative;">' +
+            '<button type="button" class="training-inline-close-btn" onclick="toggleTrainingInline()" title="Close training">&times;</button>' +
             '<iframe id="training-inline-iframe" style="width:100%;height:700px;border:none;border-radius:8px;" loading="lazy"></iframe>' +
             '</div>' +
             '</div>' +
@@ -3963,7 +3964,8 @@ function buildTrainingSection(envName, envCategory) {
         '</button>' +
         '</div>' +
         tableHtml +
-        '<div id="training-inline-iframe-wrap" style="display:none;margin-top:1rem;">' +
+        '<div id="training-inline-iframe-wrap" style="display:none;margin-top:1rem;position:relative;">' +
+        '<button type="button" class="training-inline-close-btn" onclick="toggleTrainingInline()" title="Close training">&times;</button>' +
         '<iframe id="training-inline-iframe" style="width:100%;height:700px;border:none;border-radius:8px;" loading="lazy"></iframe>' +
         '</div>' +
         '</div>' +

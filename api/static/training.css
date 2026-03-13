@@ -4,6 +4,7 @@
 .embedded-mode .gn-bar { display: none !important; }
 .embedded-mode .container { padding-top: 0.5rem; }
 .embedded-mode .landing-footer { display: none !important; }
+.embedded-mode .training-back-btn { display: none !important; }
 
 /* Views */
 .training-view { display: none; }
