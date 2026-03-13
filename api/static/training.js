@@ -502,12 +502,12 @@
             return;
         }
         var cat = env ? env.category : '';
-        var envName = env ? env.name : '';
+        var envId = env ? env.id : '';
 
-        // Start with built-in verifiers from verifier-data.js
+        // Start with built-in verifiers from verifier-data.js — match detail page logic exactly
         var builtInMatches = VERIFIERS.filter(function (v) {
-            if (cat && v.environment && v.environment !== cat) return false;
-            return true;
+            if (v.envName) return v.envName === envId;
+            return v.environment === cat;
         });
 
         // Also fetch custom verifiers from backend API and merge
@@ -516,8 +516,9 @@
             .then(function (res) { return res.ok ? res.json() : { verifiers: [] }; })
             .then(function (data) {
                 var customVerifiers = (data.verifiers || []).filter(function (v) {
-                    if (cat && v.environment && v.environment !== cat) return false;
-                    return true;
+                    var vEnvName = v.envName || v.env_name || '';
+                    if (vEnvName) return vEnvName === envId;
+                    return v.environment === cat;
                 });
                 // Merge: avoid duplicates by id
                 var seenIds = {};
@@ -630,19 +631,13 @@
         var envName = env ? env.name : '';
         var system = env ? env.system : '';
 
-        // Merge built-in + custom scenarios, filter by category, product, environment, or system
+        // Merge built-in + custom scenarios, filter to match detail page logic exactly
         var allScenarios = getAllScenarios();
         var matches = allScenarios.filter(function (s) {
-            // Match custom scenarios by product or environment field against env ID (raw name)
-            if (envId && s.product && s.product === envId) return true;
-            if (envId && s.environment && s.environment === envId) return true;
-            // Also match against humanized name for backward compat
-            if (envName && s.environment && s.environment === envName) return true;
-            // Match built-in scenarios by category
-            if (cat && s.category === cat) return true;
-            // Match by system
-            if (system && s.product === system) return true;
-            return false;
+            // If scenario has an environment field, it must match the raw env name exactly
+            if (s.environment) return s.environment === envId;
+            // Otherwise, match by category or product against raw env name
+            return s.category === cat || s.product === envId;
         });
 
         // Rebuild dropdown

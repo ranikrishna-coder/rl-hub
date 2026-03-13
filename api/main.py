@@ -3466,6 +3466,7 @@ async def clone_scenarios(name: str, request: Request):
 
     # Clone persisted (DB) scenarios matching source env
     db_scenarios = _scenario_store.list_by_product(source)
+    cloned_names: set = set()
     for s in db_scenarios:
         new_id = "scenario_" + str(_uuid.uuid4())[:8]
         new_s = dict(s)
@@ -3474,12 +3475,15 @@ async def clone_scenarios(name: str, request: Request):
         new_s["environment"] = name
         new_s["source"] = "cloned"
         _scenario_store.upsert(new_id, new_s)
+        cloned_names.add(s.get("name", ""))
         cloned += 1
 
-    # Also persist hardcoded scenarios sent from frontend
+    # Also persist hardcoded scenarios sent from frontend (skip duplicates already cloned from DB)
     hardcoded = data.get("hardcoded", [])
     if isinstance(hardcoded, list):
         for s in hardcoded:
+            if s.get("name", "") in cloned_names:
+                continue  # Already cloned from DB — skip to avoid duplicate
             new_id = "scenario_" + str(_uuid.uuid4())[:8]
             new_s = dict(s)
             new_s["id"] = new_id
@@ -3487,6 +3491,7 @@ async def clone_scenarios(name: str, request: Request):
             new_s["environment"] = name
             new_s["source"] = "cloned"
             _scenario_store.upsert(new_id, new_s)
+            cloned_names.add(s.get("name", ""))
             cloned += 1
 
     return {"status": "ok", "cloned": cloned, "target": name, "source": source}
@@ -3532,6 +3537,7 @@ async def clone_verifiers(name: str, request: Request):
             seen_ids.add(vid)
             combined.append(v)
 
+    cloned_names: set = set()
     for v in combined:
         new_id = "verifier_" + str(_uuid.uuid4())[:8]
         new_v = dict(v)
@@ -3542,12 +3548,15 @@ async def clone_verifiers(name: str, request: Request):
         new_v["source"] = "cloned"
         _verifier_store[new_id] = new_v
         _verifier_db_store.upsert(new_id, new_v)
+        cloned_names.add(v.get("name", ""))
         cloned += 1
 
-    # Also persist hardcoded verifiers sent from frontend
+    # Also persist hardcoded verifiers sent from frontend (skip duplicates already cloned from DB)
     hardcoded = data.get("hardcoded", [])
     if isinstance(hardcoded, list):
         for v in hardcoded:
+            if v.get("name", "") in cloned_names:
+                continue  # Already cloned from DB — skip to avoid duplicate
             new_id = "verifier_" + str(_uuid.uuid4())[:8]
             new_v = dict(v)
             new_v["id"] = new_id
@@ -3557,6 +3566,7 @@ async def clone_verifiers(name: str, request: Request):
             new_v["source"] = "cloned"
             _verifier_store[new_id] = new_v
             _verifier_db_store.upsert(new_id, new_v)
+            cloned_names.add(v.get("name", ""))
             cloned += 1
 
     return {"status": "ok", "cloned": cloned, "target": name, "source": source}
