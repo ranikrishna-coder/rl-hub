@@ -759,10 +759,21 @@ async function loadEnvironments() {
                 workflow: 'Cross-Workflow',
                 isCustom: true,
                 tags: ['cross-domain', 'cross_workflow', 'cross-workflow', 'clinical', 'fhir'],
-                actions: [],
-                actionSpace: 'N/A',
+                actions: [
+                    'fhir_patient_search',
+                    'fhir_observation_search',
+                    'fhir_vitals_search',
+                    'fhir_condition_search',
+                    'fhir_procedure_search',
+                    'fhir_medication_request_search',
+                    'fhir_vitals_create',
+                    'fhir_service_request_create',
+                    'fhir_medication_request_create',
+                    'finish'
+                ],
+                actionSpace: 10,
                 stateFeatures: 'N/A',
-                actionType: 'Discrete'
+                actionType: 'FHIR API'
             });
             environmentDetails['ClinKriya Clinic'] = {
                 source: 'huggingface',
@@ -2393,6 +2404,18 @@ function getActionDescription(envName, action) {
             'monitor': 'Continue monitoring patient vitals and status.',
             'escalate_care': 'Escalate to higher level of care.',
             'no_action': 'Maintain current care level.'
+        },
+        'ClinKriya Clinic': {
+            'fhir_patient_search': 'GET Patient — search by name, DOB, or MRN identifier.',
+            'fhir_observation_search': 'GET Observation — retrieve labs & vitals by LOINC code.',
+            'fhir_vitals_search': 'GET Observation (vital-signs) — filter vital signs by date.',
+            'fhir_condition_search': 'GET Condition — retrieve active diagnoses and problem list.',
+            'fhir_procedure_search': 'GET Procedure — look up procedures performed on a patient.',
+            'fhir_medication_request_search': 'GET MedicationRequest — query active medication orders.',
+            'fhir_vitals_create': 'POST Observation — record a new vital signs measurement.',
+            'fhir_service_request_create': 'POST ServiceRequest — place a referral or clinical order.',
+            'fhir_medication_request_create': 'POST MedicationRequest — create a new medication order.',
+            'finish': 'FINISH — end the episode and submit the final answer.'
         }
     };
 
