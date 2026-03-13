@@ -121,8 +121,8 @@ from api.mcp_agent import router as _agent_router, init_agent as _init_agent  # 
 
 app.include_router(_agent_router)
 
-# Training jobs storage (in production, use database)
-training_jobs: Dict[str, Dict[str, Any]] = {}  # Clean slate — populated by POST /train
+# Training jobs storage — in-memory cache backed by SQLite via _training_run_store
+training_jobs: Dict[str, Dict[str, Any]] = {}  # Hydrated from DB at startup (see below)
 
 # Observability storage (in production, use database)
 reward_loggers: Dict[str, RewardLogger] = {}
@@ -1208,8 +1208,9 @@ async def start_training(
             "verifier_id": req.verifier_id or "",
             "verifier_conditions": req.verifier_conditions or [],
         }
-        
 
+        # Persist newly created job to SQLite
+        _training_run_store.upsert(job_id, training_jobs[job_id])
 
         # Start training in background
         background_tasks.add_task(
@@ -1474,6 +1475,9 @@ def run_training(
             print(f"Baseline run skipped: {e}")
             training_jobs[job_id]["baseline_results"] = None
 
+        # Persist after baseline phase
+        _training_run_store.upsert(job_id, training_jobs[job_id])
+
         # Jira policy via model endpoint when algorithm is SLM (no local model; set JIRA_MODEL_ENDPOINT)
         jira_slm_policy = None
         JIRA_ENVS_FOR_SLM = ("JiraIssueResolution", "JiraStatusUpdate", "JiraCommentManagement", "JiraSubtaskManagement")
@@ -1600,6 +1604,8 @@ def run_training(
                 if (episode + 1) % 10 == 0 or (episode + 1) == num_episodes:
                     training_jobs[job_id]["current_episode"] = episode + 1
                     training_jobs[job_id]["avg_reward_so_far"] = sum(total_rewards) / len(total_rewards) if total_rewards else 0.0
+                    # Persist periodic progress to SQLite
+                    _training_run_store.upsert(job_id, training_jobs[job_id])
 
                 # Store rollout for sampled episodes (first, last, every 10th)
                 _sample_interval = max(1, num_episodes // 10)
@@ -1730,12 +1736,17 @@ def run_training(
         else:
             job["status"] = "completed"
 
+        # Persist final completed/awaiting state to SQLite
+        _training_run_store.upsert(job_id, training_jobs[job_id])
+
     except Exception as e:
         import traceback
         error_trace = traceback.format_exc()
         training_jobs[job_id]["status"] = "failed"
         training_jobs[job_id]["error"] = str(e)
         training_jobs[job_id]["error_traceback"] = error_trace
+        # Persist failure state to SQLite
+        _training_run_store.upsert(job_id, training_jobs[job_id])
         print(f"Training failed for {environment_name}: {error_trace}")
 
 
@@ -2598,13 +2609,20 @@ HF_SPACES_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__f
 # ---------------------------------------------------------------------------
 _CUSTOM_ENV_STORE_PATH = os.path.join(os.path.dirname(__file__), "data", "custom_environments.json")
 
-from api.persistence import EnvironmentStore, ScenarioStore, VerifierStore, ToolStore, migrate_json_to_sqlite  # noqa: E402
-from api.config import ENV_STORE_DB_PATH, SCENARIO_STORE_DB_PATH, TOOL_STORE_DB_PATH  # noqa: E402
+from api.persistence import EnvironmentStore, ScenarioStore, VerifierStore, ToolStore, TrainingRunStore, migrate_json_to_sqlite  # noqa: E402
+from api.config import ENV_STORE_DB_PATH, SCENARIO_STORE_DB_PATH, TOOL_STORE_DB_PATH, TRAINING_RUN_DB_PATH  # noqa: E402
 
 _env_store = EnvironmentStore(ENV_STORE_DB_PATH)
 _scenario_store = ScenarioStore(SCENARIO_STORE_DB_PATH)
 _verifier_db_store = VerifierStore()
 _tool_store = ToolStore(TOOL_STORE_DB_PATH)
+_training_run_store = TrainingRunStore(TRAINING_RUN_DB_PATH)
+
+# Hydrate in-memory training_jobs from SQLite so runs survive restarts
+for _run in _training_run_store.list_all():
+    _rid = _run.get("job_id") or _run.get("id", "")
+    if _rid:
+        training_jobs[_rid] = _run
 
 # Seed in-memory verifier store from SQLite
 _verifier_store.update({v["id"]: v for v in _verifier_db_store.list_all() if v.get("id")})

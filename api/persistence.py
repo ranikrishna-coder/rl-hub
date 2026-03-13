@@ -529,6 +529,103 @@ class ToolStore:
             return 0
 
 
+class TrainingRunStore:
+    """SQLite-backed store for training run records."""
+
+    def __init__(self, db_path: Optional[str] = None):
+        if db_path is None:
+            from api.config import TRAINING_RUN_DB_PATH
+            db_path = TRAINING_RUN_DB_PATH
+        self.db_path = db_path
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        self._init_db()
+
+    def _conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _init_db(self) -> None:
+        with self._conn() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS training_runs (
+                    id          TEXT PRIMARY KEY,
+                    data        TEXT NOT NULL,
+                    environment TEXT DEFAULT '',
+                    status      TEXT DEFAULT 'pending',
+                    created_at  TEXT NOT NULL,
+                    updated_at  TEXT NOT NULL
+                )
+            """)
+
+    def list_all(self) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT data FROM training_runs ORDER BY created_at DESC"
+            ).fetchall()
+        return [json.loads(r["data"]) for r in rows]
+
+    def get(self, run_id: str) -> Optional[Dict[str, Any]]:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT data FROM training_runs WHERE id = ?", (run_id,)
+            ).fetchone()
+        return json.loads(row["data"]) if row else None
+
+    def upsert(self, run_id: str, data: dict) -> None:
+        now = _utcnow_iso()
+        blob = json.dumps(data, default=str)
+        environment = data.get("environment_name", data.get("environment", ""))
+        status = data.get("status", "pending")
+        with self._conn() as conn:
+            conn.execute(
+                """INSERT INTO training_runs (id, data, environment, status, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(id) DO UPDATE SET
+                       data        = excluded.data,
+                       environment = excluded.environment,
+                       status      = excluded.status,
+                       updated_at  = excluded.updated_at
+                """,
+                (run_id, blob, environment, status, now, now),
+            )
+
+    def delete(self, run_id: str) -> bool:
+        with self._conn() as conn:
+            cur = conn.execute(
+                "DELETE FROM training_runs WHERE id = ?", (run_id,)
+            )
+        return cur.rowcount > 0
+
+    def count(self) -> int:
+        with self._conn() as conn:
+            row = conn.execute("SELECT COUNT(*) AS c FROM training_runs").fetchone()
+        return row["c"]
+
+    def list_by_environment(self, environment: str) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT data FROM training_runs WHERE environment = ? ORDER BY created_at DESC",
+                (environment,),
+            ).fetchall()
+        return [json.loads(r["data"]) for r in rows]
+
+    def list_by_status(self, status: str) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT data FROM training_runs WHERE status = ? ORDER BY created_at DESC",
+                (status,),
+            ).fetchall()
+        return [json.loads(r["data"]) for r in rows]
+
+    def db_size_bytes(self) -> int:
+        try:
+            return os.path.getsize(self.db_path)
+        except OSError:
+            return 0
+
+
 # ======================================================================
 # JSON → SQLite migration
 # ======================================================================
