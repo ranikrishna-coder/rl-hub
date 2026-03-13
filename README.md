@@ -12,6 +12,54 @@ A platform for designing, simulating, and training reinforcement learning agents
 | **Data** | In-memory (training jobs, rollouts); PostgreSQL schema available |
 | **Deployment** | Docker, Azure |
 
+### Backend / API
+
+| Framework | Purpose |
+|-----------|---------|
+| FastAPI | Web API framework |
+| Uvicorn | ASGI server |
+| Pydantic | Request/response validation and schemas |
+
+### Reinforcement Learning / ML
+
+| Framework | Purpose |
+|-----------|---------|
+| Gymnasium | RL environment API (successor to OpenAI Gym) |
+| Stable-Baselines3 | RL algorithms (PPO, DQN, A2C, etc.) |
+| PyTorch | Deep learning backend for SB3 |
+
+### Data & Computation
+
+| Framework | Purpose |
+|-----------|---------|
+| NumPy | Numerical computing |
+| SciPy | Scientific computing |
+| Pandas | Data processing |
+
+### Database
+
+| Framework | Purpose |
+|-----------|---------|
+| SQLAlchemy | ORM and DB abstractions |
+| SQLite | Embedded DB for scenarios, verifiers, custom envs |
+| psycopg2 | PostgreSQL driver (optional) |
+
+### Frontend
+
+| Technology | Purpose |
+|------------|---------|
+| Vanilla JavaScript | UI logic (no React/Vue/Angular) |
+| HTML5 / CSS3 | Structure and styling |
+
+### Other
+
+| Framework | Purpose |
+|-----------|---------|
+| TensorBoard | Training and metrics visualization |
+| Matplotlib / Seaborn | Plots and charts |
+| pytest / httpx | Tests and API testing |
+| requests | HTTP client (e.g. Jira API) |
+
 ## Quick Start
 
 ```bash

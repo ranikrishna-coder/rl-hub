@@ -2152,6 +2152,23 @@ async def duplicate_verifier(verifier_id: str):
     return {"success": True, "verifier": new_v}
 
 
+@app.delete("/api/verifiers/{verifier_id}")
+async def delete_verifier_definition(verifier_id: str):
+    """Delete a verifier from both in-memory store and SQLite"""
+    found = False
+    if verifier_id in _verifier_store:
+        del _verifier_store[verifier_id]
+        found = True
+    try:
+        _verifier_db_store.delete(verifier_id)
+        found = True
+    except Exception:
+        pass
+    if not found:
+        raise HTTPException(status_code=404, detail=f"Verifier {verifier_id} not found")
+    return {"status": "deleted", "id": verifier_id}
+
+
 @app.patch("/api/verifiers/{verifier_id}/disable")
 async def disable_verifier(verifier_id: str):
     """Disable a verifier (prevents selection in new runs, preserves history)"""
@@ -3183,6 +3200,78 @@ async def delete_custom_environment(name: str):
     return _do_delete_environment(name)
 
 
+@app.put("/api/custom-environments/{name}")
+async def update_custom_environment(name: str, request: Request):
+    """Update an environment by name. Works for both custom and built-in environments.
+    Supports rename via 'new_name' field."""
+    global custom_environments
+    data = await request.json()
+
+    # Try custom environments first
+    existing = next((e for e in custom_environments if e["name"] == name), None)
+    if existing:
+        new_name = data.pop("new_name", None)
+        # Update fields
+        for key, val in data.items():
+            existing[key] = val
+        # Handle rename
+        if new_name and new_name != name:
+            dup = next((e for e in custom_environments if e["name"] == new_name), None)
+            if dup:
+                raise HTTPException(status_code=409, detail=f"Environment '{new_name}' already exists.")
+            existing["name"] = new_name
+            try:
+                _env_store.delete(name)
+            except Exception:
+                pass
+        _persist_environments()
+        return {"status": "updated", "name": existing["name"]}
+
+    # Try built-in ENVIRONMENT_REGISTRY
+    from portal.environment_registry import ENVIRONMENT_REGISTRY
+    if name in ENVIRONMENT_REGISTRY:
+        builtin = ENVIRONMENT_REGISTRY[name]
+        new_name = data.pop("new_name", None)
+        # Update fields in the registry dict
+        for key, val in data.items():
+            builtin[key] = val
+        # Handle rename
+        if new_name and new_name != name:
+            # Check uniqueness across both registries
+            if new_name in ENVIRONMENT_REGISTRY:
+                raise HTTPException(status_code=409, detail=f"Environment '{new_name}' already exists.")
+            dup = next((e for e in custom_environments if e["name"] == new_name), None)
+            if dup:
+                raise HTTPException(status_code=409, detail=f"Environment '{new_name}' already exists.")
+            # Move entry in registry
+            ENVIRONMENT_REGISTRY[new_name] = ENVIRONMENT_REGISTRY.pop(name)
+            return {"status": "updated", "name": new_name}
+        return {"status": "updated", "name": name}
+
+    raise HTTPException(status_code=404, detail=f"Environment '{name}' not found.")
+
+
+@app.put("/api/environments/{name}/system")
+async def update_environment_system(name: str, request: Request):
+    """Update just the 'system' field on any environment (custom or built-in)."""
+    global custom_environments
+    data = await request.json()
+    new_system = data.get("system", "")
+    # Try custom environments first
+    env = next((e for e in custom_environments if e["name"] == name), None)
+    if env:
+        env["system"] = new_system
+        _persist_environments()
+        return {"status": "updated", "name": name, "system": new_system}
+    # Try built-in ENVIRONMENT_REGISTRY
+    from portal.registry import ENVIRONMENT_REGISTRY
+    builtin = next((e for e in ENVIRONMENT_REGISTRY if e.get("name") == name), None)
+    if builtin:
+        builtin["system"] = new_system
+        return {"status": "updated", "name": name, "system": new_system}
+    raise HTTPException(status_code=404, detail=f"Environment '{name}' not found.")
+
+
 @app.post("/api/custom-environments/delete")
 async def delete_custom_environment_post(request: Request):
     """Delete a custom / imported environment (POST-based, avoids proxy/URL issues)."""
@@ -3194,22 +3283,29 @@ async def delete_custom_environment_post(request: Request):
 
 
 def _do_delete_environment(name: str):
-    """Shared delete logic for both DELETE and POST routes."""
+    """Shared delete logic for both DELETE and POST routes.
+    Supports deleting custom environments AND built-in environments."""
     global custom_environments
+
+    # Try custom environments first
     env_record = next((e for e in custom_environments if e["name"] == name), None)
-    if not env_record:
-        raise HTTPException(status_code=404, detail=f"Environment '{name}' not found.")
+    if env_record:
+        # Remove cloned directory if it exists
+        local_path = env_record.get("local_path")
+        if local_path and os.path.isdir(local_path):
+            shutil.rmtree(local_path, ignore_errors=True)
+        # Remove from persisted JSON store
+        _remove_persisted_environment(name)
+        custom_environments = [e for e in custom_environments if e["name"] != name]
+        return {"status": "deleted", "name": name}
 
-    # Remove cloned directory if it exists
-    local_path = env_record.get("local_path")
-    if local_path and os.path.isdir(local_path):
-        shutil.rmtree(local_path, ignore_errors=True)
+    # Try built-in ENVIRONMENT_REGISTRY
+    from portal.environment_registry import ENVIRONMENT_REGISTRY
+    if name in ENVIRONMENT_REGISTRY:
+        del ENVIRONMENT_REGISTRY[name]
+        return {"status": "deleted", "name": name}
 
-    # Remove from persisted JSON store
-    _remove_persisted_environment(name)
-
-    custom_environments = [e for e in custom_environments if e["name"] != name]
-    return {"status": "deleted", "name": name}
+    raise HTTPException(status_code=404, detail=f"Environment '{name}' not found.")
 
 
 @app.post("/api/custom-environments")

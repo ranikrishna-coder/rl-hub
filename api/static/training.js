@@ -27,23 +27,14 @@
     function _applyEnvPreselection(envId) {
         if (!envId) return;
         var env = findEnv(envId);
-        if (env && env.system) {
-            var primarySystem = env.system.split(',')[0].trim();
-            var systemSel = document.getElementById('tr-env-system');
-            if (systemSel) {
-                systemSel.value = primarySystem;
-                populateEnvironments();
-            }
+        // Show all environments (no system filter) so user can switch if needed
+        var systemSel = document.getElementById('tr-env-system');
+        if (systemSel) {
+            systemSel.value = '';
+            populateEnvironments();
         }
         document.getElementById('tr-env').value = envId;
         onEnvironmentChange();
-        // Make environment fields read-only when pre-populated from env detail page
-        setTimeout(function () {
-            var envSel = document.getElementById('tr-env');
-            var sysSel = document.getElementById('tr-env-system');
-            if (envSel) envSel.disabled = true;
-            if (sysSel) sysSel.disabled = true;
-        }, 100);
     }
 
     function _applyAgentPreselection(agentId) {
@@ -245,6 +236,7 @@
                         name: s.name || s.id || '',
                         category: s.category || '',
                         product: s.product || '',
+                        environment: s.environment || s.product || '',
                         task_count: tasks.length || s.task_count || 0,
                         description: s.description || (s.system_prompt || '').substring(0, 120),
                         source: 'custom',
@@ -573,8 +565,22 @@
         var selectAll = document.getElementById('action-select-all');
         if (!field || !container) return;
 
-        var env = findEnv(document.getElementById('tr-env').value);
-        var actions = (env && env.actions) ? env.actions : [];
+        // Actions only appear after a scenario is selected
+        var scenarioVal = document.getElementById('tr-scenario') ? document.getElementById('tr-scenario').value : '';
+        var actions = [];
+
+        if (scenarioVal) {
+            // Find the selected scenario and use its expected_workflow as actions
+            var allScenarios = getAllScenarios();
+            var scenario = allScenarios.filter(function (s) { return s.id === scenarioVal; })[0];
+            if (scenario && scenario.expected_workflow && scenario.expected_workflow.length > 0) {
+                actions = scenario.expected_workflow;
+            } else {
+                // Fallback: use the environment's actions if scenario has no expected_workflow
+                var env = findEnv(document.getElementById('tr-env').value);
+                actions = (env && env.actions) ? env.actions : [];
+            }
+        }
 
         container.innerHTML = '';
         if (actions.length > 0) {
@@ -704,10 +710,16 @@
     function onEnvironmentChange() {
         updateEnvPreview();
         filterScenarios();
-        populateActions();
+        // Hide actions until a scenario is selected
+        var actionField = document.getElementById('action-field');
+        if (actionField) actionField.style.display = 'none';
         populateVerifiers();
         filterAgents();
         updateVerifierSystem();
+    }
+
+    function onScenarioChange() {
+        populateActions();
     }
 
     function initVerifierToggle() {
@@ -2293,6 +2305,10 @@
 
         // Environment change cascades (Scenario dropdown selects RL environment)
         document.getElementById('tr-env').addEventListener('change', onEnvironmentChange);
+
+        // Scenario change — show actions only after scenario is selected
+        var scenarioSel = document.getElementById('tr-scenario');
+        if (scenarioSel) scenarioSel.addEventListener('change', onScenarioChange);
 
         // Verifier
         initVerifierToggle();
