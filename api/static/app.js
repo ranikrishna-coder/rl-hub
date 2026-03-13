@@ -2708,8 +2708,50 @@ function deleteScenario(envName, scenarioId) {
     var envCategory = env ? env.category : '';
     var cacheKey = envName + '|' + envCategory;
     delete _persistedScenariosLoaded[cacheKey];
-    // Re-render
-    showEnvironmentDetails(envName);
+
+    // Update DOM in-place: rebuild only the scenarios list without full re-render
+    var allScenarios = (cfg && cfg.scenarios) ? cfg.scenarios : [];
+    var filtered = allScenarios.filter(function (s) {
+        if (s.environment) return s.environment === envName;
+        return s.category === envCategory || s.product === envName;
+    });
+
+    // Rebuild the scenario cards HTML
+    var listHtml = '';
+    if (filtered.length) {
+        filtered.forEach(function (s, idx) {
+            var actionsHtml = '<div class="card-action-btns" onclick="event.stopPropagation()">' +
+                '<button class="btn-xs btn-xs-edit" onclick="editScenario(\'' + envName.replace(/'/g, "\\'") + '\', \'' + envCategory + '\', \'' + s.id + '\')" title="Edit scenario">' +
+                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+                ' Edit</button>' +
+                '<button class="btn-xs btn-xs-delete" onclick="deleteScenario(\'' + envName.replace(/'/g, "\\'") + '\', \'' + s.id + '\')" title="Delete scenario">' +
+                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>' +
+                ' Delete</button>' +
+                '</div>';
+            listHtml += '<div class="scenario-card clickable-card" id="scenario-card-' + idx + '" onclick="showScenarioDetail(\'' + envCategory + '\', ' + idx + ', \'' + envName.replace(/'/g, "\\'") + '\')" title="Click to view details">' +
+                '<div class="scenario-card-header">' +
+                '<span class="scenario-card-name">' + s.name + '</span>' +
+                '<span class="scenario-card-badge">' + s.category + '</span>' +
+                '<span class="scenario-card-tasks">' + s.task_count + ' tasks</span>' +
+                actionsHtml +
+                '</div>' +
+                '<p class="scenario-card-desc">' + s.description + '</p>' +
+                '</div>';
+        });
+    } else {
+        listHtml = '<p style="color:var(--text-secondary);font-size:0.9rem;">No scenarios configured for this environment category.</p>';
+    }
+
+    // Update the list container
+    var listContainer = document.querySelector('#section-scenarios .scenarios-list');
+    if (listContainer) listContainer.innerHTML = listHtml;
+
+    // Update the count in the section header
+    var header = document.querySelector('#section-scenarios .detail-collapsible-header h2');
+    if (header) {
+        var countSpan = header.querySelector('span');
+        if (countSpan) countSpan.textContent = '(' + filtered.length + ')';
+    }
 }
 window.deleteScenario = deleteScenario;
 
@@ -3066,8 +3108,69 @@ function deleteVerifier(envName, verifierId) {
     var envCategory = env ? env.category : '';
     var cacheKey = envName + '|' + envCategory;
     delete _persistedVerifiersLoaded[cacheKey];
-    // Re-render
-    showEnvironmentDetails(envName);
+
+    // Update DOM in-place: rebuild only the verifiers list without full re-render
+    var allVerifiers = (store && store.all) ? store.all : [];
+    var filtered = allVerifiers.filter(function (v) {
+        if (v.envName) return v.envName === envName;
+        return v.environment === envCategory;
+    });
+
+    // Rebuild the verifier cards HTML
+    var listHtml = '';
+    if (filtered.length) {
+        filtered.forEach(function (v, idx) {
+            var typeClass = (v.type || '').replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+            var scoringHtml = '';
+            if (v.logic && v.logic.scoring && typeof v.logic.scoring === 'object' && !Array.isArray(v.logic.scoring)) {
+                var keys = Object.keys(v.logic.scoring);
+                scoringHtml = '<div class="verifier-scoring">';
+                keys.forEach(function (k) {
+                    scoringHtml += '<span class="verifier-score-badge">' + k.replace(/_/g, ' ') + ': ' + v.logic.scoring[k] + '</span>';
+                });
+                scoringHtml += '</div>';
+            }
+            var subHtml = '';
+            if (v.subVerifiers && v.subVerifiers.length) {
+                subHtml = '<div class="verifier-subs"><span style="font-size:0.75rem;color:var(--text-secondary);font-weight:600;">Sub-verifiers:</span>';
+                v.subVerifiers.forEach(function (sv) {
+                    subHtml += '<span class="verifier-sub-chip" title="' + (sv.description || '') + '">' + sv.name + '</span>';
+                });
+                subHtml += '</div>';
+            }
+            var vActionsHtml = '<div class="card-action-btns" onclick="event.stopPropagation()">' +
+                '<button class="btn-xs btn-xs-edit" onclick="editVerifier(\'' + envName.replace(/'/g, "\\'") + '\', \'' + envCategory + '\', \'' + v.id + '\')" title="Edit verifier">' +
+                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+                ' Edit</button>' +
+                '<button class="btn-xs btn-xs-delete" onclick="deleteVerifier(\'' + envName.replace(/'/g, "\\'") + '\', \'' + v.id + '\')" title="Delete verifier">' +
+                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>' +
+                ' Delete</button>' +
+                '</div>';
+            listHtml += '<div class="verifier-card clickable-card" id="verifier-card-' + idx + '" onclick="showVerifierDetail(\'' + envCategory + '\', ' + idx + ')" title="Click to view JSON config">' +
+                '<div class="verifier-card-header">' +
+                '<span class="verifier-card-name">' + v.name + '</span>' +
+                '<span class="verifier-card-type type-' + typeClass + '">' + v.type + '</span>' +
+                vActionsHtml +
+                '</div>' +
+                '<p class="verifier-card-desc">' + v.description + '</p>' +
+                scoringHtml +
+                subHtml +
+                '</div>';
+        });
+    } else {
+        listHtml = '<p style="color:var(--text-secondary);font-size:0.9rem;">No verifiers configured for this environment category.</p>';
+    }
+
+    // Update the list container
+    var listContainer = document.querySelector('#section-verifiers .verifiers-list');
+    if (listContainer) listContainer.innerHTML = listHtml;
+
+    // Update the count in the section header
+    var header = document.querySelector('#section-verifiers .detail-collapsible-header h2');
+    if (header) {
+        var countSpan = header.querySelector('span');
+        if (countSpan) countSpan.textContent = '(' + filtered.length + ')';
+    }
 }
 window.deleteVerifier = deleteVerifier;
 
