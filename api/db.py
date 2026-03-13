@@ -38,13 +38,15 @@ try:
     _pool = PooledDB(
         creator=_create_connection,
         maxconnections=MARIADB_POOL_SIZE,
-        mincached=1,
+        mincached=0,       # don't pre-create connections at import time
         maxcached=MARIADB_POOL_SIZE,
         blocking=True,
         maxusage=None,
         ping=1,  # check connection is alive when taken from pool
     )
-except ImportError:
+except (ImportError, Exception):
+    # ImportError  → DBUtils not installed
+    # Exception    → DB unreachable at startup (bad creds, host down, etc.)
     _pool = None
 
 

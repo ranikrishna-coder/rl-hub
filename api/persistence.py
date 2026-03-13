@@ -49,7 +49,10 @@ class EnvironmentStore:
 
     def __init__(self, db_path: Optional[str] = None):
         # db_path ignored; kept for API compatibility
-        self._init_db()
+        try:
+            self._init_db()
+        except Exception:
+            pass  # DB unavailable at startup; tables created by schema_mariadb.sql on server
 
     def _init_db(self) -> None:
         with _conn() as conn:
@@ -300,7 +303,10 @@ class ScenarioStore:
 
     def __init__(self, db_path: Optional[str] = None):
         # db_path ignored; kept for API compatibility
-        self._init_db()
+        try:
+            self._init_db()
+        except Exception:
+            pass  # DB unavailable at startup; tables created by schema_mariadb.sql on server
 
     def _init_db(self) -> None:
         with _conn() as conn:
@@ -401,7 +407,10 @@ class VerifierStore:
 
     def __init__(self, db_path: Optional[str] = None):
         # db_path ignored; kept for API compatibility
-        self._init_db()
+        try:
+            self._init_db()
+        except Exception:
+            pass  # DB unavailable at startup; tables created by schema_mariadb.sql on server
 
     def _init_db(self) -> None:
         with _conn() as conn:
