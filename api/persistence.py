@@ -1,8 +1,9 @@
 """
 Persistence layer for user-created environments, scenarios, and verifiers.
 
-Stores data in MariaDB (configured via MARIADB_* env vars) so it survives
-code deployments and supports multi-instance deployments.
+Uses SQLite (stdlib) — no external database required. Data is stored in
+per-collection .db files under api/data/ which already exist from before
+the MariaDB migration.
 
 Usage
 -----
@@ -11,269 +12,201 @@ Usage
     store = EnvironmentStore()
     store.upsert("my-env", {...})
     envs = store.list_all()
-
-    scenarios = ScenarioStore()
-    scenarios.upsert("my-scenario", {...})
-    all_scenarios = scenarios.list_all()
 """
 
 import json
 import os
-from contextlib import contextmanager
+import sqlite3
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from api.db import get_connection
+from api.config import DATA_DIR
 
 
 def _utcnow_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
-@contextmanager
-def _conn():
-    """Context manager yielding a MariaDB connection with DictCursor. Commits on success."""
-    conn = get_connection()
-    try:
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+def _conn(db_path: str) -> sqlite3.Connection:
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    conn = sqlite3.connect(db_path, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    return conn
 
 
 class EnvironmentStore:
-    """MariaDB-backed store for user / imported environments."""
+    """SQLite-backed store for user / imported environments."""
 
     def __init__(self, db_path: Optional[str] = None):
-        # db_path ignored; kept for API compatibility
-        try:
-            self._init_db()
-        except Exception:
-            pass  # DB unavailable at startup; tables created by schema_mariadb.sql on server
+        self._db = db_path or os.path.join(DATA_DIR, "environments.db")
+        self._init_db()
 
     def _init_db(self) -> None:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS user_environments (
-                        name       VARCHAR(255) PRIMARY KEY,
-                        data       LONGTEXT NOT NULL,
-                        source     VARCHAR(64) DEFAULT 'custom',
-                        created_at VARCHAR(32) NOT NULL,
-                        updated_at VARCHAR(32) NOT NULL
-                    )
-                """)
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS environment_backups (
-                        id          INT AUTO_INCREMENT PRIMARY KEY,
-                        backup_data LONGTEXT NOT NULL,
-                        env_count   INT NOT NULL DEFAULT 0,
-                        created_at  VARCHAR(32) NOT NULL,
-                        label       VARCHAR(255) NULL
-                    )
-                """)
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS health_snapshots (
-                        id         INT AUTO_INCREMENT PRIMARY KEY,
-                        snapshot   LONGTEXT NOT NULL,
-                        created_at VARCHAR(32) NOT NULL
-                    )
-                """)
+        with _conn(self._db) as c:
+            c.executescript("""
+                CREATE TABLE IF NOT EXISTS user_environments (
+                    name       TEXT PRIMARY KEY,
+                    data       TEXT NOT NULL,
+                    source     TEXT DEFAULT 'custom',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS environment_backups (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    backup_data TEXT NOT NULL,
+                    env_count   INTEGER NOT NULL DEFAULT 0,
+                    created_at  TEXT NOT NULL,
+                    label       TEXT
+                );
+                CREATE TABLE IF NOT EXISTS health_snapshots (
+                    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                    snapshot   TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+            """)
+
+    # ------------------------------------------------------------------
+    # Environments
+    # ------------------------------------------------------------------
 
     def list_all(self) -> List[Dict[str, Any]]:
-        """Return every user environment as a dict."""
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT data FROM user_environments ORDER BY created_at"
-                )
-                rows = cur.fetchall()
+        with _conn(self._db) as c:
+            rows = c.execute(
+                "SELECT data FROM user_environments ORDER BY created_at"
+            ).fetchall()
         return [json.loads(r["data"]) for r in rows]
 
     def get(self, name: str) -> Optional[Dict[str, Any]]:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT data FROM user_environments WHERE name = %s",
-                    (name,),
-                )
-                row = cur.fetchone()
+        with _conn(self._db) as c:
+            row = c.execute(
+                "SELECT data FROM user_environments WHERE name = ?", (name,)
+            ).fetchone()
         return json.loads(row["data"]) if row else None
 
     def upsert(self, name: str, data: dict) -> None:
         now = _utcnow_iso()
         blob = json.dumps(data, default=str)
         source = data.get("source", "custom")
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """INSERT INTO user_environments (name, data, source, created_at, updated_at)
-                       VALUES (%s, %s, %s, %s, %s)
-                       ON DUPLICATE KEY UPDATE
-                           data       = VALUES(data),
-                           source     = VALUES(source),
-                           updated_at = VALUES(updated_at)
-                    """,
-                    (name, blob, source, now, now),
-                )
+        with _conn(self._db) as c:
+            c.execute(
+                """INSERT INTO user_environments (name, data, source, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?)
+                   ON CONFLICT(name) DO UPDATE SET
+                       data       = excluded.data,
+                       source     = excluded.source,
+                       updated_at = excluded.updated_at""",
+                (name, blob, source, now, now),
+            )
 
     def batch_upsert(self, envs: List[Dict[str, Any]]) -> int:
-        """Upsert many environments in a single SQL statement (one round-trip).
-
-        Returns the number of rows passed in.
-        """
-        if not envs:
-            return 0
         now = _utcnow_iso()
-        rows = []
-        for env in envs:
-            name = env.get("name")
-            if not name:
-                continue
-            rows.append((
-                name,
-                json.dumps(env, default=str),
-                env.get("source", "custom"),
-                now,
-                now,
-            ))
+        rows = [
+            (env["name"], json.dumps(env, default=str), env.get("source", "custom"), now, now)
+            for env in envs if env.get("name")
+        ]
         if not rows:
             return 0
-        placeholders = ",".join(["(%s,%s,%s,%s,%s)"] * len(rows))
-        flat_params = [v for row in rows for v in row]
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    f"""INSERT INTO user_environments
-                            (name, data, source, created_at, updated_at)
-                        VALUES {placeholders}
-                        ON DUPLICATE KEY UPDATE
-                            data       = VALUES(data),
-                            source     = VALUES(source),
-                            updated_at = VALUES(updated_at)
-                    """,
-                    flat_params,
-                )
+        with _conn(self._db) as c:
+            c.executemany(
+                """INSERT INTO user_environments (name, data, source, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?)
+                   ON CONFLICT(name) DO UPDATE SET
+                       data       = excluded.data,
+                       source     = excluded.source,
+                       updated_at = excluded.updated_at""",
+                rows,
+            )
         return len(rows)
 
     def delete(self, name: str) -> bool:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "DELETE FROM user_environments WHERE name = %s",
-                    (name,),
-                )
-                return cur.rowcount > 0
+        with _conn(self._db) as c:
+            c.execute("DELETE FROM user_environments WHERE name = ?", (name,))
+            return c.execute("SELECT changes()").fetchone()[0] > 0
 
     def count(self) -> int:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT COUNT(*) AS c FROM user_environments")
-                row = cur.fetchone()
-        return row["c"] if row else 0
+        with _conn(self._db) as c:
+            return c.execute("SELECT COUNT(*) FROM user_environments").fetchone()[0]
+
+    # ------------------------------------------------------------------
+    # Backups
+    # ------------------------------------------------------------------
 
     def create_backup(self, label: Optional[str] = None) -> int:
-        """Snapshot all current environments. Returns the new backup id."""
+        from api.config import MAX_BACKUPS
         envs = self.list_all()
         now = _utcnow_iso()
-        blob = json.dumps(envs, default=str)
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """INSERT INTO environment_backups (backup_data, env_count, created_at, label)
-                       VALUES (%s, %s, %s, %s)""",
-                    (blob, len(envs), now, label),
-                )
-                backup_id = cur.lastrowid
-                from api.config import MAX_BACKUPS
-                cur.execute(
-                    """DELETE FROM environment_backups
-                       WHERE id NOT IN (
-                           SELECT id FROM (
-                               SELECT id FROM environment_backups
-                               ORDER BY id DESC LIMIT %s
-                           ) AS t
-                       )""",
-                    (MAX_BACKUPS,),
-                )
+        with _conn(self._db) as c:
+            cur = c.execute(
+                "INSERT INTO environment_backups (backup_data, env_count, created_at, label) VALUES (?, ?, ?, ?)",
+                (json.dumps(envs, default=str), len(envs), now, label),
+            )
+            backup_id = cur.lastrowid
+            c.execute(
+                """DELETE FROM environment_backups WHERE id NOT IN (
+                       SELECT id FROM environment_backups ORDER BY id DESC LIMIT ?
+                   )""",
+                (MAX_BACKUPS,),
+            )
         return backup_id
 
     def restore_backup(self, backup_id: int) -> int:
-        """Replace all environments with the snapshot in the given backup."""
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT backup_data FROM environment_backups WHERE id = %s",
-                    (backup_id,),
-                )
-                row = cur.fetchone()
-                if not row:
-                    raise ValueError(f"Backup {backup_id} not found")
-
-                envs = json.loads(row["backup_data"])
-                cur.execute("DELETE FROM user_environments")
-                now = _utcnow_iso()
-                for env in envs:
-                    name = env.get("name", "")
-                    source = env.get("source", "custom")
-                    blob = json.dumps(env, default=str)
-                    cur.execute(
-                        """INSERT INTO user_environments
-                           (name, data, source, created_at, updated_at)
-                           VALUES (%s, %s, %s, %s, %s)""",
-                        (name, blob, source, now, now),
-                    )
+        with _conn(self._db) as c:
+            row = c.execute(
+                "SELECT backup_data FROM environment_backups WHERE id = ?", (backup_id,)
+            ).fetchone()
+        if not row:
+            raise ValueError(f"Backup {backup_id} not found")
+        envs = json.loads(row["backup_data"])
+        now = _utcnow_iso()
+        with _conn(self._db) as c:
+            c.execute("DELETE FROM user_environments")
+            c.executemany(
+                """INSERT INTO user_environments (name, data, source, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?)""",
+                [
+                    (env.get("name", ""), json.dumps(env, default=str),
+                     env.get("source", "custom"), now, now)
+                    for env in envs if env.get("name")
+                ],
+            )
         return len(envs)
 
     def list_backups(self) -> List[Dict[str, Any]]:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """SELECT id, env_count, created_at, label
-                       FROM environment_backups ORDER BY id DESC"""
-                )
-                rows = cur.fetchall()
+        with _conn(self._db) as c:
+            rows = c.execute(
+                "SELECT id, env_count, created_at, label FROM environment_backups ORDER BY id DESC"
+            ).fetchall()
         return [dict(r) for r in rows]
 
     def delete_backup(self, backup_id: int) -> bool:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "DELETE FROM environment_backups WHERE id = %s",
-                    (backup_id,),
-                )
-                return cur.rowcount > 0
+        with _conn(self._db) as c:
+            c.execute("DELETE FROM environment_backups WHERE id = ?", (backup_id,))
+            return c.execute("SELECT changes()").fetchone()[0] > 0
+
+    # ------------------------------------------------------------------
+    # Health snapshots
+    # ------------------------------------------------------------------
 
     def record_health(self, snapshot: dict) -> None:
         now = _utcnow_iso()
-        blob = json.dumps(snapshot, default=str)
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "INSERT INTO health_snapshots (snapshot, created_at) VALUES (%s, %s)",
-                    (blob, now),
-                )
-                cur.execute(
-                    """DELETE FROM health_snapshots
-                       WHERE id NOT IN (
-                           SELECT id FROM (
-                               SELECT id FROM health_snapshots
-                               ORDER BY id DESC LIMIT 500
-                           ) AS t
-                       )"""
-                )
+        with _conn(self._db) as c:
+            c.execute(
+                "INSERT INTO health_snapshots (snapshot, created_at) VALUES (?, ?)",
+                (json.dumps(snapshot, default=str), now),
+            )
+            c.execute(
+                """DELETE FROM health_snapshots WHERE id NOT IN (
+                       SELECT id FROM health_snapshots ORDER BY id DESC LIMIT 500
+                   )"""
+            )
 
     def get_health_history(self, limit: int = 50) -> List[Dict[str, Any]]:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT snapshot, created_at FROM health_snapshots ORDER BY id DESC LIMIT %s",
-                    (limit,),
-                )
-                rows = cur.fetchall()
+        with _conn(self._db) as c:
+            rows = c.execute(
+                "SELECT snapshot, created_at FROM health_snapshots ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
         result = []
         for r in rows:
             s = json.loads(r["snapshot"])
@@ -282,63 +215,44 @@ class EnvironmentStore:
         return result
 
     def db_size_bytes(self) -> int:
-        """Approximate size of environment tables in bytes (MariaDB)."""
         try:
-            with _conn() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        """SELECT COALESCE(SUM(data_length + index_length), 0) AS size
-                           FROM information_schema.tables
-                           WHERE table_schema = DATABASE()
-                             AND table_name IN ('user_environments', 'environment_backups', 'health_snapshots')"""
-                    )
-                    row = cur.fetchone()
-                    return int(row["size"]) if row and row.get("size") else 0
+            return os.path.getsize(self._db) if os.path.exists(self._db) else 0
         except Exception:
             return 0
 
 
 class ScenarioStore:
-    """MariaDB-backed store for user / imported scenarios."""
+    """SQLite-backed store for user / imported scenarios."""
 
     def __init__(self, db_path: Optional[str] = None):
-        # db_path ignored; kept for API compatibility
-        try:
-            self._init_db()
-        except Exception:
-            pass  # DB unavailable at startup; tables created by schema_mariadb.sql on server
+        self._db = db_path or os.path.join(DATA_DIR, "scenarios.db")
+        self._init_db()
 
     def _init_db(self) -> None:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS user_scenarios (
-                        id         VARCHAR(255) PRIMARY KEY,
-                        data       LONGTEXT NOT NULL,
-                        product    VARCHAR(255) DEFAULT '',
-                        source     VARCHAR(64) DEFAULT 'custom',
-                        created_at VARCHAR(32) NOT NULL,
-                        updated_at VARCHAR(32) NOT NULL
-                    )
-                """)
+        with _conn(self._db) as c:
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS user_scenarios (
+                    id         TEXT PRIMARY KEY,
+                    data       TEXT NOT NULL,
+                    product    TEXT DEFAULT '',
+                    source     TEXT DEFAULT 'custom',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            """)
 
     def list_all(self) -> List[Dict[str, Any]]:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT data FROM user_scenarios ORDER BY created_at"
-                )
-                rows = cur.fetchall()
+        with _conn(self._db) as c:
+            rows = c.execute(
+                "SELECT data FROM user_scenarios ORDER BY created_at"
+            ).fetchall()
         return [json.loads(r["data"]) for r in rows]
 
     def get(self, scenario_id: str) -> Optional[Dict[str, Any]]:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT data FROM user_scenarios WHERE id = %s",
-                    (scenario_id,),
-                )
-                row = cur.fetchone()
+        with _conn(self._db) as c:
+            row = c.execute(
+                "SELECT data FROM user_scenarios WHERE id = ?", (scenario_id,)
+            ).fetchone()
         return json.loads(row["data"]) if row else None
 
     def upsert(self, scenario_id: str, data: dict) -> None:
@@ -346,117 +260,74 @@ class ScenarioStore:
         blob = json.dumps(data, default=str)
         product = data.get("product", "")
         source = data.get("source", "custom")
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """INSERT INTO user_scenarios (id, data, product, source, created_at, updated_at)
-                       VALUES (%s, %s, %s, %s, %s, %s)
-                       ON DUPLICATE KEY UPDATE
-                           data       = VALUES(data),
-                           product    = VALUES(product),
-                           source     = VALUES(source),
-                           updated_at = VALUES(updated_at)
-                    """,
-                    (scenario_id, blob, product, source, now, now),
-                )
+        with _conn(self._db) as c:
+            c.execute(
+                """INSERT INTO user_scenarios (id, data, product, source, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(id) DO UPDATE SET
+                       data       = excluded.data,
+                       product    = excluded.product,
+                       source     = excluded.source,
+                       updated_at = excluded.updated_at""",
+                (scenario_id, blob, product, source, now, now),
+            )
 
     def delete(self, scenario_id: str) -> bool:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "DELETE FROM user_scenarios WHERE id = %s",
-                    (scenario_id,),
-                )
-                return cur.rowcount > 0
+        with _conn(self._db) as c:
+            c.execute("DELETE FROM user_scenarios WHERE id = ?", (scenario_id,))
+            return c.execute("SELECT changes()").fetchone()[0] > 0
 
     def count(self) -> int:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT COUNT(*) AS c FROM user_scenarios")
-                row = cur.fetchone()
-        return row["c"] if row else 0
+        with _conn(self._db) as c:
+            return c.execute("SELECT COUNT(*) FROM user_scenarios").fetchone()[0]
 
     def list_by_product(self, product: str) -> List[Dict[str, Any]]:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT data FROM user_scenarios WHERE product = %s ORDER BY created_at",
-                    (product,),
-                )
-                rows = cur.fetchall()
+        with _conn(self._db) as c:
+            rows = c.execute(
+                "SELECT data FROM user_scenarios WHERE product = ? ORDER BY created_at",
+                (product,),
+            ).fetchall()
         return [json.loads(r["data"]) for r in rows]
 
     def db_size_bytes(self) -> int:
         try:
-            with _conn() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        """SELECT COALESCE(SUM(data_length + index_length), 0) AS size
-                           FROM information_schema.tables
-                           WHERE table_schema = DATABASE()
-                             AND table_name = 'user_scenarios'"""
-                    )
-                    row = cur.fetchone()
-                    return int(row["size"]) if row and row.get("size") else 0
+            return os.path.getsize(self._db) if os.path.exists(self._db) else 0
         except Exception:
             return 0
 
 
 class VerifierStore:
-    """MariaDB-backed store for user / custom verifier definitions."""
+    """SQLite-backed store for user / custom verifier definitions."""
 
     def __init__(self, db_path: Optional[str] = None):
-        # db_path ignored; kept for API compatibility
-        try:
-            self._init_db()
-        except Exception:
-            pass  # DB unavailable at startup; tables created by schema_mariadb.sql on server
+        self._db = db_path or os.path.join(DATA_DIR, "verifiers.db")
+        self._init_db()
 
     def _init_db(self) -> None:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS user_verifiers (
-                        id          VARCHAR(255) PRIMARY KEY,
-                        data        LONGTEXT NOT NULL,
-                        environment VARCHAR(255) DEFAULT '',
-                        source      VARCHAR(64) DEFAULT 'custom',
-                        created_at  VARCHAR(32) NOT NULL,
-                        updated_at  VARCHAR(32) NOT NULL
-                    )
-                """)
-                # Ensure columns exist (migrate from older schema)
-                cur.execute(
-                    """SELECT COLUMN_NAME FROM information_schema.COLUMNS
-                       WHERE table_schema = DATABASE() AND table_name = 'user_verifiers'"""
+        with _conn(self._db) as c:
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS user_verifiers (
+                    id          TEXT PRIMARY KEY,
+                    data        TEXT NOT NULL,
+                    environment TEXT DEFAULT '',
+                    source      TEXT DEFAULT 'custom',
+                    created_at  TEXT NOT NULL,
+                    updated_at  TEXT NOT NULL
                 )
-                cols = {r["COLUMN_NAME"] for r in cur.fetchall()}
-                if "environment" not in cols:
-                    cur.execute(
-                        "ALTER TABLE user_verifiers ADD COLUMN environment VARCHAR(255) DEFAULT ''"
-                    )
-                if "source" not in cols:
-                    cur.execute(
-                        "ALTER TABLE user_verifiers ADD COLUMN source VARCHAR(64) DEFAULT 'custom'"
-                    )
+            """)
 
     def list_all(self) -> List[Dict[str, Any]]:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT data FROM user_verifiers ORDER BY created_at"
-                )
-                rows = cur.fetchall()
+        with _conn(self._db) as c:
+            rows = c.execute(
+                "SELECT data FROM user_verifiers ORDER BY created_at"
+            ).fetchall()
         return [json.loads(r["data"]) for r in rows]
 
     def get(self, verifier_id: str) -> Optional[Dict[str, Any]]:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT data FROM user_verifiers WHERE id = %s",
-                    (verifier_id,),
-                )
-                row = cur.fetchone()
+        with _conn(self._db) as c:
+            row = c.execute(
+                "SELECT data FROM user_verifiers WHERE id = ?", (verifier_id,)
+            ).fetchone()
         return json.loads(row["data"]) if row else None
 
     def upsert(self, verifier_id: str, data: dict) -> None:
@@ -464,73 +335,51 @@ class VerifierStore:
         blob = json.dumps(data, default=str)
         environment = data.get("environment", "")
         source = data.get("source", "custom")
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """INSERT INTO user_verifiers (id, data, environment, source, created_at, updated_at)
-                       VALUES (%s, %s, %s, %s, %s, %s)
-                       ON DUPLICATE KEY UPDATE
-                           data        = VALUES(data),
-                           environment = VALUES(environment),
-                           source      = VALUES(source),
-                           updated_at  = VALUES(updated_at)
-                    """,
-                    (verifier_id, blob, environment, source, now, now),
-                )
+        with _conn(self._db) as c:
+            c.execute(
+                """INSERT INTO user_verifiers (id, data, environment, source, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(id) DO UPDATE SET
+                       data        = excluded.data,
+                       environment = excluded.environment,
+                       source      = excluded.source,
+                       updated_at  = excluded.updated_at""",
+                (verifier_id, blob, environment, source, now, now),
+            )
 
     def delete(self, verifier_id: str) -> bool:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "DELETE FROM user_verifiers WHERE id = %s",
-                    (verifier_id,),
-                )
-                return cur.rowcount > 0
+        with _conn(self._db) as c:
+            c.execute("DELETE FROM user_verifiers WHERE id = ?", (verifier_id,))
+            return c.execute("SELECT changes()").fetchone()[0] > 0
 
     def count(self) -> int:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT COUNT(*) AS c FROM user_verifiers")
-                row = cur.fetchone()
-        return row["c"] if row else 0
+        with _conn(self._db) as c:
+            return c.execute("SELECT COUNT(*) FROM user_verifiers").fetchone()[0]
 
     def list_by_environment(self, environment: str) -> List[Dict[str, Any]]:
-        with _conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT data FROM user_verifiers WHERE environment = %s ORDER BY created_at",
-                    (environment,),
-                )
-                rows = cur.fetchall()
+        with _conn(self._db) as c:
+            rows = c.execute(
+                "SELECT data FROM user_verifiers WHERE environment = ? ORDER BY created_at",
+                (environment,),
+            ).fetchall()
         return [json.loads(r["data"]) for r in rows]
 
     def db_size_bytes(self) -> int:
         try:
-            with _conn() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        """SELECT COALESCE(SUM(data_length + index_length), 0) AS size
-                           FROM information_schema.tables
-                           WHERE table_schema = DATABASE()
-                             AND table_name = 'user_verifiers'"""
-                    )
-                    row = cur.fetchone()
-                    return int(row["size"]) if row and row.get("size") else 0
+            return os.path.getsize(self._db) if os.path.exists(self._db) else 0
         except Exception:
             return 0
 
 
 # ======================================================================
-# JSON → MariaDB migration (legacy: import from old JSON file)
+# JSON → Store migration (legacy: import from old JSON file)
 # ======================================================================
 
 def migrate_json_to_store(json_path: str, store: EnvironmentStore) -> int:
-    """One-time migration: import JSON file entries into MariaDB.
+    """One-time migration: import JSON file entries into the store.
 
-    Only runs when the JSON file has data AND the store table is empty.
+    Only runs when the JSON file has data AND the store is empty.
     After migration the JSON file is renamed to ``*.json.migrated``.
-
-    Returns the count of migrated environments.
     """
     if not os.path.exists(json_path):
         return 0
@@ -555,5 +404,5 @@ def migrate_json_to_store(json_path: str, store: EnvironmentStore) -> int:
     except OSError:
         pass
 
-    print(f"[Persistence] Migrated {len(data)} environment(s) from JSON → MariaDB")
+    print(f"[Persistence] Migrated {len(data)} environment(s) from JSON → SQLite")
     return len(data)
