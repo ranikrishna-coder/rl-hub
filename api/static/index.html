@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Centific RL Environment & Agent - Environments</title>
-    <link rel="stylesheet" href="/static/styles.css?v=31">
+    <link rel="stylesheet" href="/static/styles.css?v=35">
     <link rel="stylesheet" href="/static/global-nav.css?v=3">
     <link rel="stylesheet" href="/static/toast.css?v=3">
     <script>
@@ -238,8 +238,12 @@
                                 <input type="text" id="add-env-import-desc" placeholder="Brief description" maxlength="200">
                             </div>
                             <div class="add-env-field">
-                                <label for="add-env-import-workflow">Workflow</label>
-                                <input type="text" id="add-env-import-workflow" placeholder="e.g. HR & Payroll, Jira, AI Assistant" maxlength="100">
+                                <label for="add-env-import-workflow">Workflow(s)</label>
+                                <div class="workflow-tags-container" id="workflow-tags-container">
+                                    <div class="workflow-tags-list" id="workflow-tags-list"></div>
+                                    <input type="text" id="add-env-import-workflow" placeholder="Type workflow, press Enter or comma to add" maxlength="100">
+                                </div>
+                                <span class="add-env-hint">Add multiple workflows separated by commas</span>
                             </div>
                         </div>
                         <div class="add-env-import-action-row">
@@ -374,10 +378,10 @@
     </footer>
 
     <script src="/static/toast.js"></script>
-    <script src="/static/verifier-data.js?v=4"></script>
-    <script src="/static/training-config-data.js?v=7"></script>
+    <script src="/static/verifier-data.js?v=5"></script>
+    <script src="/static/training-config-data.js?v=9"></script>
     <script src="/static/rollout-comparison.js"></script>
-    <script src="/static/app.js?v=42"></script>
+    <script src="/static/app.js?v=50"></script>
     <script>
         function toggleTheme() {
             var current = document.documentElement.getAttribute('data-theme');

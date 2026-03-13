@@ -12,30 +12,49 @@
         environments: [],
 
         scenarios: [
-            { id: 'sc_jira_1', name: 'Resolve Jira ticket ISK2', category: 'jira', task_count: 5, description: 'Resolve a Jira issue by transitioning through correct statuses' },
-            { id: 'sc_jira_2', name: 'Jira Status Update Workflow', category: 'jira', task_count: 3, description: 'Update issue status following valid transition paths' },
-            { id: 'sc_jira_3', name: 'Jira Subtask Management', category: 'jira', task_count: 8, description: 'Create and manage subtasks for parent issues' },
-            { id: 'sc_jira_4', name: 'Jira Comment Thread', category: 'jira', task_count: 4, description: 'Add and manage comments on Jira issues' },
-            { id: 'sc_epic_1', name: 'Epic Patient Lookup', category: 'clinical', task_count: 3, description: 'Search and retrieve patient records in Epic EHR' },
-            { id: 'sc_epic_2', name: 'Epic Order Entry', category: 'clinical', task_count: 7, description: 'Place and manage clinical orders in Epic' },
-            { id: 'sc_img_1', name: 'Radiology Scheduling', category: 'imaging', task_count: 5, description: 'Schedule and prioritize radiology imaging orders' },
-            { id: 'sc_img_2', name: 'MRI Scan Scheduling', category: 'imaging', task_count: 4, description: 'Optimize MRI scan scheduling across facilities' },
-            { id: 'sc_rev_1', name: 'Claims Rejection Recovery', category: 'revenue_cycle', task_count: 6, description: 'Recover rejected insurance claims through workflow automation' },
-            { id: 'sc_rev_2', name: 'Pre-Authorization Workflow', category: 'revenue_cycle', task_count: 8, description: 'Automate pre-authorization requests and approvals' },
-            { id: 'sc_pop_1', name: 'Chronic Disease Outreach', category: 'population_health', task_count: 6, description: 'Manage outreach campaigns for chronic disease patients' },
-            { id: 'sc_ct_1', name: 'Adaptive Cohort Allocation', category: 'clinical_trials', task_count: 5, description: 'Dynamically allocate patients to clinical trial cohorts' },
-            { id: 'sc_ct_2', name: 'Protocol Deviation Detection', category: 'clinical_trials', task_count: 4, description: 'Detect and handle protocol deviations in real-time' },
-            { id: 'sc_hr_1', name: 'Employee Onboarding', category: 'hr_payroll', task_count: 10, description: 'Complete employee onboarding workflow' },
-            { id: 'sc_hr_2', name: 'Payroll Processing', category: 'hr_payroll', task_count: 6, description: 'Process payroll across ADP, Workday, SAP systems' },
-            { id: 'sc_tele_1', name: 'Virtual Visit Routing', category: 'telehealth', task_count: 4, description: 'Route patients to appropriate telehealth providers' },
-            { id: 'sc_hosp_1', name: 'Staffing Allocation', category: 'hospital_operations', task_count: 5, description: 'Optimize hospital staff allocation across units' },
-            { id: 'sc_inter_1', name: 'Data Reconciliation', category: 'interoperability', task_count: 7, description: 'Reconcile patient data across disparate systems' },
-            { id: 'sc_cross_1', name: 'Patient Journey Optimization', category: 'cross_workflow', task_count: 9, description: 'Optimize end-to-end patient journey across departments' },
+            // Default scenarios — one per category
+            { id: 'sc_jira_1', name: 'Jira Issue Resolution', category: 'jira', task_count: 5, description: 'Resolve a Jira issue by transitioning through correct statuses',
+              expected_workflow: ['jira_get_issue', 'jira_transition_issue', 'jira_add_comment', 'jira_update_fields', 'jira_resolve_issue'] },
+
+            { id: 'sc_epic_1', name: 'Clinical Workflow', category: 'clinical', task_count: 3, description: 'Search and retrieve patient records, place clinical orders in Epic EHR',
+              expected_workflow: ['fhir_patient_search', 'fhir_patient_read', 'fhir_encounter_search'] },
+
+            { id: 'sc_img_1', name: 'Imaging Workflow', category: 'imaging', task_count: 5, description: 'Schedule and prioritize radiology imaging orders',
+              expected_workflow: ['pacs_query_worklist', 'pacs_check_availability', 'pacs_schedule_exam', 'pacs_assign_priority', 'pacs_confirm_booking'] },
+
+            { id: 'sc_rev_1', name: 'Revenue Cycle Workflow', category: 'revenue_cycle', task_count: 6, description: 'Recover rejected insurance claims through workflow automation',
+              expected_workflow: ['claims_get_rejection', 'claims_analyze_denial_code', 'claims_correct_coding', 'claims_resubmit_claim', 'claims_track_status', 'claims_update_account'] },
+
+            { id: 'sc_pop_1', name: 'Population Health Workflow', category: 'population_health', task_count: 6, description: 'Manage outreach campaigns for chronic disease patients',
+              expected_workflow: ['registry_query_patients', 'risk_stratify_cohort', 'outreach_generate_list', 'outreach_assign_care_manager', 'outreach_send_notification', 'outreach_track_engagement'] },
+
+            { id: 'sc_ct_1', name: 'Clinical Trials Workflow', category: 'clinical_trials', task_count: 5, description: 'Dynamically allocate patients to clinical trial cohorts',
+              expected_workflow: ['trial_screen_eligibility', 'trial_evaluate_criteria', 'trial_randomize_arm', 'trial_enroll_subject', 'trial_update_registry'] },
+
+            { id: 'sc_hr_1', name: 'HR & Payroll Workflow', category: 'hr_payroll', task_count: 10, description: 'Complete employee onboarding workflow across ADP, Workday, SAP',
+              expected_workflow: ['hr_create_employee', 'hr_assign_role', 'hr_setup_benefits', 'hr_provision_access', 'hr_assign_training', 'hr_schedule_orientation'] },
+
+            { id: 'sc_tele_1', name: 'Telehealth Workflow', category: 'telehealth', task_count: 4, description: 'Route patients to appropriate telehealth providers',
+              expected_workflow: ['tele_triage_request', 'tele_match_provider', 'tele_check_availability', 'tele_schedule_visit'] },
+
+            { id: 'sc_hosp_1', name: 'Hospital Operations Workflow', category: 'hospital_operations', task_count: 5, description: 'Optimize hospital staff allocation across units',
+              expected_workflow: ['staffing_get_census', 'staffing_evaluate_acuity', 'staffing_calculate_ratios', 'staffing_assign_nurses', 'staffing_notify_staff'] },
+
+            { id: 'sc_inter_1', name: 'Interoperability Workflow', category: 'interoperability', task_count: 7, description: 'Reconcile patient data across disparate systems',
+              expected_workflow: ['interop_query_source_a', 'interop_query_source_b', 'interop_match_records', 'interop_resolve_conflicts', 'interop_merge_demographics', 'interop_update_master', 'interop_audit_log'] },
+
+            { id: 'sc_cross_1', name: 'Cross-Workflow Orchestration', category: 'cross_workflow', task_count: 9, description: 'Optimize end-to-end patient journey across departments',
+              expected_workflow: ['admission_register', 'triage_assess', 'lab_order_create', 'imaging_schedule', 'pharmacy_dispense', 'care_plan_update', 'discharge_prepare', 'follow_up_schedule', 'billing_finalize'] },
+
             // ClinKriya Clinic (MedAgentBench) scenarios — keyed by environment name
-            { id: 'sc_ck_7', name: 'Prolonged QT Management', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 12, description: 'Monitor QTc interval, review current medications, and decide on clinical action using FHIR observation and medication data. Training task for GRPO run.' },
-            { id: 'sc_ck_3', name: 'Blood Pressure Recording', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 8, description: 'Record a vital-signs blood pressure observation (118/77 mmHg) for a patient encounter by posting a FHIR Observation resource.' },
-            { id: 'sc_ck_8', name: 'Orthopedic Referral', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 10, description: 'Create an urgent FHIR ServiceRequest for orthopedic consultation following ACL tear assessment using SNOMED referral code.' },
-            { id: 'sc_ck_10', name: 'A1C Lab Order', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 7, description: 'Order hemoglobin A1C lab test (LOINC 4548-4) for diabetic patient management by creating a stat FHIR ServiceRequest.' },
+            { id: 'sc_ck_7', name: 'Prolonged QT Management', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 12, description: 'Monitor QTc interval, review current medications, and decide on clinical action using FHIR observation and medication data. Training task for GRPO run.',
+              expected_workflow: ['fhir_observation_search', 'fhir_medication_request_search', 'evaluate_qtc_risk', 'fhir_create_service_request', 'fhir_create_medication_request'] },
+            { id: 'sc_ck_3', name: 'Blood Pressure Recording', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 8, description: 'Record a vital-signs blood pressure observation (118/77 mmHg) for a patient encounter by posting a FHIR Observation resource.',
+              expected_workflow: ['fhir_patient_search', 'fhir_encounter_search', 'fhir_create_observation'] },
+            { id: 'sc_ck_8', name: 'Orthopedic Referral', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 10, description: 'Create an urgent FHIR ServiceRequest for orthopedic consultation following ACL tear assessment using SNOMED referral code.',
+              expected_workflow: ['fhir_patient_search', 'fhir_condition_search', 'fhir_create_service_request'] },
+            { id: 'sc_ck_10', name: 'A1C Lab Order', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 7, description: 'Order hemoglobin A1C lab test (LOINC 4548-4) for diabetic patient management by creating a stat FHIR ServiceRequest.',
+              expected_workflow: ['fhir_patient_search', 'fhir_condition_search', 'fhir_create_service_request'] },
         ],
 
         agents: [
