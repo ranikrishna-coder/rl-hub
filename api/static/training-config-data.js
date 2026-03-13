@@ -30,7 +30,6 @@
             { id: 'sc_tele_1', name: 'Virtual Visit Routing', category: 'telehealth', task_count: 4, description: 'Route patients to appropriate telehealth providers' },
             { id: 'sc_hosp_1', name: 'Staffing Allocation', category: 'hospital_operations', task_count: 5, description: 'Optimize hospital staff allocation across units' },
             { id: 'sc_inter_1', name: 'Data Reconciliation', category: 'interoperability', task_count: 7, description: 'Reconcile patient data across disparate systems' },
-            { id: 'sc_cross_1', name: 'Patient Journey Optimization', category: 'cross_workflow', task_count: 9, description: 'Optimize end-to-end patient journey across departments' },
             // ClinKriya Clinic (MedAgentBench) scenarios — keyed by environment name
             { id: 'sc_ck_7', name: 'Prolonged QT Management', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 12, description: 'Monitor QTc interval, review current medications, and decide on clinical action using FHIR observation and medication data. Training task for GRPO run.' },
             { id: 'sc_ck_3', name: 'Blood Pressure Recording', environment: 'ClinKriya Clinic', category: 'clinical', task_count: 8, description: 'Record a vital-signs blood pressure observation (118/77 mmHg) for a patient encounter by posting a FHIR Observation resource.' },
