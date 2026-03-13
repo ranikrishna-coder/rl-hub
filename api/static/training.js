@@ -520,8 +520,10 @@
         var envId = env ? env.id : '';
 
         // Start with built-in verifiers from verifier-data.js — match detail page logic exactly
+        var isCustomEnv = env && env.source === 'custom';
         var builtInMatches = VERIFIERS.filter(function (v) {
             if (v.envName) return v.envName === envId;
+            if (isCustomEnv) return false;
             return v.environment === cat;
         });
 
@@ -533,6 +535,7 @@
                 var customVerifiers = (data.verifiers || []).filter(function (v) {
                     var vEnvName = v.envName || v.env_name || '';
                     if (vEnvName) return vEnvName === envId;
+                    if (isCustomEnv) return false;
                     return v.environment === cat;
                 });
                 // Merge: avoid duplicates by id
@@ -648,9 +651,12 @@
 
         // Merge built-in + custom scenarios, filter to match detail page logic exactly
         var allScenarios = getAllScenarios();
+        var isCustomEnv = env && env.source === 'custom';
         var matches = allScenarios.filter(function (s) {
             // If scenario has an environment field, it must match the raw env name exactly
             if (s.environment) return s.environment === envId;
+            // Custom/cloned envs: skip category-level built-ins
+            if (isCustomEnv) return false;
             // Otherwise, match by category or product against raw env name
             return s.category === cat || s.product === envId;
         });

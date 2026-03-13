@@ -2457,9 +2457,12 @@ async function _ensurePersistedScenarios(envName, envCategory) {
 function buildScenariosSection(envName, envCategory) {
     var cfg = window.TRAINING_CONFIG;
     var allScenarios = (cfg && cfg.scenarios) ? cfg.scenarios : [];
-    // Match scenarios by category, product, or environment name
+    // Custom/cloned envs: only show env-specific items, skip category-level built-ins
+    var env = allEnvironments.find(function (e) { return e.name === envName; });
+    var isCustomEnv = env && env.source === 'custom';
     var filtered = allScenarios.filter(function (s) {
         if (s.environment) return s.environment === envName;
+        if (isCustomEnv) return false;
         return s.category === envCategory || s.product === envName;
     });
 
@@ -2711,8 +2714,10 @@ function deleteScenario(envName, scenarioId) {
 
     // Update DOM in-place: rebuild only the scenarios list without full re-render
     var allScenarios = (cfg && cfg.scenarios) ? cfg.scenarios : [];
+    var isCustomEnv = env && env.source === 'custom';
     var filtered = allScenarios.filter(function (s) {
         if (s.environment) return s.environment === envName;
+        if (isCustomEnv) return false;
         return s.category === envCategory || s.product === envName;
     });
 
@@ -2811,8 +2816,12 @@ async function _ensurePersistedVerifiers(envName, envCategory) {
 function buildVerifiersSection(envName, envCategory) {
     var verifierData = window.VERIFIER_DATA;
     var allVerifiers = (verifierData && verifierData.all) ? verifierData.all : [];
+    // Custom/cloned envs: only show env-specific items, skip category-level built-ins
+    var env = allEnvironments.find(function (e) { return e.name === envName; });
+    var isCustomEnv = env && env.source === 'custom';
     var filtered = allVerifiers.filter(function (v) {
         if (v.envName) return v.envName === envName;
+        if (isCustomEnv) return false;
         return v.environment === envCategory;
     });
 
@@ -3111,8 +3120,10 @@ function deleteVerifier(envName, verifierId) {
 
     // Update DOM in-place: rebuild only the verifiers list without full re-render
     var allVerifiers = (store && store.all) ? store.all : [];
+    var isCustomEnv = env && env.source === 'custom';
     var filtered = allVerifiers.filter(function (v) {
         if (v.envName) return v.envName === envName;
+        if (isCustomEnv) return false;
         return v.environment === envCategory;
     });
 
@@ -3179,8 +3190,11 @@ function showScenarioDetail(envCategory, idx, envName) {
     var cfg = window.TRAINING_CONFIG;
     var allScenarios = (cfg && cfg.scenarios) ? cfg.scenarios : [];
     // Match scenarios the same way buildScenariosSection does
+    var env = allEnvironments.find(function (e) { return e.name === envName; });
+    var isCustomEnv = env && env.source === 'custom';
     var filtered = allScenarios.filter(function (s) {
         if (envName && s.environment) return s.environment === envName;
+        if (isCustomEnv) return false;
         return s.category === envCategory || (envName && s.product === envName);
     });
     var scenario = filtered[idx];
