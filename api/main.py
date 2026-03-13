@@ -2061,6 +2061,8 @@ class VerifierDefinition(BaseModel):
     type: str  # rule-based, trajectory-based, llm-judge
     system: str = "Custom"
     environment: str
+    envName: str = ""           # specific environment name (e.g. "TreatmentPathwayOptimization")
+    source: str = "custom"      # origin: custom, cloned, built-in
     version: int = 1
     status: str = "active"
     used_in_scenarios: list = []
@@ -2150,6 +2152,23 @@ async def duplicate_verifier(verifier_id: str):
     _verifier_store[new_id] = new_v
     _verifier_db_store.upsert(new_id, new_v)
     return {"success": True, "verifier": new_v}
+
+
+@app.delete("/api/verifiers/{verifier_id}")
+async def delete_verifier_definition(verifier_id: str):
+    """Delete a verifier from both in-memory store and SQLite"""
+    found = False
+    if verifier_id in _verifier_store:
+        del _verifier_store[verifier_id]
+        found = True
+    try:
+        _verifier_db_store.delete(verifier_id)
+        found = True
+    except Exception:
+        pass
+    if not found:
+        raise HTTPException(status_code=404, detail=f"Verifier {verifier_id} not found")
+    return {"status": "deleted", "id": verifier_id}
 
 
 @app.patch("/api/verifiers/{verifier_id}/disable")
@@ -3183,6 +3202,99 @@ async def delete_custom_environment(name: str):
     return _do_delete_environment(name)
 
 
+@app.put("/api/custom-environments/{name}")
+async def update_custom_environment(name: str, request: Request):
+    """Update an environment by name. Works for both custom and built-in environments.
+    Supports rename via 'new_name' field."""
+    global custom_environments
+    data = await request.json()
+
+    # Try custom environments first
+    existing = next((e for e in custom_environments if e["name"] == name), None)
+    if existing:
+        new_name = data.pop("new_name", None)
+        # Update fields
+        for key, val in data.items():
+            existing[key] = val
+        # Handle rename
+        if new_name and new_name != name:
+            dup = next((e for e in custom_environments if e["name"] == new_name), None)
+            if dup:
+                raise HTTPException(status_code=409, detail=f"Environment '{new_name}' already exists.")
+            existing["name"] = new_name
+            try:
+                _env_store.delete(name)
+            except Exception:
+                pass
+        _persist_environments()
+        return {"status": "updated", "name": existing["name"]}
+
+    # Try built-in ENVIRONMENT_REGISTRY
+    from portal.environment_registry import ENVIRONMENT_REGISTRY
+    if name in ENVIRONMENT_REGISTRY:
+        builtin = ENVIRONMENT_REGISTRY[name]
+        new_name = data.pop("new_name", None)
+        # Update fields in the registry dict
+        for key, val in data.items():
+            builtin[key] = val
+        # Handle rename
+        if new_name and new_name != name:
+            # Check uniqueness across both registries
+            if new_name in ENVIRONMENT_REGISTRY:
+                raise HTTPException(status_code=409, detail=f"Environment '{new_name}' already exists.")
+            dup = next((e for e in custom_environments if e["name"] == new_name), None)
+            if dup:
+                raise HTTPException(status_code=409, detail=f"Environment '{new_name}' already exists.")
+            # Move entry in registry
+            ENVIRONMENT_REGISTRY[new_name] = ENVIRONMENT_REGISTRY.pop(name)
+            return {"status": "updated", "name": new_name}
+        return {"status": "updated", "name": name}
+
+    raise HTTPException(status_code=404, detail=f"Environment '{name}' not found.")
+
+
+@app.put("/api/environments/{name}/system")
+async def update_environment_system(name: str, request: Request):
+    """Update just the 'system' field on any environment (custom or built-in)."""
+    global custom_environments
+    data = await request.json()
+    new_system = data.get("system", "")
+    # Try custom environments first
+    env = next((e for e in custom_environments if e["name"] == name), None)
+    if env:
+        env["system"] = new_system
+        _persist_environments()
+        return {"status": "updated", "name": name, "system": new_system}
+    # Try built-in ENVIRONMENT_REGISTRY (dict keyed by name)
+    from portal.environment_registry import ENVIRONMENT_REGISTRY
+    if name in ENVIRONMENT_REGISTRY:
+        ENVIRONMENT_REGISTRY[name]["system"] = new_system
+        return {"status": "updated", "name": name, "system": new_system}
+    raise HTTPException(status_code=404, detail=f"Environment '{name}' not found.")
+
+
+@app.put("/api/environments/{name}/category")
+async def update_environment_category(name: str, request: Request):
+    """Update just the 'category' (domain) field on any environment (custom or built-in)."""
+    global custom_environments
+    data = await request.json()
+    new_category = data.get("category", "")
+    # Try custom environments first
+    env = next((e for e in custom_environments if e["name"] == name), None)
+    if env:
+        env["category"] = new_category
+        env["domain"] = new_category
+        _persist_environments()
+        return {"status": "updated", "name": name, "category": new_category}
+    # Try built-in ENVIRONMENT_REGISTRY (dict keyed by name)
+    from portal.environment_registry import ENVIRONMENT_REGISTRY
+    if name in ENVIRONMENT_REGISTRY:
+        ENVIRONMENT_REGISTRY[name]["category"] = new_category
+        ENVIRONMENT_REGISTRY[name]["domain"] = new_category
+        return {"status": "updated", "name": name, "category": new_category}
+    raise HTTPException(status_code=404, detail=f"Environment '{name}' not found.")
+
+
 @app.post("/api/custom-environments/delete")
 async def delete_custom_environment_post(request: Request):
     """Delete a custom / imported environment (POST-based, avoids proxy/URL issues)."""
@@ -3194,22 +3306,29 @@ async def delete_custom_environment_post(request: Request):
 
 
 def _do_delete_environment(name: str):
-    """Shared delete logic for both DELETE and POST routes."""
+    """Shared delete logic for both DELETE and POST routes.
+    Supports deleting custom environments AND built-in environments."""
     global custom_environments
+
+    # Try custom environments first
     env_record = next((e for e in custom_environments if e["name"] == name), None)
-    if not env_record:
-        raise HTTPException(status_code=404, detail=f"Environment '{name}' not found.")
+    if env_record:
+        # Remove cloned directory if it exists
+        local_path = env_record.get("local_path")
+        if local_path and os.path.isdir(local_path):
+            shutil.rmtree(local_path, ignore_errors=True)
+        # Remove from persisted JSON store
+        _remove_persisted_environment(name)
+        custom_environments = [e for e in custom_environments if e["name"] != name]
+        return {"status": "deleted", "name": name}
 
-    # Remove cloned directory if it exists
-    local_path = env_record.get("local_path")
-    if local_path and os.path.isdir(local_path):
-        shutil.rmtree(local_path, ignore_errors=True)
+    # Try built-in ENVIRONMENT_REGISTRY
+    from portal.environment_registry import ENVIRONMENT_REGISTRY
+    if name in ENVIRONMENT_REGISTRY:
+        del ENVIRONMENT_REGISTRY[name]
+        return {"status": "deleted", "name": name}
 
-    # Remove from persisted JSON store
-    _remove_persisted_environment(name)
-
-    custom_environments = [e for e in custom_environments if e["name"] != name]
-    return {"status": "deleted", "name": name}
+    raise HTTPException(status_code=404, detail=f"Environment '{name}' not found.")
 
 
 @app.post("/api/custom-environments")
@@ -3326,6 +3445,133 @@ async def delete_scenario(scenario_id: str):
     if not _scenario_store.delete(scenario_id):
         raise HTTPException(status_code=404, detail=f"Scenario '{scenario_id}' not found.")
     return {"status": "deleted", "id": scenario_id}
+
+
+@app.post("/api/environments/{name}/clone-scenarios")
+async def clone_scenarios(name: str, request: Request):
+    """Clone scenarios from a source environment into the target environment.
+    Copies both custom DB scenarios and hardcoded scenarios matching the source."""
+    import uuid as _uuid
+    data = await request.json()
+    source = data.get("source", "")
+    if not source:
+        raise HTTPException(status_code=400, detail="Source environment name required.")
+
+    # Find source env to get its category
+    source_env = next((e for e in custom_environments if e["name"] == source), None)
+    if not source_env:
+        from portal.environment_registry import ENVIRONMENT_REGISTRY
+        source_env = ENVIRONMENT_REGISTRY.get(source)
+    source_category = source_env.get("category", "") if source_env else ""
+
+    cloned = 0
+
+    # Clone persisted (DB) scenarios matching source env
+    db_scenarios = _scenario_store.list_by_product(source)
+    cloned_names: set = set()
+    for s in db_scenarios:
+        new_id = "scenario_" + str(_uuid.uuid4())[:8]
+        new_s = dict(s)
+        new_s["id"] = new_id
+        new_s["product"] = name
+        new_s["environment"] = name
+        new_s["source"] = "cloned"
+        _scenario_store.upsert(new_id, new_s)
+        cloned_names.add(s.get("name", ""))
+        cloned += 1
+
+    # Also persist hardcoded scenarios sent from frontend (skip duplicates already cloned from DB)
+    hardcoded = data.get("hardcoded", [])
+    if isinstance(hardcoded, list):
+        for s in hardcoded:
+            if s.get("name", "") in cloned_names:
+                continue  # Already cloned from DB — skip to avoid duplicate
+            new_id = "scenario_" + str(_uuid.uuid4())[:8]
+            new_s = dict(s)
+            new_s["id"] = new_id
+            new_s["product"] = name
+            new_s["environment"] = name
+            new_s["source"] = "cloned"
+            _scenario_store.upsert(new_id, new_s)
+            cloned_names.add(s.get("name", ""))
+            cloned += 1
+
+    return {"status": "ok", "cloned": cloned, "target": name, "source": source}
+
+
+@app.post("/api/environments/{name}/clone-verifiers")
+async def clone_verifiers(name: str, request: Request):
+    """Clone verifiers from a source environment into the target environment.
+    Copies both custom DB verifiers and hardcoded verifiers matching the source."""
+    import uuid as _uuid
+    data = await request.json()
+    source = data.get("source", "")
+    if not source:
+        raise HTTPException(status_code=400, detail="Source environment name required.")
+
+    # Find source env to get its category
+    source_env = next((e for e in custom_environments if e["name"] == source), None)
+    if not source_env:
+        from portal.environment_registry import ENVIRONMENT_REGISTRY
+        source_env = ENVIRONMENT_REGISTRY.get(source)
+    source_category = source_env.get("category", "") if source_env else ""
+
+    # Find target env to get its category
+    target_env = next((e for e in custom_environments if e["name"] == name), None)
+    if not target_env:
+        from portal.environment_registry import ENVIRONMENT_REGISTRY
+        target_env = ENVIRONMENT_REGISTRY.get(name)
+    target_category = target_env.get("category", "") if target_env else source_category
+
+    cloned = 0
+
+    # 1. Clone persisted (DB) verifiers
+    db_verifiers = _verifier_db_store.list_by_environment(source_category)
+    # Also check verifiers associated by envName
+    all_db_verifiers = _verifier_db_store.list_all()
+    env_name_verifiers = [v for v in all_db_verifiers if v.get("envName") == source or v.get("env_name") == source]
+    # Merge and deduplicate
+    seen_ids = set()
+    combined = []
+    for v in db_verifiers + env_name_verifiers:
+        vid = v.get("id")
+        if vid and vid not in seen_ids:
+            seen_ids.add(vid)
+            combined.append(v)
+
+    cloned_names: set = set()
+    for v in combined:
+        new_id = "verifier_" + str(_uuid.uuid4())[:8]
+        new_v = dict(v)
+        new_v["id"] = new_id
+        new_v["environment"] = target_category
+        new_v["envName"] = name
+        new_v["env_name"] = name
+        new_v["source"] = "cloned"
+        _verifier_store[new_id] = new_v
+        _verifier_db_store.upsert(new_id, new_v)
+        cloned_names.add(v.get("name", ""))
+        cloned += 1
+
+    # Also persist hardcoded verifiers sent from frontend (skip duplicates already cloned from DB)
+    hardcoded = data.get("hardcoded", [])
+    if isinstance(hardcoded, list):
+        for v in hardcoded:
+            if v.get("name", "") in cloned_names:
+                continue  # Already cloned from DB — skip to avoid duplicate
+            new_id = "verifier_" + str(_uuid.uuid4())[:8]
+            new_v = dict(v)
+            new_v["id"] = new_id
+            new_v["environment"] = target_category
+            new_v["envName"] = name
+            new_v["env_name"] = name
+            new_v["source"] = "cloned"
+            _verifier_store[new_id] = new_v
+            _verifier_db_store.upsert(new_id, new_v)
+            cloned_names.add(v.get("name", ""))
+            cloned += 1
+
+    return {"status": "ok", "cloned": cloned, "target": name, "source": source}
 
 
 @app.get("/api/environment/{name}/analyze")
@@ -4029,8 +4275,14 @@ def _train_dqn_financial(env, n_episodes: int = 15):
         if total_reward > best_raw:
             best_raw = total_reward
             best_episode = {**ep_data}
+    # Compute max drawdown from normalised per-episode returns
+    _peak, _dd, _max_dd = 0.0, 0.0, 0.0
+    for _ep in history:
+        _peak = max(_peak, _ep["total_return"])
+        _dd = _peak - _ep["total_return"]
+        _max_dd = max(_max_dd, _dd)
     return {"policy": W, "history": history, "best_episode": best_episode or history[-1],
-            "final_epsilon": round(epsilon, 4)}
+            "final_epsilon": round(epsilon, 4), "max_drawdown": round(_max_dd, 4)}
 
 
 def _train_ppo_financial(env, n_episodes: int = 15):
@@ -4072,8 +4324,14 @@ def _train_ppo_financial(env, n_episodes: int = 15):
         if total_reward > best_raw:
             best_raw = total_reward
             best_episode = {**ep_data}
+    # Compute max drawdown from normalised per-episode returns
+    _peak, _dd, _max_dd = 0.0, 0.0, 0.0
+    for _ep in history:
+        _peak = max(_peak, _ep["total_return"])
+        _dd = _peak - _ep["total_return"]
+        _max_dd = max(_max_dd, _dd)
     return {"policy": W, "history": history, "best_episode": best_episode or history[-1],
-            "final_epsilon": round(noise, 4)}
+            "final_epsilon": round(noise, 4), "max_drawdown": round(_max_dd, 4)}
 
 
 class _FinTrainRequest(BaseModel):

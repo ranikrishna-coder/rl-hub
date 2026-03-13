@@ -49,9 +49,8 @@ jobs:
             echo "→ Backing up user state"
             BACKUP_DIR="/tmp/agentwork-deploy-backup-$(date +%s)"
             mkdir -p "$BACKUP_DIR"
-            [ -f "$APP_ROOT/api/data/environments.db" ] && cp "$APP_ROOT/api/data/environments.db" "$BACKUP_DIR/" && echo "  Backed up environments.db"
-            [ -f "$APP_ROOT/api/data/custom_environments.json" ] && cp "$APP_ROOT/api/data/custom_environments.json" "$BACKUP_DIR/" && echo "  Backed up custom_environments.json"
-            [ -f "$APP_ROOT/api/data/contact_submissions.db" ] && cp "$APP_ROOT/api/data/contact_submissions.db" "$BACKUP_DIR/" && echo "  Backed up contact_submissions.db"
+            # Backup entire api/data directory (environments, scenarios, verifiers DBs + WAL files)
+            [ -d "$APP_ROOT/api/data" ] && cp -r "$APP_ROOT/api/data" "$BACKUP_DIR/api_data" && echo "  Backed up api/data/ (all DB files)"
             [ -d "$APP_ROOT/hf_spaces" ] && cp -r "$APP_ROOT/hf_spaces" "$BACKUP_DIR/" && echo "  Backed up hf_spaces/"
 
             echo "→ Git pull"
@@ -65,10 +64,9 @@ jobs:
 
             # --- Restore user state after git reset ---
             echo "→ Restoring user state"
+            # Restore entire api/data directory (environments, scenarios, verifiers DBs + WAL files)
             mkdir -p "$APP_ROOT/api/data"
-            [ -f "$BACKUP_DIR/environments.db" ] && cp "$BACKUP_DIR/environments.db" "$APP_ROOT/api/data/" && echo "  Restored environments.db"
-            [ -f "$BACKUP_DIR/custom_environments.json" ] && cp "$BACKUP_DIR/custom_environments.json" "$APP_ROOT/api/data/" && echo "  Restored custom_environments.json"
-            [ -f "$BACKUP_DIR/contact_submissions.db" ] && cp "$BACKUP_DIR/contact_submissions.db" "$APP_ROOT/api/data/" && echo "  Restored contact_submissions.db"
+            [ -d "$BACKUP_DIR/api_data" ] && cp -r "$BACKUP_DIR/api_data/"* "$APP_ROOT/api/data/" && echo "  Restored api/data/ (all DB files)"
             [ -d "$BACKUP_DIR/hf_spaces" ] && cp -r "$BACKUP_DIR/hf_spaces" "$APP_ROOT/" && echo "  Restored hf_spaces/"
             rm -rf "$BACKUP_DIR"
             echo "  State backup cleaned up"

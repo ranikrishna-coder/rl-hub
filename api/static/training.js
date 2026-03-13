@@ -24,26 +24,24 @@
     // Persistent filter for training list — when opened embedded for a specific env, only show matching runs
     var _envFilterCategory = null;
 
-    function _applyEnvPreselection(envId) {
+    function _applyEnvPreselection(envId, readOnly) {
         if (!envId) return;
         var env = findEnv(envId);
-        if (env && env.system) {
-            var primarySystem = env.system.split(',')[0].trim();
-            var systemSel = document.getElementById('tr-env-system');
-            if (systemSel) {
-                systemSel.value = primarySystem;
-                populateEnvironments();
-            }
+        // Show all environments (no system filter) so the target env is visible
+        var systemSel = document.getElementById('tr-env-system');
+        if (systemSel) {
+            systemSel.value = '';
+            populateEnvironments();
         }
-        document.getElementById('tr-env').value = envId;
+        var envSel = document.getElementById('tr-env');
+        if (envSel) envSel.value = envId;
         onEnvironmentChange();
-        // Make environment fields read-only when pre-populated from env detail page
-        setTimeout(function () {
-            var envSel = document.getElementById('tr-env');
-            var sysSel = document.getElementById('tr-env-system');
+
+        // When navigated from environments page (?env=), lock the selection
+        if (readOnly) {
             if (envSel) envSel.disabled = true;
-            if (sysSel) sysSel.disabled = true;
-        }, 100);
+            if (systemSel) systemSel.disabled = true;
+        }
     }
 
     function _applyAgentPreselection(agentId) {
@@ -245,6 +243,7 @@
                         name: s.name || s.id || '',
                         category: s.category || '',
                         product: s.product || '',
+                        environment: s.environment || s.product || '',
                         task_count: tasks.length || s.task_count || 0,
                         description: s.description || (s.system_prompt || '').substring(0, 120),
                         source: 'custom',
@@ -286,11 +285,19 @@
 
     function getAllScenarios() {
         // Merge built-in scenarios (from training-config-data.js) with custom ones from API
+        // Deduplicate by name to avoid showing cloned DB copies alongside hardcoded originals
         var builtIn = (CFG.scenarios || []).map(function (s) {
             s.source = s.source || 'built-in';
             return s;
         });
-        return builtIn.concat(CUSTOM_SCENARIOS);
+        var seenNames = {};
+        builtIn.forEach(function (s) { if (s.name) seenNames[s.name] = true; });
+        var uniqueCustom = CUSTOM_SCENARIOS.filter(function (s) {
+            if (s.name && seenNames[s.name]) return false;
+            seenNames[s.name] = true;
+            return true;
+        });
+        return builtIn.concat(uniqueCustom);
     }
 
     function humanizeName(name) {
@@ -510,12 +517,14 @@
             return;
         }
         var cat = env ? env.category : '';
-        var envName = env ? env.name : '';
+        var envId = env ? env.id : '';
 
-        // Start with built-in verifiers from verifier-data.js
+        // Start with built-in verifiers from verifier-data.js — match detail page logic exactly
+        var isCustomEnv = env && env.source === 'custom';
         var builtInMatches = VERIFIERS.filter(function (v) {
-            if (cat && v.environment && v.environment !== cat) return false;
-            return true;
+            if (v.envName) return v.envName === envId;
+            if (isCustomEnv) return false;
+            return v.environment === cat;
         });
 
         // Also fetch custom verifiers from backend API and merge
@@ -524,8 +533,10 @@
             .then(function (res) { return res.ok ? res.json() : { verifiers: [] }; })
             .then(function (data) {
                 var customVerifiers = (data.verifiers || []).filter(function (v) {
-                    if (cat && v.environment && v.environment !== cat) return false;
-                    return true;
+                    var vEnvName = v.envName || v.env_name || '';
+                    if (vEnvName) return vEnvName === envId;
+                    if (isCustomEnv) return false;
+                    return v.environment === cat;
                 });
                 // Merge: avoid duplicates by id
                 var seenIds = {};
@@ -573,8 +584,22 @@
         var selectAll = document.getElementById('action-select-all');
         if (!field || !container) return;
 
-        var env = findEnv(document.getElementById('tr-env').value);
-        var actions = (env && env.actions) ? env.actions : [];
+        // Actions only appear after a scenario is selected
+        var scenarioVal = document.getElementById('tr-scenario') ? document.getElementById('tr-scenario').value : '';
+        var actions = [];
+
+        if (scenarioVal) {
+            // Find the selected scenario and use its expected_workflow as actions
+            var allScenarios = getAllScenarios();
+            var scenario = allScenarios.filter(function (s) { return s.id === scenarioVal; })[0];
+            if (scenario && scenario.expected_workflow && scenario.expected_workflow.length > 0) {
+                actions = scenario.expected_workflow;
+            } else {
+                // Fallback: use the environment's actions if scenario has no expected_workflow
+                var env = findEnv(document.getElementById('tr-env').value);
+                actions = (env && env.actions) ? env.actions : [];
+            }
+        }
 
         container.innerHTML = '';
         if (actions.length > 0) {
@@ -624,19 +649,16 @@
         var envName = env ? env.name : '';
         var system = env ? env.system : '';
 
-        // Merge built-in + custom scenarios, filter by category, product, environment, or system
+        // Merge built-in + custom scenarios, filter to match detail page logic exactly
         var allScenarios = getAllScenarios();
+        var isCustomEnv = env && env.source === 'custom';
         var matches = allScenarios.filter(function (s) {
-            // Match custom scenarios by product or environment field against env ID (raw name)
-            if (envId && s.product && s.product === envId) return true;
-            if (envId && s.environment && s.environment === envId) return true;
-            // Also match against humanized name for backward compat
-            if (envName && s.environment && s.environment === envName) return true;
-            // Match built-in scenarios by category
-            if (cat && s.category === cat) return true;
-            // Match by system
-            if (system && s.product === system) return true;
-            return false;
+            // If scenario has an environment field, it must match the raw env name exactly
+            if (s.environment) return s.environment === envId;
+            // Custom/cloned envs: skip category-level built-ins
+            if (isCustomEnv) return false;
+            // Otherwise, match by category or product against raw env name
+            return s.category === cat || s.product === envId;
         });
 
         // Rebuild dropdown
@@ -704,10 +726,16 @@
     function onEnvironmentChange() {
         updateEnvPreview();
         filterScenarios();
-        populateActions();
+        // Hide actions until a scenario is selected
+        var actionField = document.getElementById('action-field');
+        if (actionField) actionField.style.display = 'none';
         populateVerifiers();
         filterAgents();
         updateVerifierSystem();
+    }
+
+    function onScenarioChange() {
+        populateActions();
     }
 
     function initVerifierToggle() {
@@ -2238,9 +2266,9 @@
                 _applyAgentPreselection(directAgent);
                 history.replaceState(null, '', window.location.pathname);
             } else if (directEnv) {
-                // Direct navigation (e.g. /training-console?env=X) — auto-open new form
+                // Direct navigation (e.g. /training-console?env=X) — auto-open new form with env locked
                 showView('new');
-                _applyEnvPreselection(directEnv);
+                _applyEnvPreselection(directEnv, true);
                 history.replaceState(null, '', window.location.pathname);
             } else if (deferredEnv) {
                 // Embedded popup — store env for later, stay on list view
@@ -2293,6 +2321,10 @@
 
         // Environment change cascades (Scenario dropdown selects RL environment)
         document.getElementById('tr-env').addEventListener('change', onEnvironmentChange);
+
+        // Scenario change — show actions only after scenario is selected
+        var scenarioSel = document.getElementById('tr-scenario');
+        if (scenarioSel) scenarioSel.addEventListener('change', onScenarioChange);
 
         // Verifier
         initVerifierToggle();

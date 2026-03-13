@@ -708,6 +708,7 @@ function loadCustomScenarios() {
                     name: s.name || s.id || '',
                     category: s.category || '',
                     product: s.product || '',
+                    environment: s.environment || s.product || '',
                     task_count: tasks.length || s.task_count || 0,
                     description: s.description || '',
                     source: 'custom'
