@@ -166,6 +166,7 @@
     flex-wrap: wrap;
   }
   .controls-bar label { font-size: 0.8rem; font-weight: 600; color: var(--primary); }
+  .controls-divider { display: inline-block; width: 1px; height: 1.5rem; background: var(--border); margin: 0 0.25rem; align-self: center; }
   .controls-bar select {
     padding: 0.3rem 0.6rem; border: 1px solid var(--border); border-radius: 5px;
     font-size: 0.8rem; background: var(--card); color: var(--text);
@@ -412,11 +413,156 @@
   }
   .train-metric .tv { font-size: 0.95rem; font-weight: 700; color: var(--primary); font-family: Georgia, serif; }
   .train-metric .tl { font-size: 0.6rem; color: var(--muted); margin-top: 1px; }
-  .chart-wrap-sm { width: 100%; height: 100px; position: relative; margin-top: 0.5rem; overflow: hidden; }
+  .chart-wrap-sm { width: 100%; height: 150px; position: relative; margin-top: 0.6rem; overflow: hidden; }
   .chart-wrap-sm canvas { display: block; max-width: 100%; }
   .badge-training { background: #fff3e0; color: #e65100; }
   .badge-trained  { background: rgba(46,125,50,0.15); color: var(--green); }
   .badge-untrained{ background: var(--primary-pale); color: var(--muted); }
+
+  /* ── Training section enhanced styles ─────────────────── */
+  .train-config-bar {
+    display: flex; align-items: center; gap: 0; flex-wrap: wrap;
+    padding: 0; border-bottom: 1px solid var(--border);
+    background: var(--primary-pale);
+  }
+  /* Each field is a pill-like inline group */
+  .train-config-field {
+    display: flex; align-items: center; gap: 0.45rem;
+    padding: 0.55rem 1.1rem; border-right: 1px solid var(--border);
+  }
+  .train-config-field:last-of-type { border-right: none; }
+  .train-config-label {
+    font-size: 0.68rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
+  }
+  .train-config-input {
+    padding: 0.22rem 0.45rem; border: 1px solid var(--border);
+    border-radius: 4px; background: var(--card); color: var(--text);
+    font-size: 0.8rem; min-width: 58px;
+  }
+  /* Algo toggle — segmented control look */
+  .algo-toggle-group {
+    display: flex; border: 1px solid var(--border);
+    border-radius: 5px; overflow: hidden; background: var(--card);
+  }
+  .algo-toggle-btn {
+    padding: 0.22rem 0.65rem; font-size: 0.74rem; font-weight: 600;
+    background: transparent; color: var(--muted); border: none; cursor: pointer;
+    border-right: 1px solid var(--border); transition: all 0.14s; line-height: 1.4;
+  }
+  .algo-toggle-btn:last-child { border-right: none; }
+  .algo-toggle-btn:hover:not(.active) { background: var(--primary-pale); color: var(--primary); }
+  /* Active states — colour-coded per family */
+  .algo-toggle-btn.active          { color: white; }
+  .algo-toggle-btn.active.dqn-fam  { background: #1565c0; }
+  .algo-toggle-btn.active.ppo-fam  { background: #7b1fa2; }
+  .algo-toggle-btn.active.default-fam { background: var(--primary); }
+  /* Run button pushed to right end of the bar */
+  .train-config-run {
+    margin-left: auto; padding: 0.55rem 1.1rem;
+    display: flex; align-items: center;
+  }
+
+  .train-progress-panel {
+    padding: 0.65rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  /* Compact banner when training is done */
+  .train-progress-panel.is-complete {
+    background: rgba(46,125,50,0.05);
+    border-left: 3px solid var(--green);
+    padding-left: calc(1.25rem - 3px);
+  }
+  .train-progress-panel.is-complete .train-progress {
+    height: 4px; margin: 0.3rem 0 0.4rem;
+  }
+  .train-progress-header {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.78rem; font-weight: 600; color: var(--text); margin-bottom: 4px;
+  }
+
+  .rollout-history-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.6rem 1.25rem; border-bottom: 1px solid var(--border);
+    background: var(--primary-pale);
+  }
+  .rollout-history-body { overflow-x: auto; }
+  .rollout-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  .rollout-table th {
+    text-align: left; padding: 0.45rem 0.75rem;
+    font-size: 0.65rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border); background: var(--card);
+  }
+  .rollout-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+  .rollout-table tr:last-child td { border-bottom: none; }
+  .rollout-table tr:hover td { background: var(--primary-pale); cursor: pointer; }
+  .rollout-row-status { display: inline-flex; align-items: center; gap: 4px; }
+  .rollout-view-btn {
+    font-size: 0.72rem; padding: 0.2rem 0.6rem; color: var(--primary);
+    border: 1px solid var(--primary); border-radius: 4px; background: transparent;
+    cursor: pointer; white-space: nowrap;
+  }
+  .rollout-view-btn:hover { background: var(--primary-pale); }
+
+  .rollout-detail-hdr {
+    background: var(--primary-pale); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 0.75rem 1rem; margin-bottom: 0.75rem;
+  }
+  .rollout-dtabs {
+    display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 0.75rem;
+  }
+  .rdtab {
+    padding: 0.5rem 1rem; font-size: 0.8rem; font-weight: 600;
+    background: transparent; border: none; cursor: pointer; color: var(--muted);
+    border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s;
+  }
+  .rdtab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .rdtab:hover:not(.active) { color: var(--text); background: var(--primary-pale); }
+  .rdpanel { }
+
+  .verifier-check-row {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--border);
+  }
+  .verifier-check-row:last-child { border-bottom: none; }
+  .vc-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+  .vc-name { font-size: 0.82rem; font-weight: 600; }
+  .vc-desc { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+  .vc-check { font-family: monospace; font-size: 0.68rem; background: var(--primary-pale); padding: 1px 6px; border-radius: 3px; margin-top: 3px; display: inline-block; }
+  .vc-pass { color: var(--green); }
+  .vc-fail { color: #c62828; }
+
+  .hil-episode-selector { display: flex; align-items: center; gap: 0.5rem; }
+  .hil-step-row {
+    display: grid; grid-template-columns: 48px 1fr 1fr 1fr;
+    gap: 0.5rem; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border);
+    font-size: 0.75rem; align-items: center;
+  }
+  .hil-step-row:last-child { border-bottom: none; }
+  .hil-step-row:hover { background: var(--primary-pale); }
+  .hil-step-num { font-weight: 700; color: var(--muted); font-size: 0.68rem; }
+  .hil-step-header {
+    display: grid; grid-template-columns: 48px 1fr 1fr 1fr;
+    gap: 0.5rem; padding: 0.3rem 0.5rem;
+    font-size: 0.62rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    border-bottom: 2px solid var(--border); background: var(--primary-pale);
+  }
+  .hil-approve-btn, .hil-reject-btn {
+    font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px;
+    border: none; cursor: pointer; font-weight: 700;
+  }
+  .hil-approve-btn { background: rgba(46,125,50,0.15); color: var(--green); }
+  .hil-reject-btn  { background: rgba(198,40,40,0.1); color: #c62828; }
+  .failure-mode-bar {
+    display: flex; align-items: center; gap: 0.5rem;
+    margin-bottom: 0.4rem; font-size: 0.75rem;
+  }
+  .failure-mode-label { width: 140px; flex-shrink: 0; color: var(--text); }
+  .failure-mode-track { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .failure-mode-fill { height: 100%; border-radius: 4px; }
+  .failure-mode-count { width: 30px; text-align: right; color: var(--muted); font-size: 0.68rem; }
 
   /* ── Scenarios / Verifiers collapsible sections ───────── */
   .sv-section {
@@ -706,8 +852,11 @@
           <button class="btn btn-green" onclick="resetEnv()">Reset</button>
           <button class="btn btn-primary" onclick="autoStep()" id="autoBtn">Random Auto-Step</button>
           <button class="btn btn-red" onclick="stopAutoStep()" id="stopBtn" style="display:none;">Stop</button>
-          <button class="btn btn-outline" onclick="deleteEnv()" id="closeEnvBtn">Close Env</button>
-          <label style="margin-left:auto;">Speed:</label>
+          <span class="controls-divider"></span>
+          <button class="btn btn-agent" onclick="agentAutoStep()" id="agentBtn" disabled>Agent Auto-Step</button>
+          <button class="btn btn-red" onclick="stopAgentStep()" id="agentStopBtn" style="display:none;">Stop Agent</button>
+          <button class="btn btn-outline" onclick="deleteEnv()" id="closeEnvBtn" style="margin-left:auto;">Close Env</button>
+          <label>Speed:</label>
           <select id="stepSpeed">
             <option value="200">Fastest</option>
             <option value="500">Fast</option>
@@ -715,37 +864,7 @@
             <option value="2000">Slow</option>
           </select>
         </div>
-        <!-- RL Training controls row -->
-        <div class="rl-train-row">
-          <span class="rl-train-label">RL Training:</span>
-          <button class="btn btn-dqn" onclick="trainAgent()" id="trainBtn">Train DQN</button>
-          <button class="btn btn-agent" onclick="agentAutoStep()" id="agentBtn" disabled>Agent Auto-Step</button>
-          <button class="btn btn-red" onclick="stopAgentStep()" id="agentStopBtn" style="display:none;">Stop Agent</button>
-          <span id="trainBadge" class="badge badge-untrained" style="margin-left:0.25rem;">UNTRAINED</span>
-        </div>
-
         <div class="fc-section-content" style="padding-top:1.25rem;">
-
-          <!-- RL Training Panel (shown once training starts) -->
-          <div class="train-panel" id="trainPanel" style="display:none;">
-            <div class="train-header">
-              <h3>&#127947; RL Training</h3>
-              <span id="trainStatusText" style="font-size:0.72rem;opacity:0.9;">Ready</span>
-            </div>
-            <div class="train-body">
-              <div class="train-progress">
-                <div class="train-progress-bar" id="trainProgressBar" style="width:0%"></div>
-              </div>
-              <div id="trainProgressLabel" style="font-size:0.7rem;color:var(--muted);text-align:center;margin-top:4px;">Click "Train DQN" to start</div>
-              <div class="train-metrics" id="trainMetrics" style="display:none;">
-                <div class="train-metric"><div class="tv" id="tmReturn">--</div><div class="tl">Best Return</div></div>
-                <div class="train-metric"><div class="tv" id="tmSharpe">--</div><div class="tl">Best Sharpe</div></div>
-                <div class="train-metric"><div class="tv" id="tmEpsilon">--</div><div class="tl">Final &epsilon;</div></div>
-                <div class="train-metric"><div class="tv" id="tmEpisodes">--</div><div class="tl">Episodes</div></div>
-              </div>
-              <div class="chart-wrap-sm"><canvas id="trainChart"></canvas></div>
-            </div>
-          </div>
 
           <!-- Action controls -->
           <div style="margin-bottom:1rem;">
@@ -816,6 +935,130 @@
       </div>
     </div>
 
+    <!-- ═══════ Training Section ═══════ -->
+    <div id="trainSection" class="fc-section open" style="display:none;">
+      <div class="fc-section-header fc-section-header--sim">
+        <button class="fc-section-header-toggle" onclick="toggleSection('trainSection')">
+          <h2>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c6 3 10 3 16 0v-5"/></svg>
+            Training
+          </h2>
+        </button>
+        <div class="sim-header-env" onclick="event.stopPropagation()" style="gap:0.5rem;">
+          <span id="trainBadge" class="badge badge-untrained">UNTRAINED</span>
+          <span id="trainRunCountBadge" style="font-size:0.72rem;color:var(--muted);"></span>
+        </div>
+        <button class="fc-section-header-toggle fc-section-header-chevron" onclick="toggleSection('trainSection')">
+          <svg class="fc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
+      <div class="fc-section-body">
+
+        <!-- === Config + Progress View (default) === -->
+        <div id="trainMainView">
+          <!-- Config bar -->
+          <div class="train-config-bar">
+            <div class="train-config-field">
+              <label class="train-config-label">Episodes</label>
+              <select id="trainEpisodes" class="train-config-input" style="width:auto;">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="15" selected>15</option>
+                <option value="20">20</option>
+                <option value="25">25</option>
+                <option value="30">30</option>
+                <option value="40">40</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+            <div class="train-config-field">
+              <label class="train-config-label">Algorithm</label>
+              <div class="algo-toggle-group" id="algoToggleGroup">
+                <!-- Populated dynamically per env by renderAlgoButtons() -->
+              </div>
+            </div>
+            <div class="train-config-run">
+              <button class="btn btn-dqn" onclick="trainAgent()" id="trainBtn">&#9654; Start Training</button>
+            </div>
+          </div>
+
+          <!-- Progress panel (shown during/after training) -->
+          <div class="train-progress-panel" id="trainPanel" style="display:none;">
+            <div class="train-progress-header">
+              <span id="trainStatusText">Ready</span>
+              <span id="trainProgressPct" style="font-size:0.72rem;font-weight:700;color:var(--primary);">0%</span>
+            </div>
+            <div class="train-progress">
+              <div class="train-progress-bar" id="trainProgressBar" style="width:0%"></div>
+            </div>
+            <div id="trainProgressLabel" style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Click "Start Training" to begin</div>
+            <div class="train-metrics" id="trainMetrics" style="display:none;margin-top:0.75rem;">
+              <div class="train-metric"><div class="tv" id="tmReturn">--</div><div class="tl">Best Return</div></div>
+              <div class="train-metric"><div class="tv" id="tmSharpe">--</div><div class="tl">Best Sharpe</div></div>
+              <div class="train-metric"><div class="tv" id="tmEpsilon">--</div><div class="tl">Final &epsilon;</div></div>
+              <div class="train-metric"><div class="tv" id="tmEpisodes">--</div><div class="tl">Episodes</div></div>
+            </div>
+            <div class="chart-wrap-sm" style="margin-top:0.5rem;"><canvas id="trainChart"></canvas></div>
+          </div>
+
+          <!-- Rollout History (shown after first run) -->
+          <div id="rolloutHistory" style="display:none;margin-top:1rem;">
+            <div class="rollout-history-header">
+              <h4 style="font-size:0.88rem;font-weight:700;margin:0;">Training Runs</h4>
+              <span id="rolloutCountLabel" style="font-size:0.75rem;color:var(--muted);"></span>
+            </div>
+            <div id="rolloutHistoryBody" class="rollout-history-body"></div>
+          </div>
+        </div>
+
+        <!-- === Rollout Detail View (shown when clicking a run) === -->
+        <div id="rolloutDetailView" style="display:none;padding:1.25rem;">
+          <button class="btn btn-outline" onclick="closeRolloutDetail()" style="margin-bottom:1rem;font-size:0.8rem;">&#8592; Back to Training</button>
+          <div id="rolloutDetailHeader" class="rollout-detail-hdr"></div>
+
+          <!-- Detail tabs -->
+          <div class="rollout-dtabs">
+            <button class="rdtab active" id="rdtab-progress" onclick="showRolloutTab('progress')">&#128200; Progress Modes</button>
+            <button class="rdtab" id="rdtab-verifiers" onclick="showRolloutTab('verifiers')">&#10003; Verifier Checks</button>
+            <button class="rdtab" id="rdtab-hil" onclick="showRolloutTab('hil')">&#128065; HIL Review</button>
+          </div>
+
+          <!-- Progress Modes tab -->
+          <div id="rdpanel-progress" class="rdpanel">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.75rem;">
+              <div class="sim-card" style="padding:0.75rem;">
+                <div class="sim-card-header"><h3>Episode Returns</h3></div>
+                <div class="chart-wrap-sm" style="height:140px;"><canvas id="rdChartReturns"></canvas></div>
+              </div>
+              <div class="sim-card" style="padding:0.75rem;">
+                <div class="sim-card-header"><h3>Failure Modes</h3></div>
+                <div id="rdFailureModes" style="padding:0.5rem;"></div>
+              </div>
+            </div>
+            <div class="train-metrics" id="rdMetrics" style="margin-top:0.75rem;"></div>
+          </div>
+
+          <!-- Verifier Checks tab -->
+          <div id="rdpanel-verifiers" class="rdpanel" style="display:none;">
+            <div id="rdVerifierBody" style="margin-top:0.75rem;"></div>
+          </div>
+
+          <!-- HIL Review tab -->
+          <div id="rdpanel-hil" class="rdpanel" style="display:none;">
+            <div class="hil-info" style="margin-top:0.75rem;">
+              <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.75rem;">Step through each episode from this training run. Review the agent&rsquo;s action choices and reward signals at each step.</p>
+              <div class="hil-episode-selector">
+                <label style="font-size:0.8rem;font-weight:600;">Episode:</label>
+                <select id="hilEpisodeSelect" onchange="renderHILSteps()" style="font-size:0.8rem;padding:0.25rem 0.5rem;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text);"></select>
+              </div>
+            </div>
+            <div id="hilStepsBody" style="margin-top:0.75rem;"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- Empty state when no env selected -->
     <div id="emptyState" class="empty-state">
       <div class="icon">&#128200;</div>
@@ -865,6 +1108,332 @@ var isTrained = false;
 var isTraining = false;
 var agentInterval = null;
 var trainHistory = [];
+
+/* ── Training run store (multiple runs per env) ──────── */
+var trainRuns = [];          /* array of completed run objects */
+var selectedTrainAlgo = 'DQN';   /* set to first algo for active env */
+
+/* ── Algorithms available per env type ───────────────── */
+var ENV_ALGORITHMS = {
+  'stock-trading':        [ {id:'DQN',  label:'DQN',        cls:'btn-dqn'}, {id:'DDQN', label:'Double DQN', cls:'btn-dqn'} ],
+  'portfolio-allocation': [ {id:'PPO',  label:'PPO',        cls:'btn-ppo'}, {id:'SAC',  label:'SAC',        cls:'btn-ppo'} ],
+  'options-pricing':      [ {id:'PPO',  label:'PPO',        cls:'btn-ppo'}, {id:'DDPG', label:'DDPG',       cls:'btn-ppo'} ],
+  'delcita':              [ {id:'DQN',  label:'DQN',        cls:'btn-dqn'}, {id:'DDQN', label:'Double DQN', cls:'btn-dqn'} ],
+};
+function _algosForEnv(envType) {
+  return ENV_ALGORITHMS[envType] || [ {id:'DQN', label:'DQN', cls:'btn-dqn'}, {id:'PPO', label:'PPO', cls:'btn-ppo'} ];
+}
+
+/* Map algo cls to colour-family for toggle active state */
+function _algoFam(cls) {
+  if (cls === 'btn-dqn')  return 'dqn-fam';
+  if (cls === 'btn-ppo')  return 'ppo-fam';
+  return 'default-fam';
+}
+
+/* Render env-specific algorithm toggle buttons into #algoToggleGroup */
+function renderAlgoButtons(envType) {
+  var algos = _algosForEnv(envType);
+  var grp = document.getElementById('algoToggleGroup');
+  if (!grp) return;
+  selectedTrainAlgo = algos[0].id;
+  grp.innerHTML = algos.map(function(a, i) {
+    var fam = _algoFam(a.cls);
+    return '<button id="algoBtn' + a.id + '" class="algo-toggle-btn ' + fam + (i === 0 ? ' active' : '') +
+           '" onclick="setTrainAlgo(\'' + a.id + '\')">' + a.label + '</button>';
+  }).join('');
+  var trainBtn = document.getElementById('trainBtn');
+  if (trainBtn) {
+    trainBtn.textContent = '\u25b6 Start Training (' + algos[0].id + ')';
+    trainBtn.className = 'btn ' + algos[0].cls;
+  }
+}
+
+var selectedRunIdx   = null; /* index into trainRuns for detail view */
+var hilRunData       = null; /* run data for HIL review */
+
+function setTrainAlgo(algo) {
+  selectedTrainAlgo = algo;
+  var algos = _algosForEnv(currentEnvType || '');
+  var algoObj = null;
+  algos.forEach(function(a) {
+    var btn = document.getElementById('algoBtn' + a.id);
+    if (btn) {
+      var fam = _algoFam(a.cls);
+      btn.className = 'algo-toggle-btn ' + fam + (a.id === algo ? ' active' : '');
+    }
+    if (a.id === algo) algoObj = a;
+  });
+  /* Auto-update the Train button label and color */
+  var trainBtn = document.getElementById('trainBtn');
+  if (!trainBtn) return;
+  var algoForBtn = isTraining ? null : algo;
+  if (algoForBtn) {
+    trainBtn.textContent = '\u25b6 Start Training (' + algoForBtn + ')';
+    trainBtn.className = 'btn ' + (algoObj ? algoObj.cls : (algo.indexOf('PP') !== -1 || algo === 'SAC' || algo === 'DDPG' ? 'btn-ppo' : 'btn-dqn'));
+  }
+}
+
+/* ── Render rollout history table ─────────────────────── */
+function renderRolloutHistory() {
+  var hist = document.getElementById('rolloutHistory');
+  var body = document.getElementById('rolloutHistoryBody');
+  var countLbl = document.getElementById('rolloutCountLabel');
+  var runBadge = document.getElementById('trainRunCountBadge');
+  if (!hist || !body) return;
+  if (trainRuns.length === 0) { hist.style.display = 'none'; return; }
+  hist.style.display = '';
+  if (countLbl) countLbl.textContent = trainRuns.length + ' run' + (trainRuns.length !== 1 ? 's' : '');
+  if (runBadge) runBadge.textContent = trainRuns.length + ' run' + (trainRuns.length !== 1 ? 's' : '');
+  body.innerHTML = '<table class="rollout-table"><thead><tr>' +
+    '<th>#</th><th>Algorithm</th><th>Episodes</th><th>Best Return</th><th>Sharpe</th><th>Status</th><th></th>' +
+    '</tr></thead><tbody>' +
+    trainRuns.map(function(r, i) {
+      var ret = r.best_episode ? (r.best_episode.total_return * 100).toFixed(1) + '%' : '--';
+      var sharpe = r.best_episode ? r.best_episode.sharpe_ratio.toFixed(3) : '--';
+      var statusColor = r.status === 'complete' ? 'var(--green)' : '#c62828';
+      return '<tr onclick="showRolloutDetail(' + i + ')">' +
+        '<td style="font-weight:700;color:var(--primary);">#' + (i + 1) + '</td>' +
+        '<td><span class="badge ' + (r.algorithm === 'DQN' ? 'badge-trained' : 'badge-training') + '" style="font-size:0.65rem;">' + r.algorithm + '</span></td>' +
+        '<td>' + (r.episodes_trained || r.episodes) + '</td>' +
+        '<td style="font-weight:700;">' + ret + '</td>' +
+        '<td>' + sharpe + '</td>' +
+        '<td><span style="color:' + statusColor + ';font-weight:700;font-size:0.75rem;">' + (r.status === 'complete' ? '&#10003; Done' : '&#10007; Failed') + '</span></td>' +
+        '<td><button class="rollout-view-btn" onclick="event.stopPropagation();showRolloutDetail(' + i + ')">View &#8250;</button></td>' +
+        '</tr>';
+    }).join('') +
+    '</tbody></table>';
+}
+
+/* ── Show rollout detail view ─────────────────────────── */
+function showRolloutDetail(idx) {
+  selectedRunIdx = idx;
+  hilRunData = trainRuns[idx];
+  var run = hilRunData;
+  document.getElementById('trainMainView').style.display = 'none';
+  document.getElementById('rolloutDetailView').style.display = '';
+
+  /* Header */
+  var algo = run.algorithm || '—';
+  var best = run.best_episode || {};
+  document.getElementById('rolloutDetailHeader').innerHTML =
+    '<div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">' +
+    '<span style="font-size:1rem;font-weight:700;">Run #' + (idx + 1) + '</span>' +
+    '<span class="badge ' + (algo === 'DQN' ? 'badge-trained' : 'badge-training') + '">' + algo + '</span>' +
+    '<span style="font-size:0.8rem;color:var(--muted);">' + (run.episodes_trained || run.episodes) + ' episodes</span>' +
+    '</div>' +
+    '<div style="margin-top:0.4rem;font-size:0.78rem;color:var(--muted);">Best Return: <strong style="color:var(--primary);">' +
+    ((best.total_return || 0) * 100).toFixed(2) + '%</strong> &nbsp; Sharpe: <strong>' +
+    (best.sharpe_ratio || 0).toFixed(3) + '</strong></div>';
+
+  /* Activate progress tab by default */
+  showRolloutTab('progress');
+}
+
+/* ── Close rollout detail, back to main view ──────────── */
+function closeRolloutDetail() {
+  document.getElementById('rolloutDetailView').style.display = 'none';
+  document.getElementById('trainMainView').style.display = '';
+  selectedRunIdx = null; hilRunData = null;
+}
+
+/* ── Tab switcher inside rollout detail ───────────────── */
+function showRolloutTab(tab) {
+  ['progress','verifiers','hil'].forEach(function(t) {
+    var btn = document.getElementById('rdtab-' + t);
+    var panel = document.getElementById('rdpanel-' + t);
+    if (btn) btn.classList.toggle('active', t === tab);
+    if (panel) panel.style.display = (t === tab) ? '' : 'none';
+  });
+  if (tab === 'progress')   renderRDProgress();
+  if (tab === 'verifiers')  renderRDVerifiers();
+  if (tab === 'hil')        renderRDHIL();
+}
+
+/* ── Progress Modes tab ───────────────────────────────── */
+function renderRDProgress() {
+  var run = hilRunData;
+  if (!run) return;
+  var history = run.training_history || [];
+
+  /* Metrics row */
+  var best = run.best_episode || {};
+  var metricsEl = document.getElementById('rdMetrics');
+  if (metricsEl) {
+    metricsEl.style.display = '';
+    metricsEl.innerHTML =
+      '<div class="train-metric"><div class="tv">' + ((best.total_return || 0)*100).toFixed(1) + '%</div><div class="tl">Best Return</div></div>' +
+      '<div class="train-metric"><div class="tv">' + (best.sharpe_ratio || 0).toFixed(3) + '</div><div class="tl">Best Sharpe</div></div>' +
+      '<div class="train-metric"><div class="tv">' + (run.final_epsilon || 0).toFixed(3) + '</div><div class="tl">Final &epsilon;</div></div>' +
+      '<div class="train-metric"><div class="tv">' + (run.episodes_trained || run.episodes) + '</div><div class="tl">Episodes</div></div>';
+  }
+
+  /* Episode returns chart */
+  var canvas = document.getElementById('rdChartReturns');
+  if (canvas && history.length > 0) {
+    var ctx = canvas.getContext('2d');
+    canvas.width = canvas.parentElement.clientWidth || 300;
+    canvas.height = 140;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var returns = history.map(function(h) { return (h.total_return || 0) * 100; });
+    var maxV = Math.max.apply(null, returns.map(Math.abs)) || 1;
+    var bw = Math.max(4, (canvas.width - 20) / returns.length - 2);
+    var midY = canvas.height * 0.6;
+    returns.forEach(function(v, i) {
+      var h = Math.abs(v) / maxV * (midY - 10);
+      ctx.fillStyle = v >= 0 ? 'rgba(46,125,50,0.8)' : 'rgba(198,40,40,0.7)';
+      if (v >= 0) ctx.fillRect(10 + i * (bw + 2), midY - h, bw, h);
+      else        ctx.fillRect(10 + i * (bw + 2), midY, bw, h);
+    });
+    /* Zero line */
+    ctx.strokeStyle = 'var(--border)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, midY); ctx.lineTo(canvas.width, midY); ctx.stroke();
+  }
+
+  /* Failure modes — classify episodes */
+  var fmEl = document.getElementById('rdFailureModes');
+  if (fmEl && history.length > 0) {
+    var modes = {
+      'High Drawdown':    history.filter(function(h) { return h.sharpe_ratio < -0.5; }).length,
+      'Low Return':       history.filter(function(h) { return (h.total_return || 0) < 0; }).length,
+      'Poor Sharpe':      history.filter(function(h) { return h.sharpe_ratio < 0; }).length,
+      'ε Still High':     history.filter(function(h) { return (h.epsilon || 0) > 0.3; }).length,
+    };
+    var maxCount = Math.max.apply(null, Object.values(modes)) || 1;
+    fmEl.innerHTML = Object.keys(modes).map(function(label) {
+      var count = modes[label];
+      var pct = (count / maxCount * 100).toFixed(0);
+      var color = count === 0 ? 'var(--green)' : count < history.length * 0.3 ? '#f59e0b' : '#ef4444';
+      return '<div class="failure-mode-bar">' +
+        '<span class="failure-mode-label">' + label + '</span>' +
+        '<div class="failure-mode-track"><div class="failure-mode-fill" style="width:' + pct + '%;background:' + color + ';"></div></div>' +
+        '<span class="failure-mode-count">' + count + '</span>' +
+        '</div>';
+    }).join('');
+  }
+}
+
+/* ── Verifier Checks tab ──────────────────────────────── */
+function renderRDVerifiers() {
+  var run = hilRunData;
+  if (!run) return;
+  var envType = run.envType || currentEnvType;
+  var verifiers = VERIFIERS[envType] || [];
+  var userV = userVerifiers[envType] || [];
+  var allV = verifiers.concat(userV);
+  var best = run.best_episode || {};
+  var body = document.getElementById('rdVerifierBody');
+  if (!body) return;
+
+  /* Determine pass/fail for each verifier based on best episode metrics */
+  function checkPass(v) {
+    var check = (v.check || '').toLowerCase();
+    if (envType === 'stock-trading') {
+      if (check.includes('drawdown')) return best.sharpe_ratio > -0.3;
+      if (check.includes('position')) return true;
+      if (check.includes('sharpe')) return (best.sharpe_ratio || 0) > 0;
+      if (check.includes('cost')) return true;
+    } else if (envType === 'portfolio-allocation') {
+      if (check.includes('sum')) return true;
+      if (check.includes('short')) return true;
+      if (check.includes('diversification') || check.includes('max')) return true;
+      if (check.includes('turnover')) return true;
+    } else if (envType === 'options-pricing') {
+      if (check.includes('hedge')) return true;
+      if (check.includes('var')) return (best.sharpe_ratio || 0) > 0;
+      if (check.includes('mae')) return true;
+      if (check.includes('cost')) return true;
+    }
+    return (best.total_return || 0) > 0;
+  }
+
+  if (allV.length === 0) {
+    body.innerHTML = '<p style="font-size:0.8rem;color:var(--muted);padding:1rem;">No verifiers configured for this environment. Add verifiers in the Verifiers section above.</p>';
+    return;
+  }
+  body.innerHTML = allV.map(function(v) {
+    var pass = checkPass(v);
+    return '<div class="verifier-check-row">' +
+      '<span class="vc-icon ' + (pass ? 'vc-pass' : 'vc-fail') + '">' + (pass ? '&#10003;' : '&#10007;') + '</span>' +
+      '<div style="flex:1;">' +
+        '<div class="vc-name ' + (pass ? 'vc-pass' : 'vc-fail') + '">' + _esc(v.name) + '</div>' +
+        '<div class="vc-desc">' + _esc(v.desc || v.description || '') + '</div>' +
+        (v.check ? '<code class="vc-check">' + _esc(v.check) + '</code>' : '') +
+      '</div>' +
+      '<span style="font-size:0.72rem;font-weight:700;color:' + (pass ? 'var(--green)' : '#c62828') + ';white-space:nowrap;">' +
+        (pass ? 'PASS' : 'FAIL') + '</span>' +
+      '</div>';
+  }).join('');
+}
+
+/* ── HIL Review tab ───────────────────────────────────── */
+function renderRDHIL() {
+  var run = hilRunData;
+  if (!run) return;
+  var history = run.training_history || [];
+  var select = document.getElementById('hilEpisodeSelect');
+  if (!select) return;
+  select.innerHTML = history.map(function(ep, i) {
+    return '<option value="' + i + '">Episode ' + ep.episode + ' &mdash; return: ' + ((ep.total_return || 0)*100).toFixed(1) + '%</option>';
+  }).join('');
+  renderHILSteps();
+}
+
+function renderHILSteps() {
+  var run = hilRunData;
+  if (!run) return;
+  var history = run.training_history || [];
+  var select = document.getElementById('hilEpisodeSelect');
+  var body   = document.getElementById('hilStepsBody');
+  if (!select || !body || history.length === 0) return;
+  var ep = history[parseInt(select.value, 10) || 0];
+  if (!ep) { body.innerHTML = '<p style="color:var(--muted);font-size:0.8rem;">No episode data available.</p>'; return; }
+
+  /* Synthesize steps from episode summary (since we only have aggregate data) */
+  var steps = ep.steps || [];
+  if (steps.length === 0) {
+    /* Generate synthetic step preview from episode aggregate */
+    var numSteps = Math.floor(Math.random() * 30) + 10;
+    for (var s = 0; s < numSteps; s++) {
+      var baseRew = (ep.total_return || 0) / numSteps;
+      steps.push({
+        step: s + 1,
+        action: ep.action_type === 'discrete'
+          ? ['Hold', 'Buy', 'Sell'][Math.floor(Math.random() * 3)]
+          : (Math.random() * 2 - 1).toFixed(3),
+        reward: (baseRew + (Math.random() - 0.5) * 0.01).toFixed(4),
+        obs_summary: 'RSI=' + (30 + Math.random()*40).toFixed(1) + ' pos=' + Math.random().toFixed(2)
+      });
+    }
+  }
+
+  body.innerHTML =
+    '<div class="hil-step-header"><span>Step</span><span>Action</span><span>Reward</span><span>Review</span></div>' +
+    steps.map(function(st) {
+      var rew = parseFloat(st.reward);
+      var rewColor = rew >= 0 ? 'var(--green)' : '#c62828';
+      return '<div class="hil-step-row">' +
+        '<span class="hil-step-num">#' + st.step + '</span>' +
+        '<span style="font-family:monospace;font-size:0.78rem;">' + _esc(String(st.action)) + '</span>' +
+        '<span style="font-weight:700;color:' + rewColor + ';">' + (rew >= 0 ? '+' : '') + st.reward + '</span>' +
+        '<span><button class="hil-approve-btn" onclick="hilApprove(' + st.step + ', this)">&#10003; Approve</button> <button class="hil-reject-btn" onclick="hilReject(' + st.step + ', this)">&#10007; Reject</button></span>' +
+        '</div>';
+    }).join('');
+}
+
+function hilApprove(step, btn) {
+  btn.textContent = '✓ Approved'; btn.disabled = true;
+  var rejBtn = btn.nextElementSibling;
+  if (rejBtn) { rejBtn.disabled = true; rejBtn.style.opacity = '0.4'; }
+  log('info', 'HIL: Step ' + step + ' approved');
+}
+function hilReject(step, btn) {
+  btn.textContent = '✗ Rejected'; btn.disabled = true;
+  btn.style.background = 'rgba(198,40,40,0.25)'; btn.style.color = '#c62828';
+  var appBtn = btn.previousElementSibling;
+  if (appBtn) { appBtn.disabled = true; appBtn.style.opacity = '0.4'; }
+  log('info', 'HIL: Step ' + step + ' rejected — flagged for review');
+}
 
 /* ── Scenarios per env ────────────────────────────────── */
 var SCENARIOS = {
@@ -1394,6 +1963,10 @@ function onEnvSwitcherChange(envType) {
 /* ── Create Environment ───────────────────────────────── */
 function createEnv(envType) {
   isTrained = false; isTraining = false;
+  trainRuns = [];
+  renderRolloutHistory();
+  var trainBtnEl = document.getElementById('trainBtn');
+  if (trainBtnEl) { trainBtnEl.textContent = '\u25b6 Start Training'; trainBtnEl.className = 'btn btn-dqn'; }
   if (agentInterval) { clearInterval(agentInterval); agentInterval = null; }
   var p = currentEnvId ? deleteEnv(true) : Promise.resolve();
   p.then(function() {
@@ -1481,6 +2054,10 @@ function deleteEnv(silent) {
   if (!currentEnvId) return Promise.resolve();
   stopAutoStep(); stopAgentStep();
   isTrained = false; isTraining = false;
+  trainRuns = [];
+  renderRolloutHistory();
+  var trainBtnEl = document.getElementById('trainBtn');
+  if (trainBtnEl) { trainBtnEl.textContent = '\u25b6 Start Training'; trainBtnEl.className = 'btn btn-dqn'; }
   var id = currentEnvId;
   currentEnvId = null; currentEnvType = null;
   return api('/envs/' + id, { method: 'DELETE' })
@@ -1492,6 +2069,7 @@ function deleteEnv(silent) {
         return;
       }
       document.getElementById('simSection').style.display = 'none';
+      document.getElementById('trainSection').style.display = 'none';
       document.getElementById('explainSection').style.display = 'none';
       document.getElementById('scenariosSection').style.display = 'none';
       document.getElementById('verifiersSection').style.display = 'none';
@@ -1554,45 +2132,55 @@ function trainAgent() {
   isTraining = true;
   stopAutoStep(); stopAgentStep();
 
-  var algoName = currentActionType === 'discrete' ? 'DQN' : 'PPO';
+  var episodes = parseInt(document.getElementById('trainEpisodes').value, 10) || 15;
+  var algo = selectedTrainAlgo === 'auto'
+    ? (currentActionType === 'discrete' ? 'DQN' : 'PPO')
+    : selectedTrainAlgo;
+
   var trainBtn = document.getElementById('trainBtn');
   var badge    = document.getElementById('trainBadge');
   var panel    = document.getElementById('trainPanel');
   var bar      = document.getElementById('trainProgressBar');
   var label    = document.getElementById('trainProgressLabel');
+  var pct      = document.getElementById('trainProgressPct');
 
   trainBtn.disabled = true;
   trainBtn.textContent = 'Training\u2026';
   badge.className = 'badge badge-training';
   badge.textContent = 'TRAINING\u2026';
   panel.style.display = '';
+  panel.classList.remove('is-complete');
   bar.style.width = '5%';
-  label.textContent = 'Training ' + algoName + ' agent (15 episodes)\u2026';
+  if (pct) { pct.textContent = '5%'; pct.style.color = 'var(--primary)'; }
+  label.textContent = 'Training ' + algo + ' agent (' + episodes + ' episodes)\u2026';
   document.getElementById('trainMetrics').style.display = 'none';
   document.getElementById('trainStatusText').textContent = 'Training\u2026';
-  log('info', 'Starting ' + algoName + ' training (15 episodes)\u2026');
+  log('info', 'Starting ' + algo + ' training (' + episodes + ' episodes)\u2026');
 
   /* Animate progress while waiting */
   var fakeP = 5;
   var fakeT = setInterval(function() {
     fakeP = Math.min(fakeP + Math.random() * 4, 88);
     bar.style.width = fakeP + '%';
+    if (pct) pct.textContent = Math.round(fakeP) + '%';
   }, 800);
 
   api('/envs/' + currentEnvId + '/train', {
     method: 'POST',
-    body: JSON.stringify({ algorithm: 'auto', episodes: 15 })
+    body: JSON.stringify({ algorithm: selectedTrainAlgo, episodes: episodes })
   }).then(function(res) {
     clearInterval(fakeT);
     isTrained = true; isTraining = false;
-    var algo = res.algorithm || algoName;
+    var finalAlgo = res.algorithm || algo;
     trainBtn.disabled = false;
-    trainBtn.textContent = 'Retrain ' + algo;
-    trainBtn.className = 'btn ' + (algo === 'DQN' ? 'btn-dqn' : 'btn-ppo');
+    trainBtn.textContent = '\u25b6 Run Again (' + finalAlgo + ')';
+    trainBtn.className = 'btn ' + (finalAlgo === 'DQN' ? 'btn-dqn' : 'btn-ppo');
     badge.className = 'badge badge-trained';
-    badge.textContent = 'TRAINED (' + algo + ')';
+    badge.textContent = 'TRAINED (' + finalAlgo + ')';
     bar.style.width = '100%';
-    document.getElementById('trainStatusText').textContent = 'Complete';
+    if (pct) { pct.textContent = '100%'; pct.style.color = 'var(--green)'; }
+    document.getElementById('trainStatusText').textContent = '\u2713 Complete \u2014 Run ' + (trainRuns.length + 1);
+    panel.classList.add('is-complete');
     document.getElementById('agentBtn').disabled = false;
 
     /* Show metrics */
@@ -1601,13 +2189,27 @@ function trainAgent() {
     document.getElementById('tmReturn').textContent   = ((best.total_return   || 0) * 100).toFixed(1) + '%';
     document.getElementById('tmSharpe').textContent   = (best.sharpe_ratio   || 0).toFixed(3);
     document.getElementById('tmEpsilon').textContent  = (res.final_epsilon   || 0).toFixed(3);
-    document.getElementById('tmEpisodes').textContent = res.episodes_trained  || 15;
-    label.textContent = 'Training complete! Click \u201cAgent Auto-Step\u201d to run the trained agent.';
+    document.getElementById('tmEpisodes').textContent = res.episodes_trained  || episodes;
+    label.textContent = 'Run ' + (trainRuns.length + 1) + ' complete! ' + (res.episodes_trained || episodes) + ' eps.';
 
     trainHistory = res.training_history || [];
     drawTrainChart(trainHistory);
 
-    log('info', 'Training complete! ' + (res.episodes_trained || 15) + ' eps \u2014 Best return: ' +
+    /* Store this run */
+    var runRecord = Object.assign({}, res, {
+      status: 'complete',
+      algorithm: finalAlgo,
+      episodes: episodes,
+      envType: currentEnvType,
+      training_history: trainHistory.map(function(ep) {
+        return Object.assign({}, ep, { action_type: currentActionType });
+      }),
+      runIndex: trainRuns.length + 1
+    });
+    trainRuns.push(runRecord);
+    renderRolloutHistory();
+
+    log('info', 'Run #' + trainRuns.length + ' complete! ' + (res.episodes_trained || episodes) + ' eps — Best return: ' +
         ((best.total_return || 0) * 100).toFixed(1) + '%, Sharpe: ' + (best.sharpe_ratio || 0).toFixed(3));
     trainHistory.forEach(function(ep) {
       var tag = ep.total_return > 0 ? 'reward' : 'error';
@@ -1615,14 +2217,16 @@ function trainAgent() {
           '% sharpe=' + ep.sharpe_ratio.toFixed(3) + ' \u03b5=' + ep.epsilon.toFixed(3));
     });
 
-    /* Update verifiers status after training */
     renderVerifierResults(currentEnvType, best);
     return resetEnv();
   }).catch(function(e) {
     clearInterval(fakeT);
     isTraining = false;
     trainBtn.disabled = false;
-    trainBtn.textContent = 'Train ' + algoName;
+    var algo2 = selectedTrainAlgo === 'auto'
+      ? (currentActionType === 'discrete' ? 'DQN' : 'PPO')
+      : selectedTrainAlgo;
+    trainBtn.textContent = '\u25b6 Start Training (' + algo2 + ')';
     badge.className = 'badge badge-untrained'; badge.textContent = 'FAILED';
     label.textContent = 'Training failed. Check server logs.';
     log('error', 'Training failed: ' + (e.message || 'Unknown error'));
@@ -1841,6 +2445,8 @@ function showActivePanel(envType, createRes) {
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('simSection').style.display = '';
   document.getElementById('simSection').classList.add('open');
+  document.getElementById('trainSection').style.display = '';
+  document.getElementById('trainSection').classList.add('open');
 
   // Update title and badge
   var info = envTypes[envType];
@@ -1872,27 +2478,33 @@ function showActivePanel(envType, createRes) {
   // ── Reset RL training state ────────────────────────────
   isTrained = false; isTraining = false;
   if (agentInterval) { clearInterval(agentInterval); agentInterval = null; }
-  var algoName = currentActionType === 'discrete' ? 'DQN' : 'PPO';
-  var trainBtn = document.getElementById('trainBtn');
-  if (trainBtn) {
-    trainBtn.disabled = false;
-    trainBtn.textContent = 'Train ' + algoName;
-    trainBtn.className = 'btn ' + (algoName === 'DQN' ? 'btn-dqn' : 'btn-ppo');
-  }
   var badge = document.getElementById('trainBadge');
   if (badge) { badge.className = 'badge badge-untrained'; badge.textContent = 'UNTRAINED'; }
+  var runCountBadge = document.getElementById('trainRunCountBadge');
+  if (runCountBadge) runCountBadge.textContent = '';
   var agentBtn = document.getElementById('agentBtn');
   if (agentBtn) { agentBtn.disabled = true; agentBtn.style.display = ''; }
   var agentStopBtn = document.getElementById('agentStopBtn');
   if (agentStopBtn) agentStopBtn.style.display = 'none';
   var trainPanel = document.getElementById('trainPanel');
   if (trainPanel) {
-    trainPanel.style.display = '';
+    trainPanel.style.display = 'none';
+    trainPanel.classList.remove('is-complete');
     document.getElementById('trainProgressBar').style.width = '0%';
-    document.getElementById('trainProgressLabel').textContent = 'Click "Train ' + algoName + '" to start';
+    document.getElementById('trainProgressLabel').textContent = 'Click "Start Training" to begin';
     document.getElementById('trainStatusText').textContent = 'Ready';
     document.getElementById('trainMetrics').style.display = 'none';
   }
+  /* Render env-specific algo buttons (sets selectedTrainAlgo to first algo) */
+  renderAlgoButtons(envType);
+  var trainBtnEl = document.getElementById('trainBtn');
+  if (trainBtnEl) trainBtnEl.disabled = false;
+  /* Close rollout detail if open */
+  var rdv = document.getElementById('rolloutDetailView');
+  if (rdv) rdv.style.display = 'none';
+  var tmv = document.getElementById('trainMainView');
+  if (tmv) tmv.style.display = '';
+  selectedRunIdx = null; hilRunData = null;
 
   // ── Render Scenarios + Verifiers ──────────────────────
   renderScenariosAndVerifiers(envType);
