@@ -3813,7 +3813,8 @@ function _buildInlineReport(run) {
 
     // ── 5b. State Diagram ──
     if ((run.status === 'completed' || run.status === 'awaiting_human_eval') &&
-        (run._mock_trained_rollout || run._mock_baseline_rollout)) {
+        (run._mock_trained_rollout || run._mock_baseline_rollout) &&
+        run.category !== 'huggingface') {
         html += _buildPopupStateDiagram(run);
     }
 
