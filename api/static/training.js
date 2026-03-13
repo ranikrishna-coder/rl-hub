@@ -285,11 +285,19 @@
 
     function getAllScenarios() {
         // Merge built-in scenarios (from training-config-data.js) with custom ones from API
+        // Deduplicate by name to avoid showing cloned DB copies alongside hardcoded originals
         var builtIn = (CFG.scenarios || []).map(function (s) {
             s.source = s.source || 'built-in';
             return s;
         });
-        return builtIn.concat(CUSTOM_SCENARIOS);
+        var seenNames = {};
+        builtIn.forEach(function (s) { if (s.name) seenNames[s.name] = true; });
+        var uniqueCustom = CUSTOM_SCENARIOS.filter(function (s) {
+            if (s.name && seenNames[s.name]) return false;
+            seenNames[s.name] = true;
+            return true;
+        });
+        return builtIn.concat(uniqueCustom);
     }
 
     function humanizeName(name) {

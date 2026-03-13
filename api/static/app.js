@@ -2433,14 +2433,16 @@ async function _ensurePersistedScenarios(envName, envCategory) {
         var cfg = window.TRAINING_CONFIG;
         if (!cfg || !cfg.scenarios) return;
         var existingIds = new Set(cfg.scenarios.map(function (s) { return s.id; }));
+        var existingNames = new Set(cfg.scenarios.map(function (s) { return s.name; }));
         var added = 0;
         data.scenarios.forEach(function (s) {
-            if (!existingIds.has(s.id)) {
+            if (!existingIds.has(s.id) && !existingNames.has(s.name)) {
                 s.source = s.source || 'custom';
                 s.environment = s.environment || s.product || '';
                 s.expected_workflow = s.expected_workflow || [];
                 cfg.scenarios.push(s);
                 existingIds.add(s.id);
+                existingNames.add(s.name);
                 added++;
             }
         });
@@ -2691,6 +2693,7 @@ async function _ensurePersistedVerifiers(envName, envCategory) {
         var store = window.VERIFIER_DATA;
         if (!store || !store.all) return;
         var existingIds = new Set(store.all.map(function (v) { return v.id; }));
+        var existingNames = new Set(store.all.map(function (v) { return v.name; }));
         var added = 0;
         data.verifiers.forEach(function (v) {
             var normalized = {
@@ -2712,9 +2715,10 @@ async function _ensurePersistedVerifiers(envName, envCategory) {
                 failurePolicy: v.failure_policy || v.failurePolicy || {},
                 subVerifiers: v.subVerifiers || []
             };
-            if (!existingIds.has(normalized.id)) {
+            if (!existingIds.has(normalized.id) && !existingNames.has(normalized.name)) {
                 store.all.push(normalized);
                 existingIds.add(normalized.id);
+                existingNames.add(normalized.name);
                 added++;
             }
         });
@@ -6593,23 +6597,25 @@ function submitAddEnvironment(event) {
             var cloneSrc = _cloneSourceName;
             console.log('[Clone] Cloning scenarios & verifiers from "' + cloneSrc + '" to "' + name + '"');
 
-            // Gather hardcoded scenarios from TRAINING_CONFIG for the source env
+            // Gather ONLY environment-specific hardcoded scenarios/verifiers.
+            // Category-level ones (e.g. "Clinical Workflow" for all clinical envs)
+            // are NOT cloned — they already appear via category matching.
             var srcEnvObj = allEnvironments.find(function (e) { return e.name === cloneSrc; });
             var srcCat = srcEnvObj ? srcEnvObj.category : '';
             var hardcodedScenarios = [];
             if (window.TRAINING_CONFIG && window.TRAINING_CONFIG.scenarios) {
                 hardcodedScenarios = window.TRAINING_CONFIG.scenarios.filter(function (s) {
-                    if (s.source === 'custom' || s.source === 'cloned') return false; // skip custom, handled by backend
-                    if (s.environment) return s.environment === cloneSrc;
-                    return s.category === srcCat || s.product === cloneSrc;
+                    if (s.source === 'custom' || s.source === 'cloned') return false;
+                    // Only clone scenarios that are explicitly tied to the source env
+                    return s.environment && s.environment === cloneSrc;
                 });
             }
             var hardcodedVerifiers = [];
             if (window.VERIFIER_DATA && window.VERIFIER_DATA.all) {
                 hardcodedVerifiers = window.VERIFIER_DATA.all.filter(function (v) {
                     if (v.source === 'custom' || v.source === 'cloned') return false;
-                    if (v.envName) return v.envName === cloneSrc;
-                    return v.environment === srcCat;
+                    // Only clone verifiers that are explicitly tied to the source env
+                    return v.envName && v.envName === cloneSrc;
                 });
             }
 
