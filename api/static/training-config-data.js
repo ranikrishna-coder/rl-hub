@@ -58,10 +58,11 @@
         ],
 
         agents: [
-            { id: 'agent_qwen17', name: 'Qwen 1.7B Instruct', base_model: 'qwen-1.7b-instruct', trainable: true, compatible_categories: ['jira', 'hr_payroll', 'imaging'] },
-            { id: 'agent_llama32', name: 'LLaMA 3.2 1B', base_model: 'llama-3.2-1b', trainable: true, compatible_categories: ['jira', 'clinical', 'telehealth'] },
-            { id: 'agent_mistral', name: 'Mistral 7B Instruct', base_model: 'mistral-7b-instruct-v0.3', trainable: true, compatible_categories: ['jira', 'clinical', 'imaging', 'revenue_cycle', 'hr_payroll', 'population_health', 'clinical_trials', 'hospital_operations', 'interoperability', 'telehealth', 'cross_workflow'] },
-            { id: 'agent_gpt4o', name: 'GPT-4o (Baseline)', base_model: 'gpt-4o', trainable: false, compatible_categories: ['jira', 'clinical', 'imaging', 'revenue_cycle', 'hr_payroll', 'population_health', 'clinical_trials', 'hospital_operations', 'interoperability', 'telehealth', 'cross_workflow'] },
+            { id: 'agent_qwen06', name: 'Qwen3 0.6B', base_model: 'Qwen/Qwen3-0.6B', trainable: true, compatible_categories: ['dev-sim', 'jira'] },
+            { id: 'agent_qwen17', name: 'Qwen 1.7B Instruct', base_model: 'qwen-1.7b-instruct', trainable: true, compatible_categories: ['jira', 'hr_payroll', 'imaging', 'dev-sim'] },
+            { id: 'agent_llama32', name: 'LLaMA 3.2 1B', base_model: 'llama-3.2-1b', trainable: true, compatible_categories: ['jira', 'clinical', 'telehealth', 'dev-sim'] },
+            { id: 'agent_mistral', name: 'Mistral 7B Instruct', base_model: 'mistral-7b-instruct-v0.3', trainable: true, compatible_categories: ['jira', 'clinical', 'imaging', 'revenue_cycle', 'hr_payroll', 'population_health', 'clinical_trials', 'hospital_operations', 'interoperability', 'telehealth', 'cross_workflow', 'dev-sim'] },
+            { id: 'agent_gpt4o', name: 'GPT-4o (Baseline)', base_model: 'gpt-4o', trainable: false, compatible_categories: ['jira', 'clinical', 'imaging', 'revenue_cycle', 'hr_payroll', 'population_health', 'clinical_trials', 'hospital_operations', 'interoperability', 'telehealth', 'cross_workflow', 'dev-sim'] },
         ],
 
         algorithms: [

@@ -2336,9 +2336,6 @@
         // LoRA
         initLoraToggle();
 
-        // Sample data prefill
-        document.getElementById('btn-prefill-sample').addEventListener('click', prefillSampleData);
-
         // Submit
         document.getElementById('btn-start-training').addEventListener('click', submitNewTraining);
 

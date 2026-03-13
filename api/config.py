@@ -30,6 +30,12 @@ VERIFIER_STORE_DB_PATH = os.getenv(
     os.path.join(DATA_DIR, "verifiers.db"),
 )
 
+# SQLite database path for user tool definitions (gitignored by *.db rule)
+TOOL_STORE_DB_PATH = os.getenv(
+    "TOOL_STORE_DB_PATH",
+    os.path.join(DATA_DIR, "tools.db"),
+)
+
 # Legacy JSON path (used for migration and as fallback)
 CUSTOM_ENV_JSON_PATH = os.path.join(DATA_DIR, "custom_environments.json")
 

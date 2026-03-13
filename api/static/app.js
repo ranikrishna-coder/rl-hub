@@ -2417,6 +2417,297 @@ function closeEnvDetailPage() {
     history.pushState({ view: 'catalog' }, '', '/environments');
 }
 
+// ─── Build Tools Section for detail page ───
+// Load persisted tools from backend (async/await)
+var _persistedToolsLoaded = {};
+var _persistedToolsCache = {};  // envName -> [tool, ...]
+var _editingToolId = null;
+
+// Map environment catalog names to financial API slugs
+var _FINANCIAL_ENV_SLUG = {
+    'Delcita': 'delcita',
+    'StockTrading': 'stock-trading',
+    'PortfolioAllocation': 'portfolio-allocation',
+    'OptionsPricing': 'options-pricing'
+};
+
+async function _ensurePersistedTools(envName) {
+    if (_persistedToolsLoaded[envName]) return;
+    _persistedToolsLoaded[envName] = true;
+    var allTools = [];
+
+    // 1. Fetch user-created tools from the Tools DB
+    try {
+        var res = await fetch(API_BASE + '/api/tools?environment=' + encodeURIComponent(envName));
+        if (res.ok) {
+            var data = await res.json();
+            allTools = data.tools || [];
+        }
+    } catch (e) {
+        console.warn('[Tools] Failed to load persisted tools:', e);
+    }
+
+    // 2. For financial environments, also fetch predefined tools from the financial API
+    var finSlug = _FINANCIAL_ENV_SLUG[envName];
+    if (finSlug) {
+        try {
+            var finRes = await fetch(API_BASE + '/financial/envs/list');
+            if (finRes.ok) {
+                var finData = await finRes.json();
+                var envMeta = finData[finSlug];
+                if (envMeta && envMeta.tools && envMeta.tools.length) {
+                    var existingIds = {};
+                    allTools.forEach(function (t) { if (t.id) existingIds[t.id] = true; });
+                    envMeta.tools.forEach(function (ft) {
+                        var ftId = 'fin_' + finSlug + '_' + (ft.name || '').replace(/\s+/g, '_');
+                        if (!existingIds[ftId]) {
+                            allTools.push({
+                                id: ftId,
+                                name: ft.name,
+                                description: ft.description,
+                                source: 'built-in',
+                                environment: envName
+                            });
+                        }
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('[Tools] Failed to load financial env tools:', e);
+        }
+    }
+
+    _persistedToolsCache[envName] = allTools;
+}
+
+function _toolDisplayLabel(tool, index) {
+    // Try common label fields, fall back to "Tool #N"
+    return tool.name || tool.title || tool.id || ('Tool #' + (index + 1));
+}
+
+function _toolUserJson(tool) {
+    // Return the user-provided JSON by stripping internal metadata
+    var out = {};
+    Object.keys(tool).forEach(function (k) {
+        if (k !== '_id' && k !== 'source' && k !== 'environment' && k !== 'created_at' && k !== 'updated_at') {
+            out[k] = tool[k];
+        }
+    });
+    return out;
+}
+
+function _escapeHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function buildToolsSection(envName) {
+    var tools = _persistedToolsCache[envName] || [];
+    var listHtml = '';
+    if (tools.length) {
+        tools.forEach(function (tool, idx) {
+            var eName = envName.replace(/'/g, "\\'");
+            var tId = (tool.id || '').replace(/'/g, "\\'");
+            var label = _toolDisplayLabel(tool, idx);
+            var isBuiltIn = tool.source === 'built-in';
+            var userJson = _toolUserJson(tool);
+            var jsonStr = _escapeHtml(JSON.stringify(userJson, null, 2));
+            var actionsHtml = '';
+            if (isBuiltIn) {
+                actionsHtml = '<span style="font-size:0.7rem;padding:2px 8px;border-radius:4px;background:var(--accent-primary);color:#fff;margin-left:auto;white-space:nowrap;">built-in</span>';
+            } else {
+                actionsHtml = '<div class="card-action-btns" onclick="event.stopPropagation()">' +
+                    '<button class="btn-xs btn-xs-edit" onclick="editTool(\'' + eName + '\', \'' + tId + '\')" title="Edit tool">' +
+                    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+                    ' Edit</button>' +
+                    '<button class="btn-xs btn-xs-delete" onclick="deleteTool(\'' + eName + '\', \'' + tId + '\')" title="Delete tool">' +
+                    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>' +
+                    ' Delete</button>' +
+                    '</div>';
+            }
+            listHtml += '<div class="scenario-card" data-tool-id="' + (tool.id || '') + '">' +
+                '<div class="scenario-card-header">' +
+                '<span class="scenario-card-name">' + _escapeHtml(label) + '</span>' +
+                (tool.description && isBuiltIn ? '<span class="scenario-card-tasks" style="flex:1;text-align:left;">' + _escapeHtml(tool.description) + '</span>' : '') +
+                actionsHtml +
+                '</div>' +
+                '<pre class="scenario-card-desc" style="font-family:monospace;font-size:0.78rem;white-space:pre-wrap;margin:0.5rem 0 0;background:var(--bg-secondary);padding:0.5rem;border-radius:4px;max-height:300px;overflow:auto;">' + jsonStr + '</pre>' +
+                '</div>';
+        });
+    } else {
+        listHtml = '<p style="color:var(--text-secondary);font-size:0.9rem;">No tools configured for this environment.</p>';
+    }
+
+    var eName = envName.replace(/'/g, "\\'");
+    return '<div class="detail-collapsible" id="section-tools">' +
+        '<button class="detail-collapsible-header" onclick="toggleDetailSection(\'section-tools\')">' +
+        '<h2>' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>' +
+        ' Tools <span style="font-size:0.75rem;font-weight:400;color:var(--text-secondary);margin-left:6px;">(' + tools.length + ')</span>' +
+        '</h2>' +
+        '<svg class="detail-collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '</button>' +
+        '<div class="detail-collapsible-body" id="section-tools-body">' +
+        '<div class="detail-collapsible-content">' +
+        '<div class="scenarios-list">' + listHtml + '</div>' +
+        '<div style="margin-top:1rem;">' +
+        '<button class="btn btn-outline btn-small" onclick="toggleAddToolForm()" id="btn-add-tool">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+        ' Add Tool' +
+        '</button>' +
+        '</div>' +
+        '<div id="add-tool-form" style="display:none;margin-top:1rem;padding:1rem;background:var(--bg-tertiary);border-radius:8px;border:1px solid var(--border-color);">' +
+        '<h4 style="margin:0 0 0.75rem;font-size:0.9rem;color:var(--text-primary);">New Tool (JSON)</h4>' +
+        '<p style="margin:0 0 0.5rem;font-size:0.8rem;color:var(--text-secondary);">Paste any valid JSON. No required fields &mdash; any structure is accepted.</p>' +
+        '<textarea id="add-tool-json" class="add-env-terraform-editor" rows="10" spellcheck="false" placeholder=\'{\n  "type": "function",\n  "function": {\n    "name": "get_weather",\n    "description": "Get current weather",\n    "parameters": {\n      "type": "object",\n      "properties": {\n        "location": { "type": "string" }\n      }\n    }\n  }\n}\'></textarea>' +
+        '<div style="margin-top:0.75rem;display:flex;gap:8px;">' +
+        '<button class="btn btn-primary btn-small" onclick="saveNewTool(\'' + eName + '\')">Save Tool</button>' +
+        '<button class="btn btn-outline btn-small" onclick="cancelToolForm()">Cancel</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
+}
+
+function toggleAddToolForm() {
+    var form = document.getElementById('add-tool-form');
+    if (!form) return;
+    var isVisible = form.style.display !== 'none';
+
+    if (isVisible && !_editingToolId) {
+        form.style.display = 'none';
+        return;
+    }
+
+    _editingToolId = null;
+    var textarea = document.getElementById('add-tool-json');
+    if (textarea) textarea.value = '';
+    var saveBtn = form.querySelector('.btn-primary');
+    if (saveBtn) saveBtn.textContent = 'Save Tool';
+    var heading = form.querySelector('h4');
+    if (heading) heading.textContent = 'New Tool (JSON)';
+
+    form.style.display = 'block';
+    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+window.toggleAddToolForm = toggleAddToolForm;
+
+function cancelToolForm() {
+    var form = document.getElementById('add-tool-form');
+    _editingToolId = null;
+    if (form) {
+        form.style.display = 'none';
+        var textarea = document.getElementById('add-tool-json');
+        if (textarea) textarea.value = '';
+    }
+}
+window.cancelToolForm = cancelToolForm;
+
+function saveNewTool(envName) {
+    var textarea = document.getElementById('add-tool-json');
+    if (!textarea || !textarea.value.trim()) { showToast('Please enter some JSON.', 'error'); return; }
+    try {
+        var data = JSON.parse(textarea.value);
+        // Accept any valid JSON — objects and arrays alike
+        if (typeof data !== 'object' || data === null) { showToast('JSON must be an object or array.', 'error'); return; }
+
+        // Wrap the user JSON inside a storage envelope with internal metadata
+        var toolId = _editingToolId || (data.id ? String(data.id) : 'tool_' + Date.now());
+        var label = data.name || data.title || data.id || toolId;
+
+        // Build the payload: spread all user keys + internal metadata
+        var payload = {};
+        if (!Array.isArray(data)) {
+            Object.keys(data).forEach(function (k) { payload[k] = data[k]; });
+        } else {
+            // If user passed an array, store it under a "data" key
+            payload.data = data;
+        }
+        payload.id = toolId;
+        payload.environment = envName;
+        payload.source = 'custom';
+
+        if (_editingToolId) {
+            // Edit mode: update on backend
+            fetch(API_BASE + '/api/tools/' + encodeURIComponent(_editingToolId), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(function (res) {
+                if (!res.ok) console.warn('[Tools] Backend update failed:', res.status);
+                else console.log('[Tools] Updated tool on backend:', _editingToolId);
+            }).catch(function (e) { console.warn('[Tools] Backend update error:', e); });
+
+            showToast('Tool "' + label + '" updated.', 'success');
+            _editingToolId = null;
+        } else {
+            // Create mode
+            fetch(API_BASE + '/api/tools', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(function (res) {
+                if (!res.ok) console.warn('[Tools] Backend save failed:', res.status);
+                else console.log('[Tools] Persisted tool to backend:', toolId);
+            }).catch(function (e) { console.warn('[Tools] Backend save error:', e); });
+
+            showToast('Tool "' + label + '" added.', 'success');
+        }
+
+        textarea.value = '';
+        var form = document.getElementById('add-tool-form');
+        if (form) form.style.display = 'none';
+        var saveBtn = form ? form.querySelector('.btn-primary') : null;
+        if (saveBtn) saveBtn.textContent = 'Save Tool';
+
+        // Reset cache and re-render
+        delete _persistedToolsLoaded[envName];
+        showEnvironmentDetails(envName);
+    } catch (e) {
+        showToast('Invalid JSON: ' + e.message, 'error');
+    }
+}
+window.saveNewTool = saveNewTool;
+
+function editTool(envName, toolId) {
+    var tools = _persistedToolsCache[envName] || [];
+    var tool = tools.find(function (t) { return t.id === toolId; });
+    if (!tool) { showToast('Tool not found.', 'error'); return; }
+
+    _editingToolId = toolId;
+
+    var form = document.getElementById('add-tool-form');
+    if (form) form.style.display = 'block';
+    var textarea = document.getElementById('add-tool-json');
+    if (textarea) {
+        // Show user-editable fields (exclude internal metadata)
+        var editData = _toolUserJson(tool);
+        textarea.value = JSON.stringify(editData, null, 2);
+    }
+    var saveBtn = form ? form.querySelector('.btn-primary') : null;
+    if (saveBtn) saveBtn.textContent = 'Update Tool';
+    var heading = form ? form.querySelector('h4') : null;
+    if (heading) heading.textContent = 'Edit Tool (JSON)';
+    if (form) form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+window.editTool = editTool;
+
+function deleteTool(envName, toolId) {
+    if (!confirm('Are you sure you want to delete this tool? This action cannot be undone.')) return;
+
+    fetch(API_BASE + '/api/tools/' + encodeURIComponent(toolId), {
+        method: 'DELETE'
+    }).then(function (res) {
+        if (!res.ok) console.warn('[Tools] Backend delete failed:', res.status);
+        else console.log('[Tools] Deleted tool from backend:', toolId);
+    }).catch(function (e) { console.warn('[Tools] Backend delete error:', e); });
+
+    showToast('Tool deleted.', 'success');
+    delete _persistedToolsLoaded[envName];
+    showEnvironmentDetails(envName);
+}
+window.deleteTool = deleteTool;
+
 // ─── Build Scenarios Section for detail page ───
 // Load persisted scenarios from backend and merge into TRAINING_CONFIG (async/await)
 var _persistedScenariosLoaded = {};
@@ -4710,8 +5001,9 @@ async function showEnvironmentDetails(envName) {
         return;
     }
 
-    // Pre-load persisted scenarios & verifiers BEFORE rendering (fixes persistence on refresh)
+    // Pre-load persisted tools, scenarios & verifiers BEFORE rendering (fixes persistence on refresh)
     await Promise.all([
+        _ensurePersistedTools(envName),
         _ensurePersistedScenarios(envName, env.category || ''),
         _ensurePersistedVerifiers(envName, env.category || '')
     ]);
@@ -4819,6 +5111,7 @@ async function showEnvironmentDetails(envName) {
         '</div>' +
         '</div>' +
         '</div>' +
+        buildToolsSection(envName) +
         buildScenariosSection(envName, env.category) +
         buildVerifiersSection(envName, env.category) +
         ((details.source === 'huggingface' || env.source === 'huggingface') ? '' : buildConfigEditorSection(envName, details)) +
@@ -4935,9 +5228,16 @@ function _simpleMarkdown(md) {
 }
 
 // ─── Terraform/Custom Environment Detail View ───
-function _showTerraformDetailView(env, details) {
+async function _showTerraformDetailView(env, details) {
     var detailBody = document.getElementById('env-detail-body');
     var name = env.name;
+
+    // Pre-load persisted tools, scenarios & verifiers BEFORE rendering
+    await Promise.all([
+        _ensurePersistedTools(name),
+        _ensurePersistedScenarios(name, env.category || ''),
+        _ensurePersistedVerifiers(name, env.category || '')
+    ]);
     var desc = details.description || env.description || '';
     var tf = details.terraformTemplate || '';
     var sdk = details.sdk || 'custom';
@@ -5002,6 +5302,7 @@ function _showTerraformDetailView(env, details) {
         '<div class="hf-tab-panel" id="tf-tab-config">' +
         '<div class="hf-empty-state" style="color:#555;">Custom configuration will be defined by the environment workflow.<br>No RL parameters apply to this environment.</div>' +
         '</div>' +
+        buildToolsSection(name) +
         buildScenariosSection(name, env.category || 'custom') +
         buildVerifiersSection(name, env.category || 'custom');
 

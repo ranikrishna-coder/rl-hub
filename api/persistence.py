@@ -440,6 +440,95 @@ class VerifierStore:
             return 0
 
 
+class ToolStore:
+    """SQLite-backed store for user / custom tool definitions."""
+
+    def __init__(self, db_path: Optional[str] = None):
+        if db_path is None:
+            from api.config import TOOL_STORE_DB_PATH
+            db_path = TOOL_STORE_DB_PATH
+        self.db_path = db_path
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        self._init_db()
+
+    def _conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _init_db(self) -> None:
+        with self._conn() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_tools (
+                    id          TEXT PRIMARY KEY,
+                    data        TEXT NOT NULL,
+                    environment TEXT DEFAULT '',
+                    source      TEXT DEFAULT 'custom',
+                    created_at  TEXT NOT NULL,
+                    updated_at  TEXT NOT NULL
+                )
+            """)
+
+    def list_all(self) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT data FROM user_tools ORDER BY created_at"
+            ).fetchall()
+        return [json.loads(r["data"]) for r in rows]
+
+    def get(self, tool_id: str) -> Optional[Dict[str, Any]]:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT data FROM user_tools WHERE id = ?", (tool_id,)
+            ).fetchone()
+        return json.loads(row["data"]) if row else None
+
+    def upsert(self, tool_id: str, data: dict) -> None:
+        now = _utcnow_iso()
+        blob = json.dumps(data, default=str)
+        environment = data.get("environment", "")
+        source = data.get("source", "custom")
+        with self._conn() as conn:
+            conn.execute(
+                """INSERT INTO user_tools (id, data, environment, source, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(id) DO UPDATE SET
+                       data        = excluded.data,
+                       environment = excluded.environment,
+                       source      = excluded.source,
+                       updated_at  = excluded.updated_at
+                """,
+                (tool_id, blob, environment, source, now, now),
+            )
+
+    def delete(self, tool_id: str) -> bool:
+        with self._conn() as conn:
+            cur = conn.execute(
+                "DELETE FROM user_tools WHERE id = ?", (tool_id,)
+            )
+        return cur.rowcount > 0
+
+    def count(self) -> int:
+        with self._conn() as conn:
+            row = conn.execute("SELECT COUNT(*) AS c FROM user_tools").fetchone()
+        return row["c"]
+
+    def list_by_environment(self, environment: str) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT data FROM user_tools WHERE environment = ? ORDER BY created_at",
+                (environment,),
+            ).fetchall()
+        return [json.loads(r["data"]) for r in rows]
+
+    def db_size_bytes(self) -> int:
+        try:
+            return os.path.getsize(self.db_path)
+        except OSError:
+            return 0
+
+
 # ======================================================================
 # JSON → SQLite migration
 # ======================================================================

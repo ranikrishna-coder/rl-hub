@@ -2598,12 +2598,13 @@ HF_SPACES_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__f
 # ---------------------------------------------------------------------------
 _CUSTOM_ENV_STORE_PATH = os.path.join(os.path.dirname(__file__), "data", "custom_environments.json")
 
-from api.persistence import EnvironmentStore, ScenarioStore, VerifierStore, migrate_json_to_sqlite  # noqa: E402
-from api.config import ENV_STORE_DB_PATH, SCENARIO_STORE_DB_PATH  # noqa: E402
+from api.persistence import EnvironmentStore, ScenarioStore, VerifierStore, ToolStore, migrate_json_to_sqlite  # noqa: E402
+from api.config import ENV_STORE_DB_PATH, SCENARIO_STORE_DB_PATH, TOOL_STORE_DB_PATH  # noqa: E402
 
 _env_store = EnvironmentStore(ENV_STORE_DB_PATH)
 _scenario_store = ScenarioStore(SCENARIO_STORE_DB_PATH)
 _verifier_db_store = VerifierStore()
+_tool_store = ToolStore(TOOL_STORE_DB_PATH)
 
 # Seed in-memory verifier store from SQLite
 _verifier_store.update({v["id"]: v for v in _verifier_db_store.list_all() if v.get("id")})
@@ -3445,6 +3446,84 @@ async def delete_scenario(scenario_id: str):
     if not _scenario_store.delete(scenario_id):
         raise HTTPException(status_code=404, detail=f"Scenario '{scenario_id}' not found.")
     return {"status": "deleted", "id": scenario_id}
+
+
+# ─── Tools CRUD ─────────────────────────────────────────────────────
+@app.get("/api/tools")
+async def list_tools(environment: Optional[str] = None):
+    """List all custom tools, optionally filtered by environment."""
+    if environment:
+        tools = _tool_store.list_by_environment(environment)
+    else:
+        tools = _tool_store.list_all()
+    return {"count": len(tools), "tools": tools}
+
+
+@app.post("/api/tools")
+async def save_tools(request: Request):
+    """Save one or more tools.
+
+    Accepts two formats:
+      - Bulk:   { "tools": [ {...}, {...} ] }
+      - Single: { "id": "...", "name": "...", ... }
+    """
+    try:
+        data = await request.json()
+        items: list = []
+
+        if "tools" in data and isinstance(data["tools"], list):
+            items = data["tools"]
+        elif "id" in data:
+            items = [data]
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Provide either { tools: [...] } or a single object with an 'id' field.",
+            )
+
+        created = 0
+        updated = 0
+        for item in items:
+            tool_id = item.get("id")
+            if not tool_id:
+                continue
+            existing = _tool_store.get(tool_id)
+            item.setdefault("source", "custom")
+            _tool_store.upsert(tool_id, item)
+            if existing:
+                updated += 1
+            else:
+                created += 1
+
+        return {"status": "ok", "created": created, "updated": updated}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/tools/{tool_id}")
+async def update_tool(tool_id: str, request: Request):
+    """Update a single tool by ID."""
+    existing = _tool_store.get(tool_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail=f"Tool '{tool_id}' not found.")
+    try:
+        data = await request.json()
+        data["id"] = tool_id
+        data.setdefault("source", "custom")
+        _tool_store.upsert(tool_id, data)
+        return {"status": "ok", "id": tool_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/tools/{tool_id}")
+async def delete_tool(tool_id: str):
+    """Delete a single tool by ID."""
+    if not _tool_store.delete(tool_id):
+        raise HTTPException(status_code=404, detail=f"Tool '{tool_id}' not found.")
+    return {"status": "deleted", "id": tool_id}
 
 
 @app.post("/api/environments/{name}/clone-scenarios")
