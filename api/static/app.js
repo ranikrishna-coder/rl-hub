@@ -2603,7 +2603,7 @@ function cancelToolForm() {
 }
 window.cancelToolForm = cancelToolForm;
 
-function saveNewTool(envName) {
+async function saveNewTool(envName) {
     var textarea = document.getElementById('add-tool-json');
     if (!textarea || !textarea.value.trim()) { showToast('Please enter some JSON.', 'error'); return; }
     try {
@@ -2628,28 +2628,30 @@ function saveNewTool(envName) {
         payload.source = 'custom';
 
         if (_editingToolId) {
-            // Edit mode: update on backend
-            fetch(API_BASE + '/api/tools/' + encodeURIComponent(_editingToolId), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).then(function (res) {
+            // Edit mode: await backend update before re-rendering
+            try {
+                var res = await fetch(API_BASE + '/api/tools/' + encodeURIComponent(_editingToolId), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
                 if (!res.ok) console.warn('[Tools] Backend update failed:', res.status);
                 else console.log('[Tools] Updated tool on backend:', _editingToolId);
-            }).catch(function (e) { console.warn('[Tools] Backend update error:', e); });
+            } catch (e) { console.warn('[Tools] Backend update error:', e); }
 
             showToast('Tool "' + label + '" updated.', 'success');
             _editingToolId = null;
         } else {
-            // Create mode
-            fetch(API_BASE + '/api/tools', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).then(function (res) {
+            // Create mode: await backend save before re-rendering
+            try {
+                var res = await fetch(API_BASE + '/api/tools', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
                 if (!res.ok) console.warn('[Tools] Backend save failed:', res.status);
                 else console.log('[Tools] Persisted tool to backend:', toolId);
-            }).catch(function (e) { console.warn('[Tools] Backend save error:', e); });
+            } catch (e) { console.warn('[Tools] Backend save error:', e); }
 
             showToast('Tool "' + label + '" added.', 'success');
         }
@@ -2660,9 +2662,9 @@ function saveNewTool(envName) {
         var saveBtn = form ? form.querySelector('.btn-primary') : null;
         if (saveBtn) saveBtn.textContent = 'Save Tool';
 
-        // Reset cache and re-render
+        // Reset cache and re-render (safe now — backend write completed)
         delete _persistedToolsLoaded[envName];
-        showEnvironmentDetails(envName);
+        await showEnvironmentDetails(envName);
     } catch (e) {
         showToast('Invalid JSON: ' + e.message, 'error');
     }
@@ -2692,19 +2694,20 @@ function editTool(envName, toolId) {
 }
 window.editTool = editTool;
 
-function deleteTool(envName, toolId) {
+async function deleteTool(envName, toolId) {
     if (!confirm('Are you sure you want to delete this tool? This action cannot be undone.')) return;
 
-    fetch(API_BASE + '/api/tools/' + encodeURIComponent(toolId), {
-        method: 'DELETE'
-    }).then(function (res) {
+    try {
+        var res = await fetch(API_BASE + '/api/tools/' + encodeURIComponent(toolId), {
+            method: 'DELETE'
+        });
         if (!res.ok) console.warn('[Tools] Backend delete failed:', res.status);
         else console.log('[Tools] Deleted tool from backend:', toolId);
-    }).catch(function (e) { console.warn('[Tools] Backend delete error:', e); });
+    } catch (e) { console.warn('[Tools] Backend delete error:', e); }
 
     showToast('Tool deleted.', 'success');
     delete _persistedToolsLoaded[envName];
-    showEnvironmentDetails(envName);
+    await showEnvironmentDetails(envName);
 }
 window.deleteTool = deleteTool;
 
@@ -2854,7 +2857,7 @@ function cancelScenarioForm() {
 }
 window.cancelScenarioForm = cancelScenarioForm;
 
-function saveNewScenario(envName, envCategory) {
+async function saveNewScenario(envName, envCategory) {
     var textarea = document.getElementById('add-scenario-json');
     if (!textarea) return;
     try {
@@ -2874,7 +2877,7 @@ function saveNewScenario(envName, envCategory) {
                     existing.expected_workflow = data.expected_workflow || existing.expected_workflow || [];
                 }
             }
-            // Upsert to backend
+            // Upsert to backend — await before re-rendering
             var updatePayload = {
                 id: _editingScenarioId,
                 name: data.name,
@@ -2886,14 +2889,15 @@ function saveNewScenario(envName, envCategory) {
                 expected_workflow: data.expected_workflow || [],
                 source: 'custom'
             };
-            fetch(API_BASE + '/api/scenarios', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatePayload)
-            }).then(function (res) {
+            try {
+                var res = await fetch(API_BASE + '/api/scenarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatePayload)
+                });
                 if (!res.ok) console.warn('[Scenarios] Backend update failed:', res.status);
                 else console.log('[Scenarios] Updated scenario on backend:', _editingScenarioId);
-            }).catch(function (e) { console.warn('[Scenarios] Backend update error:', e); });
+            } catch (e) { console.warn('[Scenarios] Backend update error:', e); }
 
             showToast('Scenario "' + data.name + '" updated.', 'success');
             _editingScenarioId = null;
@@ -2914,15 +2918,16 @@ function saveNewScenario(envName, envCategory) {
             if (window.TRAINING_CONFIG && window.TRAINING_CONFIG.scenarios) {
                 window.TRAINING_CONFIG.scenarios.push(newScenario);
             }
-            // Persist to backend SQLite store
-            fetch(API_BASE + '/api/scenarios', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newScenario)
-            }).then(function (res) {
+            // Persist to backend SQLite store — await before re-rendering
+            try {
+                var res = await fetch(API_BASE + '/api/scenarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newScenario)
+                });
                 if (!res.ok) console.warn('[Scenarios] Backend save failed:', res.status);
                 else console.log('[Scenarios] Persisted scenario to backend:', newScenario.id);
-            }).catch(function (e) { console.warn('[Scenarios] Backend save error:', e); });
+            } catch (e) { console.warn('[Scenarios] Backend save error:', e); }
 
             showToast('Scenario "' + newScenario.name + '" added.', 'success');
         }
@@ -2936,8 +2941,8 @@ function saveNewScenario(envName, envCategory) {
         // Reset persisted cache so next render re-fetches from backend
         var cacheKey = envName + '|' + envCategory;
         delete _persistedScenariosLoaded[cacheKey];
-        // Re-render the env detail to show updated scenarios
-        showEnvironmentDetails(envName);
+        // Re-render the env detail to show updated scenarios (safe now — backend write completed)
+        await showEnvironmentDetails(envName);
     } catch (e) {
         showToast('Invalid JSON: ' + e.message, 'error');
     }
@@ -2979,7 +2984,7 @@ function editScenario(envName, envCategory, scenarioId) {
 window.editScenario = editScenario;
 
 // ─── Delete Scenario ───
-function deleteScenario(envName, scenarioId) {
+async function deleteScenario(envName, scenarioId) {
     if (!confirm('Are you sure you want to delete this scenario? This action cannot be undone.')) return;
 
     // Remove from in-memory array
@@ -2988,13 +2993,14 @@ function deleteScenario(envName, scenarioId) {
         cfg.scenarios = cfg.scenarios.filter(function (s) { return s.id !== scenarioId; });
     }
 
-    // Delete from backend
-    fetch(API_BASE + '/api/scenarios/' + encodeURIComponent(scenarioId), {
-        method: 'DELETE'
-    }).then(function (res) {
+    // Delete from backend — await before updating UI
+    try {
+        var res = await fetch(API_BASE + '/api/scenarios/' + encodeURIComponent(scenarioId), {
+            method: 'DELETE'
+        });
         if (!res.ok) console.warn('[Scenarios] Backend delete failed:', res.status);
         else console.log('[Scenarios] Deleted scenario from backend:', scenarioId);
-    }).catch(function (e) { console.warn('[Scenarios] Backend delete error:', e); });
+    } catch (e) { console.warn('[Scenarios] Backend delete error:', e); }
 
     showToast('Scenario deleted.', 'success');
     // Reset persisted cache so it can reload
@@ -3233,7 +3239,7 @@ function cancelVerifierForm() {
 window.cancelVerifierForm = cancelVerifierForm;
 
 var _editingVerifierId = null;
-function saveNewVerifier(envName, envCategory) {
+async function saveNewVerifier(envName, envCategory) {
     var textarea = document.getElementById('add-verifier-json');
     if (!textarea) return;
     try {
@@ -3255,7 +3261,7 @@ function saveNewVerifier(envName, envCategory) {
                     existing.envName = envName;
                 }
             }
-            // Upsert to backend via PUT
+            // Upsert to backend via PUT — await before re-rendering
             var updatePayload = {
                 id: _editingVerifierId,
                 name: data.name,
@@ -3272,14 +3278,15 @@ function saveNewVerifier(envName, envCategory) {
                 logic: data.logic || {},
                 failure_policy: data.failurePolicy || { hard_fail: false, penalty: -0.5, log_failure: true }
             };
-            fetch(API_BASE + '/api/verifiers/' + encodeURIComponent(_editingVerifierId), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatePayload)
-            }).then(function (res) {
+            try {
+                var res = await fetch(API_BASE + '/api/verifiers/' + encodeURIComponent(_editingVerifierId), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatePayload)
+                });
                 if (!res.ok) console.warn('[Verifiers] Backend update failed:', res.status);
                 else console.log('[Verifiers] Updated verifier on backend:', _editingVerifierId);
-            }).catch(function (e) { console.warn('[Verifiers] Backend update error:', e); });
+            } catch (e) { console.warn('[Verifiers] Backend update error:', e); }
 
             showToast('Verifier "' + data.name + '" updated.', 'success');
             _editingVerifierId = null;
@@ -3306,30 +3313,31 @@ function saveNewVerifier(envName, envCategory) {
             if (window.VERIFIER_DATA && window.VERIFIER_DATA.all) {
                 window.VERIFIER_DATA.all.push(newVerifier);
             }
-            // Persist to backend API
-            fetch(API_BASE + '/api/verifiers', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: newVerifier.id,
-                    name: newVerifier.name,
-                    type: newVerifier.type,
-                    system: newVerifier.system,
-                    environment: newVerifier.environment,
-                    envName: newVerifier.envName,
-                    source: 'custom',
-                    version: newVerifier.version,
-                    status: newVerifier.status,
-                    used_in_scenarios: newVerifier.usedInScenarios,
-                    description: newVerifier.description,
-                    metadata: newVerifier.metadata,
-                    logic: newVerifier.logic,
-                    failure_policy: newVerifier.failurePolicy
-                })
-            }).then(function (res) {
+            // Persist to backend API — await before re-rendering
+            try {
+                var res = await fetch(API_BASE + '/api/verifiers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: newVerifier.id,
+                        name: newVerifier.name,
+                        type: newVerifier.type,
+                        system: newVerifier.system,
+                        environment: newVerifier.environment,
+                        envName: newVerifier.envName,
+                        source: 'custom',
+                        version: newVerifier.version,
+                        status: newVerifier.status,
+                        used_in_scenarios: newVerifier.usedInScenarios,
+                        description: newVerifier.description,
+                        metadata: newVerifier.metadata,
+                        logic: newVerifier.logic,
+                        failure_policy: newVerifier.failurePolicy
+                    })
+                });
                 if (!res.ok) console.warn('[Verifiers] Backend save failed:', res.status);
                 else console.log('[Verifiers] Persisted verifier to backend:', newVerifier.id);
-            }).catch(function (e) { console.warn('[Verifiers] Backend save error:', e); });
+            } catch (e) { console.warn('[Verifiers] Backend save error:', e); }
 
             showToast('Verifier "' + newVerifier.name + '" added.', 'success');
         }
@@ -3343,7 +3351,7 @@ function saveNewVerifier(envName, envCategory) {
         // Reset persisted cache so next render re-fetches from backend
         var cacheKey = envName + '|' + envCategory;
         delete _persistedVerifiersLoaded[cacheKey];
-        showEnvironmentDetails(envName);
+        await showEnvironmentDetails(envName);
     } catch (e) {
         showToast('Invalid JSON: ' + e.message, 'error');
     }
@@ -3385,7 +3393,7 @@ function editVerifier(envName, envCategory, verifierId) {
 window.editVerifier = editVerifier;
 
 // ─── Delete Verifier ───
-function deleteVerifier(envName, verifierId) {
+async function deleteVerifier(envName, verifierId) {
     if (!confirm('Are you sure you want to delete this verifier? This action cannot be undone.')) return;
 
     // Remove from in-memory array
@@ -3394,13 +3402,14 @@ function deleteVerifier(envName, verifierId) {
         store.all = store.all.filter(function (v) { return v.id !== verifierId; });
     }
 
-    // Delete from backend
-    fetch(API_BASE + '/api/verifiers/' + encodeURIComponent(verifierId), {
-        method: 'DELETE'
-    }).then(function (res) {
+    // Delete from backend — await before updating UI
+    try {
+        var res = await fetch(API_BASE + '/api/verifiers/' + encodeURIComponent(verifierId), {
+            method: 'DELETE'
+        });
         if (!res.ok) console.warn('[Verifiers] Backend delete failed:', res.status);
         else console.log('[Verifiers] Deleted verifier from backend:', verifierId);
-    }).catch(function (e) { console.warn('[Verifiers] Backend delete error:', e); });
+    } catch (e) { console.warn('[Verifiers] Backend delete error:', e); }
 
     showToast('Verifier deleted.', 'success');
     // Reset persisted cache so it can reload
