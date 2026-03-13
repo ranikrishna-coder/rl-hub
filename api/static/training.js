@@ -24,17 +24,24 @@
     // Persistent filter for training list — when opened embedded for a specific env, only show matching runs
     var _envFilterCategory = null;
 
-    function _applyEnvPreselection(envId) {
+    function _applyEnvPreselection(envId, readOnly) {
         if (!envId) return;
         var env = findEnv(envId);
-        // Show all environments (no system filter) so user can switch if needed
+        // Show all environments (no system filter) so the target env is visible
         var systemSel = document.getElementById('tr-env-system');
         if (systemSel) {
             systemSel.value = '';
             populateEnvironments();
         }
-        document.getElementById('tr-env').value = envId;
+        var envSel = document.getElementById('tr-env');
+        if (envSel) envSel.value = envId;
         onEnvironmentChange();
+
+        // When navigated from environments page (?env=), lock the selection
+        if (readOnly) {
+            if (envSel) envSel.disabled = true;
+            if (systemSel) systemSel.disabled = true;
+        }
     }
 
     function _applyAgentPreselection(agentId) {
@@ -2245,9 +2252,9 @@
                 _applyAgentPreselection(directAgent);
                 history.replaceState(null, '', window.location.pathname);
             } else if (directEnv) {
-                // Direct navigation (e.g. /training-console?env=X) — auto-open new form
+                // Direct navigation (e.g. /training-console?env=X) — auto-open new form with env locked
                 showView('new');
-                _applyEnvPreselection(directEnv);
+                _applyEnvPreselection(directEnv, true);
                 history.replaceState(null, '', window.location.pathname);
             } else if (deferredEnv) {
                 // Embedded popup — store env for later, stay on list view
