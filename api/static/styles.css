@@ -4087,6 +4087,57 @@ h1 svg, h2 svg, h3 svg, h4 svg {
 [data-theme="dark"] .add-env-section-header h2 { color: var(--text-primary, #f3f0f9); }
 [data-theme="dark"] .add-env-section-header p { color: var(--text-secondary, #a8a2b8); }
 
+/* ── Dark mode: All input / select / textarea text visibility ────── */
+[data-theme="dark"] .add-env-field input,
+[data-theme="dark"] .add-env-field select,
+[data-theme="dark"] .add-env-field textarea {
+    background: var(--card-bg, #252236);
+    color: var(--text-primary, #f3f0f9);
+    border-color: var(--border-color, #3e3a52);
+}
+[data-theme="dark"] .add-env-import-url-input {
+    background: var(--card-bg, #252236);
+    color: var(--text-primary, #f3f0f9);
+    border-color: var(--border-color, #3e3a52);
+}
+[data-theme="dark"] .add-env-import-url-input::placeholder {
+    color: var(--text-secondary, #a8a2b8);
+}
+[data-theme="dark"] .add-env-template-select {
+    background: var(--card-bg, #252236);
+    color: var(--text-primary, #f3f0f9);
+    border-color: var(--border-color, #3e3a52);
+}
+[data-theme="dark"] .workflow-tags-container {
+    background: var(--card-bg, #252236);
+    border-color: var(--border-color, #3e3a52);
+}
+[data-theme="dark"] .workflow-tags-container input[type="text"] {
+    color: var(--text-primary, #f3f0f9);
+}
+[data-theme="dark"] .workflow-tags-container input[type="text"]::placeholder {
+    color: var(--text-secondary, #a8a2b8);
+}
+[data-theme="dark"] .verifier-main-dropdown {
+    background: var(--card-bg, #252236);
+    color: var(--text-primary, #f3f0f9);
+    border-color: var(--border-color, #3e3a52);
+}
+[data-theme="dark"] .verifier-compact-select {
+    background: var(--card-bg, #252236);
+    color: var(--text-secondary, #a8a2b8);
+    border-color: var(--border-color, #3e3a52);
+}
+[data-theme="dark"] .add-env-field input::placeholder,
+[data-theme="dark"] .add-env-field textarea::placeholder {
+    color: var(--text-secondary, #a8a2b8);
+}
+[data-theme="dark"] .kpi-add-input {
+    background: var(--card-bg, #252236);
+    color: var(--text-primary, #f3f0f9);
+    border-color: var(--border-color, #3e3a52);
+}
+
 /* HTTP method badges */
 [data-theme="dark"] .hf-method-get { background: rgba(21, 87, 36, 0.3); color: #86efac; }
 [data-theme="dark"] .hf-method-post { background: rgba(0, 64, 133, 0.3); color: #93c5fd; }
