@@ -17,8 +17,8 @@ API_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(API_DIR, "data")
 HF_SPACES_DIR = os.path.join(PROJECT_ROOT, "hf_spaces")
 
-# Storage backend: "mariadb" (default) or "json" (legacy for migration only)
-STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "mariadb")
+# Storage backend: "json" (default) – no external DB required
+STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "json")
 
 # MariaDB connection (used for environments, scenarios, verifiers, contact form)
 MARIADB_HOST = os.getenv("MARIADB_HOST", "localhost")
