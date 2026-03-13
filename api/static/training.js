@@ -226,6 +226,7 @@
                         category: 'clinical',
                         system: 'FHIR / EHR',
                         workflow: 'Clinical',
+                        source: 'huggingface',
                         actions: [],
                         actionSpace: 'N/A',
                         stateFeatures: 'N/A',
@@ -541,7 +542,7 @@
         var envId = env ? env.id : '';
 
         // Start with built-in verifiers from verifier-data.js — match detail page logic exactly
-        var isCustomEnv = env && env.source === 'custom';
+        var isCustomEnv = env && (env.source === 'custom' || env.source === 'huggingface');
         var builtInMatches = VERIFIERS.filter(function (v) {
             if (v.envName) return v.envName === envId;
             if (isCustomEnv) return false;
@@ -621,7 +622,7 @@
 
         // Merge built-in + custom scenarios, filter to match detail page logic exactly
         var allScenarios = getAllScenarios();
-        var isCustomEnv = env && env.source === 'custom';
+        var isCustomEnv = env && (env.source === 'custom' || env.source === 'huggingface');
         var matches = allScenarios.filter(function (s) {
             // If scenario has an environment field, it must match the raw env name exactly
             if (s.environment) return s.environment === envId;

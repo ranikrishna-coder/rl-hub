@@ -759,21 +759,10 @@ async function loadEnvironments() {
                 workflow: 'Cross-Workflow',
                 isCustom: true,
                 tags: ['cross-domain', 'cross_workflow', 'cross-workflow', 'clinical', 'fhir'],
-                actions: [
-                    'fhir_patient_search',
-                    'fhir_observation_search',
-                    'fhir_vitals_search',
-                    'fhir_condition_search',
-                    'fhir_procedure_search',
-                    'fhir_medication_request_search',
-                    'fhir_vitals_create',
-                    'fhir_service_request_create',
-                    'fhir_medication_request_create',
-                    'finish'
-                ],
-                actionSpace: 10,
+                actions: [],
+                actionSpace: 'N/A',
                 stateFeatures: 'N/A',
-                actionType: 'FHIR API'
+                actionType: 'Discrete'
             });
             environmentDetails['ClinKriya Clinic'] = {
                 source: 'huggingface',
@@ -2510,6 +2499,29 @@ async function _ensurePersistedTools(envName) {
         } catch (e) {
             console.warn('[Tools] Failed to load financial env tools:', e);
         }
+    }
+
+    // 3. For ClinKriya Clinic, inject FHIR tools as built-ins
+    if (envName === 'ClinKriya Clinic') {
+        var ckFhirTools = [
+            { id: 'ck_fhir_patient_search',           name: 'fhir_patient_search',           method: 'GET',  resource: 'Patient',            description: 'Search for patients by name, date of birth, or MRN identifier.' },
+            { id: 'ck_fhir_observation_search',        name: 'fhir_observation_search',        method: 'GET',  resource: 'Observation',        description: 'Retrieve labs and vitals by LOINC code (e.g. A1C, 4548-4, QTCINTERVAL).' },
+            { id: 'ck_fhir_vitals_search',             name: 'fhir_vitals_search',             method: 'GET',  resource: 'Observation',        description: 'Search vital-signs category observations, optionally filtered by date.' },
+            { id: 'ck_fhir_condition_search',          name: 'fhir_condition_search',          method: 'GET',  resource: 'Condition',          description: 'Retrieve active diagnoses and problem-list items for a patient.' },
+            { id: 'ck_fhir_procedure_search',          name: 'fhir_procedure_search',          method: 'GET',  resource: 'Procedure',          description: 'Look up procedures performed on a patient, optionally filtered by date.' },
+            { id: 'ck_fhir_medication_request_search', name: 'fhir_medication_request_search', method: 'GET',  resource: 'MedicationRequest',  description: 'Query active medication orders for a patient.' },
+            { id: 'ck_fhir_vitals_create',             name: 'fhir_vitals_create',             method: 'POST', resource: 'Observation',        description: 'Record a new vital-signs measurement (e.g. blood pressure) in the EHR.' },
+            { id: 'ck_fhir_service_request_create',    name: 'fhir_service_request_create',    method: 'POST', resource: 'ServiceRequest',     description: 'Place a referral or clinical order (e.g. ECG, orthopedic consult).' },
+            { id: 'ck_fhir_medication_request_create', name: 'fhir_medication_request_create', method: 'POST', resource: 'MedicationRequest',  description: 'Create a new medication order in the FHIR EHR.' },
+            { id: 'ck_finish',                         name: 'finish',                         method: 'CTRL', resource: '—',                  description: 'End the episode and submit the final answer.' }
+        ];
+        var existingCkIds = {};
+        allTools.forEach(function (t) { if (t.id) existingCkIds[t.id] = true; });
+        ckFhirTools.forEach(function (t) {
+            if (!existingCkIds[t.id]) {
+                allTools.push({ source: 'built-in', environment: 'ClinKriya Clinic', ...t });
+            }
+        });
     }
 
     _persistedToolsCache[envName] = allTools;
