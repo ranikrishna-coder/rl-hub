@@ -2929,6 +2929,47 @@ h1 svg, h2 svg, h3 svg, h4 svg {
     margin-left: 6px;
 }
 
+/* System inline edit */
+.system-inline-input {
+    padding: 0.2rem 0.5rem;
+    border: 1.5px solid var(--primary-color, #c026d3);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-family: inherit;
+    font-weight: 500;
+    background: var(--card-bg, #fff);
+    color: var(--text-primary, #1a1a2e);
+    outline: none;
+    min-width: 150px;
+    max-width: 320px;
+    box-shadow: 0 0 0 3px rgba(192, 38, 211, 0.12);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.system-inline-input::placeholder {
+    color: var(--text-secondary, #888);
+    font-weight: 400;
+}
+.system-inline-save {
+    color: #22c55e;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 2px;
+    display: inline-flex;
+    align-items: center;
+}
+.system-inline-save:hover { color: #16a34a; }
+.system-inline-cancel {
+    color: var(--text-secondary, #888);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 2px;
+    display: inline-flex;
+    align-items: center;
+}
+.system-inline-cancel:hover { color: #ef4444; }
+
 /* Owner/Name row */
 .add-env-row-owner {
     display: grid;
@@ -4226,4 +4267,6 @@ h1 svg, h2 svg, h3 svg, h4 svg {
 [data-theme="dark"] .btn-icon-danger:hover { background: rgba(239,68,68,0.15); color: #fca5a5; border-color: #fca5a5; }
 [data-theme="dark"] .btn-icon-xs:hover { color: #e879f9; }
 [data-theme="dark"] .env-system-badge { background: var(--bg-tertiary, #1e1b30); color: var(--text-secondary, #a8a2b8); border-color: var(--border-color, #3e3a52); }
+[data-theme="dark"] .system-inline-input { background: var(--card-bg, #252236); color: var(--text-primary, #f3f0f9); border-color: var(--primary-color, #e879f9); }
+[data-theme="dark"] .system-inline-input::placeholder { color: var(--text-secondary, #a8a2b8); }
 

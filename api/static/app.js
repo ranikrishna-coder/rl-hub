@@ -7222,32 +7222,89 @@ window.editEnvironment = editEnvironment;
 
 function editSystemField(envName) {
     var env = null;
-    // Find env in all known sources
-    if (window.ENVIRONMENT_REGISTRY) {
+    // Find env in all known sources (allEnvironments covers all: registry, custom, HuggingFace)
+    if (typeof allEnvironments !== 'undefined' && allEnvironments) {
+        env = allEnvironments.find(function (e) { return e.name === envName; });
+    }
+    if (!env && window.ENVIRONMENT_REGISTRY) {
         env = window.ENVIRONMENT_REGISTRY.find(function (e) { return e.name === envName; });
     }
     if (!env && window._customEnvironments) {
         env = window._customEnvironments.find(function (e) { return e.name === envName; });
     }
     var current = (env && env.system) || '';
-    var newSystem = prompt('Edit system for "' + envName + '":', current);
-    if (newSystem === null) return;
-    // Update in-memory
-    if (env) env.system = newSystem;
-    // Persist to backend
-    fetch(API_BASE + '/api/environments/' + encodeURIComponent(envName) + '/system', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ system: newSystem })
-    }).then(function (res) {
-        if (res.ok) {
-            showToast('System updated to "' + newSystem + '"', 'success');
-        } else {
-            console.warn('[System] Update failed:', res.status);
-        }
-    }).catch(function (e) { console.warn('[System] Update error:', e); });
-    // Re-render
-    showEnvironmentDetails(envName);
+
+    // Find the system badge element and replace it with inline input
+    var badges = document.querySelectorAll('.env-system-badge');
+    var badge = null;
+    for (var i = 0; i < badges.length; i++) {
+        badge = badges[i];
+        break;
+    }
+    if (!badge) return;
+
+    // Create inline edit container
+    var wrapper = document.createElement('span');
+    wrapper.className = 'system-inline-edit';
+    wrapper.style.cssText = 'display:inline-flex;align-items:center;gap:4px;margin-left:6px;';
+
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.value = current;
+    input.placeholder = 'Enter system name';
+    input.className = 'system-inline-input';
+    input.maxLength = 100;
+
+    var saveBtn = document.createElement('button');
+    saveBtn.className = 'btn-icon-xs system-inline-save';
+    saveBtn.title = 'Save';
+    saveBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn-icon-xs system-inline-cancel';
+    cancelBtn.title = 'Cancel';
+    cancelBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+    wrapper.appendChild(input);
+    wrapper.appendChild(saveBtn);
+    wrapper.appendChild(cancelBtn);
+
+    // Replace badge with inline edit
+    badge.parentNode.replaceChild(wrapper, badge);
+    input.focus();
+    input.select();
+
+    function saveSystem() {
+        var newSystem = input.value.trim();
+        // Update in-memory
+        if (env) env.system = newSystem;
+        // Persist to backend
+        fetch(API_BASE + '/api/environments/' + encodeURIComponent(envName) + '/system', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ system: newSystem })
+        }).then(function (res) {
+            if (res.ok) {
+                showToast('System updated to "' + newSystem + '"', 'success');
+            } else {
+                console.warn('[System] Update failed:', res.status);
+            }
+        }).catch(function (e) { console.warn('[System] Update error:', e); });
+        // Re-render detail page
+        showEnvironmentDetails(envName);
+    }
+
+    function cancelEdit() {
+        showEnvironmentDetails(envName);
+    }
+
+    saveBtn.addEventListener('click', function (e) { e.stopPropagation(); saveSystem(); });
+    cancelBtn.addEventListener('click', function (e) { e.stopPropagation(); cancelEdit(); });
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); saveSystem(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+    });
+    input.addEventListener('click', function (e) { e.stopPropagation(); });
 }
 window.editSystemField = editSystemField;
 
