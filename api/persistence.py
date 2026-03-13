@@ -117,6 +117,45 @@ class EnvironmentStore:
                     (name, blob, source, now, now),
                 )
 
+    def batch_upsert(self, envs: List[Dict[str, Any]]) -> int:
+        """Upsert many environments in a single SQL statement (one round-trip).
+
+        Returns the number of rows passed in.
+        """
+        if not envs:
+            return 0
+        now = _utcnow_iso()
+        rows = []
+        for env in envs:
+            name = env.get("name")
+            if not name:
+                continue
+            rows.append((
+                name,
+                json.dumps(env, default=str),
+                env.get("source", "custom"),
+                now,
+                now,
+            ))
+        if not rows:
+            return 0
+        placeholders = ",".join(["(%s,%s,%s,%s,%s)"] * len(rows))
+        flat_params = [v for row in rows for v in row]
+        with _conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"""INSERT INTO user_environments
+                            (name, data, source, created_at, updated_at)
+                        VALUES {placeholders}
+                        ON DUPLICATE KEY UPDATE
+                            data       = VALUES(data),
+                            source     = VALUES(source),
+                            updated_at = VALUES(updated_at)
+                    """,
+                    flat_params,
+                )
+        return len(rows)
+
     def delete(self, name: str) -> bool:
         with _conn() as conn:
             with conn.cursor() as cur:

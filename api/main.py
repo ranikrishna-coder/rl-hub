@@ -2619,11 +2619,8 @@ def _load_persisted_environments() -> List[Dict[str, Any]]:
 
 
 def _persist_environments() -> None:
-    """Sync in-memory custom_environments list to the MariaDB store."""
-    for env in custom_environments:
-        name = env.get("name")
-        if name:
-            _env_store.upsert(name, env)
+    """Sync in-memory custom_environments list to the MariaDB store (single batch)."""
+    _env_store.batch_upsert(custom_environments)
 
 
 def _remove_persisted_environment(name: str) -> None:
@@ -3108,6 +3105,7 @@ def _auto_classify_all_environments() -> int:
     """Scan all custom environments and classify any missing system/workflow/tags.
     Returns the number of environments updated."""
     updated = 0
+    changed_envs: List[Dict[str, Any]] = []
     for env in custom_environments:
         needs_update = False
         # Check if key classification fields are missing or generic
@@ -3133,9 +3131,11 @@ def _auto_classify_all_environments() -> int:
             env["domain"] = cls["domain"]
             env["workflow"] = cls["workflow"]
             env["tags"] = cls["tags"]
+            changed_envs.append(env)
             updated += 1
-    if updated > 0:
-        _persist_environments()
+    if changed_envs:
+        # Only persist the envs that were actually reclassified (1 batch call)
+        _env_store.batch_upsert(changed_envs)
     return updated
 
 
