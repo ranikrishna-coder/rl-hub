@@ -2245,6 +2245,91 @@ async def store_rollout(rollout: RolloutRecord):
     return {"success": True, "id": entry["id"], "environment_name": env_name}
 
 
+class HITLSendRequest(BaseModel):
+    run_id: str
+    rollout_ids: List[str]
+
+
+@app.post("/api/hitl/send")
+async def send_to_hitl(request: HITLSendRequest):
+    """Flatten selected rollouts and POST them to Label Studio for human review."""
+    import requests as _http
+
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    rollouts_file = os.path.join(project_root, "rollouts.json")
+
+    if not os.path.exists(rollouts_file):
+        raise HTTPException(status_code=404, detail="rollouts.json not found in project root")
+
+    with open(rollouts_file, "r", encoding="utf-8") as f:
+        raw = json.load(f)
+
+    top = {k: v for k, v in raw.items() if k != "rollouts"}
+    all_rollouts = raw.get("rollouts", [])
+    selected = [r for r in all_rollouts if r.get("rollout_id") in request.rollout_ids]
+
+    if not selected:
+        raise HTTPException(status_code=404, detail="No matching rollouts found for provided IDs")
+
+    MAX_STEPS = 10
+    LS_URL = "https://annotation.centific.com/"
+    LS_TOKEN = "934838e229a69e7c4be0798c8c1b25a99d3825fb"
+    PROJECT_ID = 811
+
+    def _flatten(top_data: dict, rollout: dict) -> dict:
+        data = {
+            "task_id": str(top_data.get("task_id", "")),
+            "task_description": str(top_data.get("task_description", "")),
+            "environment": str(top_data.get("environment", "")),
+            "model": str(top_data.get("model", "")),
+            "algorithm": str(top_data.get("algorithm", "")),
+            "max_turns": str(top_data.get("max_turns", "")),
+            "rollout_id": str(rollout.get("rollout_id", "")),
+            "train_step": str(rollout.get("train_step", "")),
+            "label": str(rollout.get("label", "")),
+            "total_reward": str(rollout.get("total_reward", "")),
+            "terminal_pass": str(rollout.get("terminal_pass", "")),
+            "num_turns": str(rollout.get("num_turns", len(rollout.get("turns", [])))),
+            "advantage": str(rollout.get("advantage", "")),
+            "rollout_states_url": f"https://datafoundaryapps.blob.core.windows.net/rl-clinkriya-demo/{rollout.get('rollout_id', '')}.png",
+        }
+        for key, val in rollout.get("episode_rewards", {}).items():
+            data[f"episode_rewards_{key}"] = str(val)
+        turns = rollout.get("turns", [])
+        for i in range(MAX_STEPS):
+            if i < len(turns):
+                t = turns[i]
+                tool_calls = t.get("tool_calls", [])
+                tool_name = tool_calls[0].get("name", "") if tool_calls else ""
+                tool_args = tool_calls[0].get("arguments", None) if tool_calls else None
+                data[f"step_{i}_type"] = "tool_call" if tool_calls else "text"
+                data[f"step_{i}_tool"] = tool_name or "\u2014"
+                data[f"step_{i}_arguments"] = json.dumps(tool_args) if tool_args is not None else "\u2014"
+                data[f"step_{i}_content"] = str(t.get("content") or "\u2014")
+                step_reward = t.get("step_reward")
+                data[f"step_{i}_step_reward"] = str(step_reward) if step_reward is not None else "\u2014"
+                data[f"step_{i}_status"] = ""
+                data[f"step_{i}_note"] = "\u2014"
+            else:
+                for field in ("type", "tool", "arguments", "content", "step_reward", "status", "note"):
+                    data[f"step_{i}_{field}"] = ""
+        return data
+
+    tasks = [{"data": _flatten(top, r)} for r in selected]
+    endpoint = f"{LS_URL.rstrip('/')}/api/projects/{PROJECT_ID}/import"
+    headers = {"Authorization": f"Token {LS_TOKEN}", "Content-Type": "application/json"}
+
+    try:
+        resp = _http.post(endpoint, headers=headers, json=tasks, timeout=30)
+        if resp.status_code in (200, 201):
+            count = resp.json().get("task_count", len(tasks))
+            return {"success": True, "task_count": count, "rollout_ids": request.rollout_ids}
+        else:
+            return {"success": False, "error": f"Label Studio returned {resp.status_code}: {resp.text[:300]}"}
+    except Exception as exc:
+        return {"success": False, "error": str(exc)}
+
+
 @app.get("/api/rollouts-all")
 async def get_all_rollouts(environment_name: Optional[str] = None, limit: int = 50, offset: int = 0):
     """Get rollouts across all (or one) environment. Returns summaries for list view."""

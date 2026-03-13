@@ -2,7 +2,7 @@
 
 
 def test_list_environments_returns_200(client):
-    resp = client.get("/environments")
+    resp = client.get("/api/environments")
     assert resp.status_code == 200
 
 

@@ -3799,8 +3799,8 @@ function _buildEpisodesSection(run) {
                 return '<span class="ir-tool-chip">' + t.replace('fhir_', '') + '</span>';
             }).join('');
             html += '<tr class="ir-rollout-row">' +
-                '<td><input type="checkbox" class="ir-rollout-cb" data-episode="' + epId + '" data-rollout="' + r.idx + '"></td>' +
-                '<td class="ir-rollout-idx">' + r.idx + '</td>' +
+                '<td><input type="checkbox" class="ir-rollout-cb" data-episode="' + epId + '" data-rollout="' + (r.rollout_id || r.idx) + '"></td>' +
+                '<td class="ir-rollout-idx">' + (r.rollout_id || r.idx) + '</td>' +
                 '<td><span class="ir-reward-badge ' + rwCls + '">' + r.reward.toFixed(2) + '</span></td>' +
                 '<td>' + (r.pass ? '<span class="rw-pass">✓</span>' : '<span class="rw-fail">✗</span>') + '</td>' +
                 '<td class="ir-rollout-turns">' + r.turns + '</td>' +
@@ -3831,13 +3831,31 @@ function toggleSelectAllRollouts(epId, checked) {
 window.toggleSelectAllRollouts = toggleSelectAllRollouts;
 
 function _sendToHITL(runId) {
-    var selected = [];
+    var rolloutIds = [];
     document.querySelectorAll('.ir-rollout-cb:checked').forEach(function (cb) {
-        selected.push({ episode: cb.dataset.episode, rollout: cb.dataset.rollout });
+        rolloutIds.push(cb.dataset.rollout);
     });
-    if (!selected.length) { if (window.showToast) showToast('Select at least one rollout first.', 'error'); return; }
-    if (window.showToast) showToast(selected.length + ' rollout' + (selected.length !== 1 ? 's' : '') + ' sent to HITL queue.', 'success');
+    if (!rolloutIds.length) { if (window.showToast) showToast('Select at least one rollout first.', 'error'); return; }
+
+    // Uncheck immediately so the user gets feedback
     document.querySelectorAll('.ir-rollout-cb:checked').forEach(function (cb) { cb.checked = false; });
+
+    fetch('/api/hitl/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ run_id: runId, rollout_ids: rolloutIds })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        if (data.success) {
+            if (window.showToast) showToast(rolloutIds.length + ' rollout' + (rolloutIds.length !== 1 ? 's' : '') + ' sent to Label Studio HITL queue.', 'success');
+        } else {
+            if (window.showToast) showToast('HITL send failed: ' + (data.error || 'Unknown error'), 'error');
+        }
+    })
+    .catch(function (err) {
+        if (window.showToast) showToast('Error sending to HITL: ' + err.message, 'error');
+    });
 }
 window._sendToHITL = _sendToHITL;
 
