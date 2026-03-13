@@ -88,7 +88,7 @@
                 progress: 100,
                 started: 'Mar 7, 2026',
                 completed: 'Mar 8, 2026',
-                episodes: 50,
+                episodes: 1,
                 successRate: 80.0,
                 avgReward: 1.300,
                 baselineReward: 1.057,
@@ -96,8 +96,8 @@
                     mean_reward: 1.300,
                     max_reward: 1.500,
                     min_reward: -0.350,
-                    total_episodes: 50,
-                    episodes_completed: 50
+                    total_episodes: 1,
+                    episodes_completed: 1
                 },
                 baseline_results: {
                     mean_reward: 1.057,
@@ -112,7 +112,7 @@
                     environment_name: 'ClinKriya Clinic',
                     algorithm: 'GRPO',
                     lora: true,
-                    num_epochs: 50,
+                    num_epochs: 1,
                     group_size: 64,
                     mean_reward: 1.300,
                     eval_pass_rate: 0.80,
@@ -240,36 +240,6 @@
                               reward: -0.35, pass: false, turns: 9, advantage: -2.1314,
                               tools: ['fhir_observation_search', 'fhir_observation_search', 'fhir_medication_request_search', 'fhir_medication_request_search', 'fhir_service_request_create', 'fhir_service_request_create'],
                               episode_rewards: { qtc_lookup: 0.2, threshold_eval: 0.0, ecg_order: 0.25, drug_stop: 0.0, terminal: 0.0, spurious_action: -0.4, invalid_fhir: -0.4, coupled_missing: 0.0 } }
-                        ]
-                    },
-                    {
-                        epoch: 15, task_id: 'task7_3', mean_reward: 1.152, pass_rate: 100.0,
-                        rollouts: [
-                            { idx: 2,  reward: 1.50, pass: true, turns: 3, tools: ['fhir_observation_search', 'calculator', 'finish'],
-                              episode_rewards: { qtc_lookup: 0.2, threshold_eval: 0.3, ecg_order: 0.0, drug_stop: 0.0, terminal: 1.0, spurious_action: 0.0, invalid_fhir: 0.0, coupled_missing: 0.0 } },
-                            { idx: 7,  reward: 1.50, pass: true, turns: 3, tools: ['fhir_observation_search', 'fhir_observation_search', 'finish'],
-                              episode_rewards: { qtc_lookup: 0.2, threshold_eval: 0.3, ecg_order: 0.0, drug_stop: 0.0, terminal: 1.0, spurious_action: 0.0, invalid_fhir: 0.0, coupled_missing: 0.0 } },
-                            { idx: 11, reward: 1.40, pass: true, turns: 3, tools: ['fhir_observation_search', 'fhir_observation_search', 'finish'],
-                              episode_rewards: { qtc_lookup: 0.2, threshold_eval: 0.3, ecg_order: 0.0, drug_stop: 0.0, terminal: 1.0, spurious_action: 0.0, invalid_fhir: -0.1, coupled_missing: 0.0 } },
-                            { idx: 19, reward: 1.30, pass: true, turns: 2, tools: ['fhir_observation_search', 'finish'],
-                              episode_rewards: { qtc_lookup: 0.2, threshold_eval: 0.3, ecg_order: 0.0, drug_stop: 0.0, terminal: 1.0, spurious_action: 0.0, invalid_fhir: -0.2, coupled_missing: 0.0 } },
-                            { idx: 25, reward: 1.30, pass: true, turns: 2, tools: ['fhir_observation_search', 'finish'],
-                              episode_rewards: { qtc_lookup: 0.2, threshold_eval: 0.3, ecg_order: 0.0, drug_stop: 0.0, terminal: 1.0, spurious_action: 0.0, invalid_fhir: -0.2, coupled_missing: 0.0 } }
-                        ]
-                    },
-                    {
-                        epoch: 50, task_id: 'task7_12', mean_reward: 1.300, pass_rate: 100.0,
-                        rollouts: [
-                            { idx: 0,  reward: 1.30, pass: true, turns: 2, tools: ['fhir_observation_search', 'finish'],
-                              episode_rewards: { qtc_lookup: 0.2, threshold_eval: 0.3, ecg_order: 0.0, drug_stop: 0.0, terminal: 1.0, spurious_action: 0.0, invalid_fhir: -0.2, coupled_missing: 0.0 } },
-                            { idx: 1,  reward: 1.30, pass: true, turns: 2, tools: ['fhir_observation_search', 'finish'],
-                              episode_rewards: { qtc_lookup: 0.2, threshold_eval: 0.3, ecg_order: 0.0, drug_stop: 0.0, terminal: 1.0, spurious_action: 0.0, invalid_fhir: -0.2, coupled_missing: 0.0 } },
-                            { idx: 2,  reward: 1.30, pass: true, turns: 2, tools: ['fhir_observation_search', 'finish'],
-                              episode_rewards: { qtc_lookup: 0.2, threshold_eval: 0.3, ecg_order: 0.0, drug_stop: 0.0, terminal: 1.0, spurious_action: 0.0, invalid_fhir: -0.2, coupled_missing: 0.0 } },
-                            { idx: 3,  reward: 1.30, pass: true, turns: 2, tools: ['fhir_observation_search', 'finish'],
-                              episode_rewards: { qtc_lookup: 0.2, threshold_eval: 0.3, ecg_order: 0.0, drug_stop: 0.0, terminal: 1.0, spurious_action: 0.0, invalid_fhir: -0.2, coupled_missing: 0.0 } },
-                            { idx: 4,  reward: 1.30, pass: true, turns: 2, tools: ['fhir_observation_search', 'finish'],
-                              episode_rewards: { qtc_lookup: 0.2, threshold_eval: 0.3, ecg_order: 0.0, drug_stop: 0.0, terminal: 1.0, spurious_action: 0.0, invalid_fhir: -0.2, coupled_missing: 0.0 } }
                         ]
                     }
                 ]

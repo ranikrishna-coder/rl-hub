@@ -780,6 +780,18 @@ async function loadEnvironments() {
                 readme: ''
             };
             console.log('Added ClinKriya Clinic to catalog (fallback)');
+            // Asynchronously populate files/readme via analyze endpoint
+            fetch(API_BASE + '/api/environment/' + encodeURIComponent('ClinKriya Clinic') + '/analyze')
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (analysis) {
+                    if (analysis && environmentDetails['ClinKriya Clinic']) {
+                        environmentDetails['ClinKriya Clinic'].readme = analysis.readme_raw || '';
+                        environmentDetails['ClinKriya Clinic'].files = analysis.files || [];
+                        environmentDetails['ClinKriya Clinic'].endpoints = analysis.endpoints || [];
+                        environmentDetails['ClinKriya Clinic'].models = analysis.models || {};
+                        environmentDetails['ClinKriya Clinic'].frontMatter = analysis.front_matter || {};
+                    }
+                }).catch(function () { });
         }
 
         // Enhance with details - generate unique descriptions for each environment

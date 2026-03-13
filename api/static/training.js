@@ -69,7 +69,7 @@
 
     // ─── Fetch live training jobs from backend ─────────────────
     // Set of hardcoded mock IDs that should not be overwritten by API
-    var MOCK_RUN_IDS = { 'run_grpo_001': true };
+    var MOCK_RUN_IDS = { 'run_grpo_001': true, 'run_grpo_ck_001': true };
 
     function fetchLiveJobs() {
         var apiBase = window.API_BASE || '';
@@ -218,6 +218,27 @@
                         }
                     });
                 });
+                // Ensure ClinKriya Clinic is always in the list (not in standard registry)
+                if (!ALL_ENVIRONMENTS.some(function (e) { return e.id === 'ClinKriya Clinic'; })) {
+                    var ckEnv = {
+                        id: 'ClinKriya Clinic',
+                        name: 'ClinKriya Clinic',
+                        category: 'clinical',
+                        system: 'FHIR / EHR',
+                        workflow: 'Clinical',
+                        actions: [],
+                        actionSpace: 'N/A',
+                        stateFeatures: 'N/A',
+                        actionType: 'Discrete',
+                        multi_agent: false
+                    };
+                    ALL_ENVIRONMENTS.push(ckEnv);
+                    if (!CATEGORY_MAP['clinical']) CATEGORY_MAP['clinical'] = [];
+                    CATEGORY_MAP['clinical'].push(ckEnv);
+                    var ckSys = 'FHIR / EHR';
+                    if (!SYSTEM_MAP[ckSys]) SYSTEM_MAP[ckSys] = [];
+                    SYSTEM_MAP[ckSys].push(ckEnv);
+                }
                 CFG.environments = ALL_ENVIRONMENTS;
             })
             .catch(function (err) {
