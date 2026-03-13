@@ -1119,7 +1119,8 @@ function filterEnvironments(searchTerm) {
 var PINNED_ENV_NAMES = ['ClinKriya Clinic', 'Delcita'];
 
 // Environments hidden from the catalog (disabled)
-var HIDDEN_ENV_NAMES = ['JiraIssueResolution', 'JiraStatusUpdate', 'JiraCommentManagement'];
+var HIDDEN_ENV_NAMES = ['JiraIssueResolution', 'JiraStatusUpdate', 'JiraCommentManagement',
+    'StockTrading', 'PortfolioAllocation', 'OptionsPricing'];
 
 function renderEnvironments() {
     const grid = document.getElementById('environments-grid');
