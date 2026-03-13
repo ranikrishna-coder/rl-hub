@@ -3995,6 +3995,136 @@ function _refreshTrainingSectionInDetail(envName, envCategory) {
 }
 window._refreshTrainingSectionInDetail = _refreshTrainingSectionInDetail;
 
+// ─── Helpers for training run merge (equivalents live inside training.js IIFE) ───
+function _humanizeName(name) {
+    if (!name) return '';
+    return name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+}
+function _fmtISODate(iso) {
+    if (!iso) return '\u2014';
+    try {
+        var d = new Date(iso);
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch (e) { return iso; }
+}
+
+// ─── Merge live backend training jobs into window.TRAINING_CONFIG.trainingRuns ───
+// Mirrors fetchLiveJobs() in training.js (line 74-151)
+var _TRAINING_MOCK_RUN_IDS = { 'run_grpo_001': true, 'run_grpo_ck_001': true };
+
+function _mergeTrainingJobsIntoConfig(liveJobs) {
+    var cfg = window.TRAINING_CONFIG;
+    if (!cfg) return 0;
+    if (!cfg.trainingRuns) cfg.trainingRuns = [];
+
+    var existingMap = {};
+    cfg.trainingRuns.forEach(function (r, idx) { existingMap[r.id] = idx; });
+
+    var added = 0;
+    liveJobs.forEach(function (j) {
+        if (_TRAINING_MOCK_RUN_IDS[j.job_id]) return;
+        var res = j.results || {};
+
+        if (existingMap[j.job_id] != null) {
+            // Update existing in-memory run with fresh backend data
+            var existing = cfg.trainingRuns[existingMap[j.job_id]];
+            existing.status = j.status || existing.status;
+            existing.progress = j.progress != null ? j.progress : existing.progress;
+            existing.model_saved = j.model_saved || existing.model_saved;
+            existing.model_url = j.model_url || existing.model_url;
+            existing.model_metadata = j.model_metadata || existing.model_metadata;
+            existing.hil_required = j.hil_required || existing.hil_required;
+            if (j.error) existing.error = j.error;
+            if (j.results) {
+                existing.results = j.results;
+                existing.avgReward = res.mean_reward;
+                existing.episodes = res.episodes_completed || res.total_episodes || existing.episodes;
+            }
+            if (j.baseline_results) {
+                existing.baseline_results = j.baseline_results;
+                existing.baselineReward = j.baseline_results.mean_reward;
+            }
+            if (j.started_at && existing.started === '\u2014') {
+                existing.started = _fmtISODate(j.started_at);
+            }
+        } else {
+            // New backend job — append
+            var fallbackName = (j.algorithm || '') + ' \u2014 ' + _humanizeName(j.environment_name || '');
+            var jobCategory = j.category || '';
+            if (!jobCategory && j.environment_name) {
+                var envObj = allEnvironments.find(function (e) { return e.name === j.environment_name; });
+                if (envObj) jobCategory = envObj.category || '';
+            }
+            cfg.trainingRuns.push({
+                id: j.job_id,
+                job_id: j.job_id,
+                name: j.run_name || fallbackName,
+                description: (j.algorithm || '') + ' training on ' + _humanizeName(j.environment_name || ''),
+                status: j.status || 'unknown',
+                environment: j.environment_name || '',
+                environmentDisplay: _humanizeName(j.environment_name || ''),
+                category: jobCategory,
+                model: j.model || '\u2014',
+                algorithm: j.algorithm || '\u2014',
+                progress: j.progress || 0,
+                episodes: res.total_episodes || null,
+                successRate: null,
+                avgReward: res.mean_reward || null,
+                started: j.started_at ? _fmtISODate(j.started_at) : '\u2014',
+                hil_required: j.hil_required || false,
+                model_saved: j.model_saved || false,
+                model_url: j.model_url || null,
+                model_metadata: j.model_metadata || null,
+                results: j.results,
+                baseline_results: j.baseline_results,
+                error: j.error || null
+            });
+            added++;
+        }
+    });
+    return added;
+}
+
+// ─── Load persisted training runs from backend API (initial page load) ───
+var _persistedTrainingRunsLoaded = {};
+
+async function _ensurePersistedTrainingRuns(envName, envCategory) {
+    var cacheKey = envName + '|' + envCategory;
+    if (_persistedTrainingRunsLoaded[cacheKey]) return;
+    _persistedTrainingRunsLoaded[cacheKey] = true;
+
+    try {
+        var res = await fetch(API_BASE + '/api/training/jobs');
+        if (!res.ok) return;
+        var data = await res.json();
+        var added = _mergeTrainingJobsIntoConfig(data.jobs || []);
+        if (added > 0) {
+            console.log('[Training] Loaded ' + added + ' persisted training run(s) for ' + envName);
+        }
+    } catch (e) {
+        console.warn('[Training] Failed to load persisted training runs:', e);
+    }
+}
+
+// ─── Force-refresh training runs from API and re-render section ───
+function _fetchAndRefreshTrainingSection(envName, envCategory) {
+    // Invalidate cache so next page visit also re-fetches
+    _persistedTrainingRunsLoaded[envName + '|' + envCategory] = false;
+
+    fetch(API_BASE + '/api/training/jobs')
+        .then(function (res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.json();
+        })
+        .then(function (data) {
+            _mergeTrainingJobsIntoConfig(data.jobs || []);
+            _refreshTrainingSectionInDetail(envName, envCategory);
+        })
+        .catch(function (err) {
+            console.warn('[Training] Failed to refresh training runs:', err);
+        });
+}
+
 // ─── Run data map for lazy inline report rendering ───
 var _trainingRunDataMap = {};
 
@@ -5116,11 +5246,12 @@ async function showEnvironmentDetails(envName) {
         return;
     }
 
-    // Pre-load persisted tools, scenarios & verifiers BEFORE rendering (fixes persistence on refresh)
+    // Pre-load persisted tools, scenarios, verifiers & training runs BEFORE rendering
     await Promise.all([
         _ensurePersistedTools(envName),
         _ensurePersistedScenarios(envName, env.category || ''),
-        _ensurePersistedVerifiers(envName, env.category || '')
+        _ensurePersistedVerifiers(envName, env.category || ''),
+        _ensurePersistedTrainingRuns(envName, env.category || '')
     ]);
 
     // Enrich HuggingFace environments with RL defaults from category registry
@@ -5709,6 +5840,17 @@ function toggleTrainingInline(envName) {
     } else {
         // Hide inline iframe
         wrap.style.display = 'none';
+        // Refresh training section with fresh API data
+        if (iframe && iframe.src) {
+            try {
+                var params = new URLSearchParams(new URL(iframe.src, window.location.origin).search);
+                var iframeEnvName = params.get('env') || '';
+                if (iframeEnvName) {
+                    var env = allEnvironments.find(function (e) { return e.name === iframeEnvName; });
+                    _fetchAndRefreshTrainingSection(iframeEnvName, env ? env.category || '' : '');
+                }
+            } catch (e) { /* ignore URL parse errors */ }
+        }
     }
 }
 window.toggleTrainingInline = toggleTrainingInline;
@@ -5718,6 +5860,18 @@ window.addEventListener('message', function (event) {
     if (event.data && event.data.type === 'training-back-to-env') {
         var wrap = document.getElementById('training-inline-iframe-wrap');
         if (wrap) wrap.style.display = 'none';
+        // Refresh training section with fresh API data after iframe closes
+        var iframe = document.getElementById('training-inline-iframe');
+        if (iframe && iframe.src) {
+            try {
+                var params = new URLSearchParams(new URL(iframe.src, window.location.origin).search);
+                var msgEnvName = params.get('env') || '';
+                if (msgEnvName) {
+                    var env = allEnvironments.find(function (e) { return e.name === msgEnvName; });
+                    _fetchAndRefreshTrainingSection(msgEnvName, env ? env.category || '' : '');
+                }
+            } catch (e) { /* ignore URL parse errors */ }
+        }
     }
 });
 
