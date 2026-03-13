@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Centific RL Environment & Agent</title>
+    <title>Centific RLEaaS</title>
     <link rel="stylesheet" href="/static/landing.css?v=8">
     <link rel="stylesheet" href="/static/global-nav.css">
     <link rel="stylesheet" href="/static/toast.css">
@@ -25,7 +25,7 @@
         <div class="landing-nav-wrap">
             <a href="/" class="landing-logo">
                 <img src="/static/logo.svg" alt="" class="logo-icon" width="40" height="40">
-                <span class="logo-text"><span class="logo-brand">Centific</span><span class="logo-product">RL Environment & Agent</span></span>
+                <span class="logo-text"><span class="logo-brand">Centific</span><span class="logo-product">RLEaaS</span></span>
             </a>
             <nav class="landing-nav">
                 <a href="/environments" class="nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-0.125em"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Environments</a>
@@ -57,7 +57,7 @@
         <section class="landing-hero">
             <div class="hero-content">
                 <div class="hero-left">
-                    <h1>Reinforcement Learning Environment & Agent<br>for <span class="hero-highlight">Real-World Workflows</span></h1>
+                    <h1>RLEaaS<br>for <span class="hero-highlight">Real-World Workflows</span></h1>
                     <p class="landing-pitch">Train and evaluate AI agents in production-ready reinforcement learning environments designed for real enterprise decisions. From revenue cycle management and claims processing to clinical pathways and complex enterprise workflows, our environments allow agents to practice tasks, receive structured feedback, and continuously improve performance. Each environment integrates with enterprise systems and scales from safe simulation to real-world deployment.</p>
                     <form class="hero-search-form" id="hero-search-form" action="/environments" method="get">
                         <div class="hero-search-box">
@@ -272,7 +272,7 @@
                         }
                     }).catch(function(err) {
                         var mailtoBody = 'Use case: ' + useCase + '\n\nOrganization: ' + org + '\n\n-- ' + name + ' (' + email + ')';
-                        window.location.href = 'mailto:kausalyarani.k@centific.com?subject=' + encodeURIComponent('RL Environment & Agent: ' + name) + '&body=' + encodeURIComponent(mailtoBody);
+                        window.location.href = 'mailto:kausalyarani.k@centific.com?subject=' + encodeURIComponent('RLEaaS: ' + name) + '&body=' + encodeURIComponent(mailtoBody);
                     });
                 });
             }

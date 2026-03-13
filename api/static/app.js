@@ -394,7 +394,7 @@ const SDK_TEMPLATES = {
     custom: null
 };
 
-const DEFAULT_TERRAFORM_TEMPLATE = '# Welcome to Centific RL Environment & Agent - Terraform Template\n' +
+const DEFAULT_TERRAFORM_TEMPLATE = '# Welcome to Centific RLEaaS - Terraform Template\n' +
     '# This template provisions a small web application for\n' +
     '# exploring reinforcement learning concepts.\n\n' +
     'terraform {\n' +

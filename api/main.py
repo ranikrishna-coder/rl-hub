@@ -81,7 +81,7 @@ from governance.safety_guardrails import SafetyGuardrails, SafetyConfig
 from governance.risk_thresholds import RiskThresholds, RiskThresholdConfig
 from governance.compliance_rules import ComplianceRules
 
-app = FastAPI(title="RL Environment & Agent API", version="1.0.0")
+app = FastAPI(title="RLEaaS API", version="1.0.0")
 
 # Mount static files
 static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -410,7 +410,7 @@ async def catalog_redirect():
 @app.get("/api")
 async def api_info():
     return {
-        "message": "RL Environment & Agent API",
+        "message": "RLEaaS API",
         "version": "1.0.0",
         "endpoints": {
             "landing": "/",
@@ -482,7 +482,7 @@ Describe your use case:
 {sub.use_case}
 """
         msg = MIMEMultipart()
-        msg["Subject"] = f"RL Environment & Agent contact: {sub.name} ({sub.organization})"
+        msg["Subject"] = f"RLEaaS contact: {sub.name} ({sub.organization})"
         msg["From"] = from_addr
         msg["To"] = CONTACT_EMAIL_TO
         msg.attach(MIMEText(body, "plain"))
@@ -900,7 +900,7 @@ async def get_config():
     config_content = f"""// API Configuration
 // This can be overridden by setting window.API_BASE before loading app.js
 window.API_BASE = window.API_BASE || '{api_url}';
-console.log('🚀 RL Environment & Agent - API Base URL:', window.API_BASE);
+console.log('🚀 RLEaaS - API Base URL:', window.API_BASE);
 """
     from fastapi.responses import Response
     return Response(content=config_content, media_type="application/javascript")
